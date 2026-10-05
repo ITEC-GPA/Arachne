@@ -89,7 +89,18 @@ internal static class Program
         if (assembled == null || assembled.Nodes.Count != 25 || assembled.Edges.Count != 40 || assembled.Faces.Count != 16)
             throw new InvalidOperationException("Demo model does not match the expected 25 nodes, 40 cables, 16 faces.");
         Console.WriteLine("Rhino/Grasshopper model check: 25 nodes, 40 cables, 16 faces.");
-        if (!TensileFormFindingSolver.IsAvailable)
+        if (TensileFormFindingSolver.IsAvailable)
+        {
+            run.Value = true; run.ExpireSolution(false); document.NewSolution(false);
+            string state = solver.Params.Output[6].VolatileData.AllData(true).Single().ToString();
+            if (state != "Converged" || solver.Params.Output[0].VolatileDataCount != 25 || solver.Params.Output[1].VolatileDataCount != 40)
+                throw new InvalidOperationException("Equilibrium check failed: " + state + "; " + string.Join("; ",solver.Params.Output[7].VolatileData.AllData(true)));
+            var mesh = ((GH_Mesh)solver.Params.Output[2].VolatileData.AllData(true).Single()).Value;
+            if (mesh.Faces.Count != 16) throw new InvalidOperationException("Solved mesh lost faces.");
+            Console.WriteLine("Rhino/Grasshopper equilibrium: Converged, 25 nodes, 40 cables, 16 faces.");
+            run.Value = false; run.ExpireSolution(false); document.NewSolution(false);
+        }
+        else
         {
             run.Value = true; run.ExpireSolution(false); document.NewSolution(false);
             string state = solver.Params.Output[6].VolatileData.AllData(true).Single().ToString();
@@ -115,7 +126,7 @@ internal static class Program
         if (!binary.AppendObject(document, "Definition") || !binary.WriteToFile(Path.ChangeExtension(path, ".gh"), true, false))
             throw new IOException("Could not write the binary GH example.");
         Console.WriteLine("Generated and parsed: " + path);
-        Console.WriteLine("9 objects, 10 connections; Run=False. No numerical solution executed.");
+        Console.WriteLine("9 objects, 10 connections; saved with Run=False. Solver checked when available.");
         return 0;
     }
 

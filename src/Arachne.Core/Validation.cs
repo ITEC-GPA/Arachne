@@ -28,6 +28,7 @@ namespace Arachne.Core
             NonNegative(settings.AlgebraicMaxIterations, "Algebraic iterations");
             NonNegative(settings.AlgebraicToleranceA, "Algebraic tolerance A");
             NonNegative(settings.AlgebraicToleranceB, "Algebraic tolerance B");
+            if (settings.AlgebraicToleranceB != 0) throw new ArgumentException("TensileLib 2.0.5.3 supports one algebraic tolerance: use A and keep B at 0.");
             NonNegative(settings.Gravity, "Gravity"); Finite(settings.Pressure, "Pressure");
             Point(settings.PlaneOrigin); Vector(settings.PlaneNormal);
             Positive(settings.PlaneNormal.X * settings.PlaneNormal.X + settings.PlaneNormal.Y * settings.PlaneNormal.Y + settings.PlaneNormal.Z * settings.PlaneNormal.Z, "Plane normal squared length");

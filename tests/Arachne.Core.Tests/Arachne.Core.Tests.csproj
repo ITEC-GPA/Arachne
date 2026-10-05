@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
+  <PropertyGroup><TargetFramework>net48</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Arachne.Core\Arachne.Core.csproj" />
     <Reference Include="GPCGeometry"><HintPath>$(GpcGeometryPath)</HintPath></Reference>

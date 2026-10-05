@@ -1,5 +1,7 @@
 using System;
 using System.Threading;
+using System.Collections.Generic;
+using System.Linq;
 using Arachne.Core;
 using GPC.Geometry;
 using GPC.Utilities.Units;
@@ -68,5 +70,42 @@ if(!TensileFormFindingSolver.IsAvailable)
         var result=new TensileFormFindingSolver().Solve(ModelBuilder.Build(new[]{Edge(0,1)}),new SolverSettings());
         Check(result.Status==SolveStatus.DependencyMissing && result.Positions.Count==0 && result.Messages.Count>0);
     });
-Console.WriteLine($"{passed} passed, {failed} failed. Numerical TensileLib validation is not included.");
+if(TensileFormFindingSolver.IsAvailable)
+{
+    FormModel Star()
+    {
+        var center=new Point3d(1.1,2.2,3.3);
+        var offsets=new[]{new Vector3d(2,0,0),new Vector3d(-2,0,0),new Vector3d(0,2,0),new Vector3d(0,-2,0),new Vector3d(0,0,2),new Vector3d(0,0,-2)};
+        var cables=new List<Cable>();var conditions=new List<NodeCondition>();
+        foreach(var offset in offsets)
+        {
+            var end=new Point3d(1+offset.X,2+offset.Y,3+offset.Z);
+            cables.Add(new Cable{Start=center,End=end,Target=2,TargetWeight=1});
+            conditions.Add(new NodeCondition{Position=end,FixX=true,FixY=true,FixZ=true});
+        }
+        conditions.Add(new NodeCondition{Position=center,Force=new Vector3d(0,0,-6)});
+        return ModelBuilder.Build(cables,conditions);
+    }
+    foreach(var kind in new[]{SolverKind.Linear,SolverKind.LinearIterative,SolverKind.NonLinear})
+        Test("Real TensileLib equilibrium: "+kind,()=>{
+            var model=Star();var result=new TensileFormFindingSolver().Solve(model,new SolverSettings{Kind=kind,CreateMesh=false,Tolerance=1e-9});
+            if(result.Status!=SolveStatus.Converged)throw new Exception(string.Join("; ",result.Messages));
+            Check(result.Positions.Count==7 && result.Faces.Count==0 && result.AxialForces.Count==6);
+            double rx=0,ry=0,rz=-6;
+            for(int i=0;i<6;i++)
+            {
+                var delta=result.Positions[i+1]-result.Positions[0];double q=result.ForceDensities[i];
+                rx+=q*delta.X;ry+=q*delta.Y;rz+=q*delta.Z;
+                Check(Validation.Distance(result.Positions[i+1],model.Nodes[i+1].Position)<1e-10);
+            }
+            Check(Math.Abs(rx)+Math.Abs(ry)+Math.Abs(rz)<1e-6);
+            Check(Math.Abs(model.Nodes[0].Position.Z-3.3)<1e-10);
+            if(kind!=SolverKind.NonLinear)Check(Validation.Distance(result.Positions[0],new Point3d(1,2,2.5))<1e-7);
+        });
+    Test("Unsupported second algebraic tolerance is rejected explicitly",()=>{
+        var result=new TensileFormFindingSolver().Solve(Star(),new SolverSettings{AlgebraicToleranceB=1e-6});
+        Check(result.Status==SolveStatus.Failed && result.Positions.Count==0 && result.Messages.Any(m=>m.Contains("one algebraic tolerance")));
+    });
+}
+Console.WriteLine($"{passed} passed, {failed} failed. Includes analytical equilibrium checks when TensileLib is available.");
 return failed==0?0:1;

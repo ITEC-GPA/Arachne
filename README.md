@@ -2,7 +2,7 @@
 
 Primo progetto Grasshopper dedicato alla ricerca di forma di reti di cavi e membrane, estratto dal percorso di form finding di FeMM. Il modello usa **metri, newton, chilogrammi e secondi**. SAP, Straus, ETABS e il modello FEM generale di FeMM non sono dipendenze di Arachne.
 
-**Stato:** il progetto compila con le DLL locali GPCGeometry e GPCUtilities. Il motore TensileLib non è ancora disponibile: i componenti geometrici e di modellazione sono utilizzabili, mentre Form Find restituisce `DependencyMissing` e non produce una forma calcolata. L'adattatore TensileLib è predisposto sui metodi osservati in FeMM, ma il suo ramo di codice non è ancora compilato né validato con la DLL reale.
+**Stato:** Arachne compila con TensileLib GPC e le DLL locali. Il collegamento reale supera i test di equilibrio lineare, iterativo e non lineare. Vedere [registro modifiche](docs/CHANGELOG.md) per verifiche e limiti.
 
 ## Struttura
 
@@ -70,17 +70,16 @@ I percorsi predefiniti, modificabili tramite proprietà MSBuild o parametri dell
 |---|---|
 | GpcGeometryPath | `../Geometry/GPCGeometry/bin/Release/netstandard2.0/GPCGeometry.dll` |
 | GpcUtilitiesPath | `../Utilities/GPCUtilities/bin/Release/netstandard2.0/GPCUtilities.dll` |
-| TensileLibPath | `lib/TensileLib.dll` |
+| TensileLibPath | `../tensilelib/TensileLib/bin/Release/TensileLib.dll` |
 | RhinoSystemDir | `C:/Program Files/Rhino 8/System` |
 | GrasshopperDir | `C:/Program Files/Rhino 8/Plug-ins/Grasshopper` |
 
-## Quando arriva TensileLib
+## Motore TensileLib
 
-1. Copiare `TensileLib.dll` in `lib`, oppure indicare `-TensileLibPath` allo script.
-2. Compilare con `.\scripts\build.ps1 -RequireTensile`. La presenza della DLL attiva il ramo reale dell'adattatore: eventuali incompatibilità devono emergere in compilazione.
-3. Verificare le dipendenze e le firme effettive della DLL. Il progetto FeMM usava TensileLib 2.0.6 con tipi `Maffeis.Geometry`. Questa versione di Arachne usa **GPC.Geometry**: rinominare una DLL non rende compatibili le due identità. Se TensileLib richiede MaffeisGeometry, servirà una build di TensileLib per GPC oppure una revisione esplicita dell'integrazione.
-4. Eseguire confronti numerici con FeMM: rete a densità costante, carichi nodali, lunghezza/forza imposta, membrana, pressione e peso proprio. I controlli attuali non sostituiscono questi confronti.
+Compilare prima `../tensilelib/TensileLib.sln` in Release, poi eseguire `./scripts/build.ps1 -RequireTensile`. I percorsi possono essere cambiati con i parametri dello script. Core e test usano net48, coerente con il motore net472 e il plugin Grasshopper.
 
-Ulteriori dipendenze transitive della DLL si potranno verificare solo quando sarà disponibile. Non sono stati creati solutori sostitutivi o DLL fittizie.
+Il pacchetto include TensileLib, alglibnet2, GPCGeometry, GPCUtilities, MathNet.Numerics e System.Drawing.Common. La tolleranza algebrica B deve essere 0; A=0 e AI=0 scelgono i default del motore (1e-5 e 10000). Create mesh disattivato sopprime l'output mesh, ma il motore puo generare facce interne.
 
-Per i dettagli vedere [architettura](docs/ARCHITECTURE.md) e [porting e correzioni](docs/PORTING.md).
+Il riferimento teorico indicato e Shell Structures for Architecture: Form Finding and Optimization (Routledge, 2014), capitoli 6 e 12. I casi con membrane, pressioni, peso proprio e vincoli combinati richiedono ulteriori confronti dedicati.
+
+Vedere [architettura](docs/ARCHITECTURE.md), [porting](docs/PORTING.md) e [registro modifiche](docs/CHANGELOG.md).

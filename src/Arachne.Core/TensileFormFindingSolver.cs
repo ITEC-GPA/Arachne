@@ -35,7 +35,7 @@ namespace Arachne.Core
                 SolveAvailable(model, settings, cancellation, result);
 #else
                 result.Status = SolveStatus.DependencyMissing;
-                result.Messages.Add("TensileLib non disponibile: aggiungere lib/TensileLib.dll e ricompilare. Nessun calcolo eseguito.");
+                result.Messages.Add("TensileLib non disponibile: compilare il progetto adiacente in Release o impostare TensileLibPath e ricompilare. Nessun calcolo eseguito.");
 #endif
             }
             catch (OperationCanceledException) { result.Status = SolveStatus.Cancelled; result.Messages.Add("Calculation cancelled."); }
@@ -50,8 +50,7 @@ namespace Arachne.Core
         }
 
 #if TENSILELIB
-        // Port of the FeMM 2024 calls. Requires a TensileLib build using GPC.Geometry.
-        // This branch must be compiled and numerically checked with the real DLL when supplied.
+        // Adapter for the local TensileLib 2.0.5.3 API migrated to GPC.Geometry.
         private static void SolveAvailable(FormModel source, SolverSettings settings, CancellationToken cancellation, FormResult result)
         {
             var model = new Model();
@@ -75,7 +74,7 @@ namespace Arachne.Core
             foreach (var edge in source.Edges)
             {
                 var cable = edge.Cable;
-                model.AddNewBeam(nodes[edge.Start], nodes[edge.End], plane);
+                model.AddNewBeam(nodes[edge.Start].Id, nodes[edge.End].Id, plane);
                 var beam = model.Beams.Last();
                 beams.Add(beam);
                 edgesByNodes.Add((edge.Start, edge.End), beam);
@@ -113,15 +112,19 @@ namespace Arachne.Core
                 model.Plates.Add(plate);
             }
             model.Gravity = settings.Gravity; model.Pressure = settings.Pressure;
-            model.Plane = plane; model.CreateMesh = settings.CreateMesh;
+            // This engine always performs its internal mesh initialization. CreateMesh
+            // controls only the output returned by Arachne, not the engine's topology.
+            model.Plane = plane;
             if (settings.CreateMesh && model.Plates.Count == 0) model.GeneratePlatesFromBeams();
             if (settings.Pressure != 0 && model.Plates.Count == 0) throw new InvalidOperationException("Pressure requires valid faces; supply a mesh to Model.");
             if (settings.Gravity != 0 && source.Edges.Any(e => e.Cable.Area == 0 || e.Cable.Density == 0))
                 Warn(result, "Some cables have zero area or density and therefore no self-weight.");
 
+            double algebraicTolerance = settings.AlgebraicToleranceA > 0 ? settings.AlgebraicToleranceA : 1e-5;
+            int algebraicIterations = settings.AlgebraicMaxIterations > 0 ? settings.AlgebraicMaxIterations : 10000;
             ForceDensitySolver solver = settings.Kind == SolverKind.NonLinear
-                ? (ForceDensitySolver)new NonLinearForceDensitySolver(model, settings.MaxIterations, settings.Tolerance, settings.AlgebraicToleranceA, settings.AlgebraicToleranceB, settings.AlgebraicMaxIterations)
-                : new LinearForceDensitySolver(model, settings.MaxIterations, settings.Tolerance, settings.AlgebraicToleranceA, settings.AlgebraicToleranceB, settings.AlgebraicMaxIterations);
+                ? (ForceDensitySolver)new NonLinearForceDensitySolver(model, settings.MaxIterations, settings.Tolerance, algebraicTolerance, algebraicIterations)
+                : new LinearForceDensitySolver(model, settings.MaxIterations, settings.Tolerance, algebraicTolerance, algebraicIterations);
             bool acceptedCode = false;
             bool converged = IterationControl.Run(settings.Kind == SolverKind.LinearIterative ? settings.MaxIterations : 1, iteration =>
             {

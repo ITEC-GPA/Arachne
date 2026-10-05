@@ -24,7 +24,7 @@ namespace Arachne.Grasshopper.Components
             p.AddPlaneParameter("Plane","PL","Reference plane for projection and mesh generation",GH_ParamAccess.item,Plane.WorldXY);
             p.AddIntegerParameter("Algebraic iterations","AI","0 uses TensileLib default",GH_ParamAccess.item,0);
             p.AddNumberParameter("Algebraic tolerance A","TA","0 uses TensileLib default",GH_ParamAccess.item,0);
-            p.AddNumberParameter("Algebraic tolerance B","TB","0 uses TensileLib default",GH_ParamAccess.item,0);
+            p.AddNumberParameter("Algebraic tolerance B","TB","Reserved for compatibility; keep 0. This TensileLib version supports only tolerance A.",GH_ParamAccess.item,0);
         }
         protected override void RegisterOutputParams(GH_OutputParamManager p) => p.AddGenericParameter("Settings","S","Solver settings",GH_ParamAccess.item);
         protected override void Solve(IGH_DataAccess data)
