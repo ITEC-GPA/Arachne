@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <TargetExt>.gha</TargetExt>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Arachne.Core\Arachne.Core.csproj" />
+    <Reference Include="RhinoCommon"><HintPath>$(RhinoSystemDir)\RhinoCommon.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Grasshopper"><HintPath>$(GrasshopperDir)\Grasshopper.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="GH_IO"><HintPath>$(GrasshopperDir)\GH_IO.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="GPCGeometry"><HintPath>$(GpcGeometryPath)</HintPath><Private>true</Private></Reference>
+    <Reference Include="GPCUtilities"><HintPath>$(GpcUtilitiesPath)</HintPath><Private>true</Private></Reference>
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+  <Target Name="CheckRhino" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(RhinoSystemDir)\RhinoCommon.dll')" Text="RhinoCommon.dll non trovata: impostare RhinoSystemDir." />
+    <Error Condition="!Exists('$(GrasshopperDir)\Grasshopper.dll')" Text="Grasshopper.dll non trovata: impostare GrasshopperDir." />
+  </Target>
+</Project>

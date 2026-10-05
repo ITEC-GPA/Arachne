@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <Version>0.1.0</Version>
+    <Authors>GPC</Authors>
+    <ArachneRoot>$(MSBuildThisFileDirectory)</ArachneRoot>
+    <GpcGeometryPath Condition="'$(GpcGeometryPath)' == ''">$(ArachneRoot)..\Geometry\GPCGeometry\bin\Release\netstandard2.0\GPCGeometry.dll</GpcGeometryPath>
+    <GpcUtilitiesPath Condition="'$(GpcUtilitiesPath)' == ''">$(ArachneRoot)..\Utilities\GPCUtilities\bin\Release\netstandard2.0\GPCUtilities.dll</GpcUtilitiesPath>
+    <TensileLibPath Condition="'$(TensileLibPath)' == ''">$(ArachneRoot)lib\TensileLib.dll</TensileLibPath>
+    <RhinoSystemDir Condition="'$(RhinoSystemDir)' == ''">C:\Program Files\Rhino 8\System</RhinoSystemDir>
+    <GrasshopperDir Condition="'$(GrasshopperDir)' == ''">C:\Program Files\Rhino 8\Plug-ins\Grasshopper</GrasshopperDir>
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+</Project>
