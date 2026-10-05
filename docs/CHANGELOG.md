@@ -49,3 +49,13 @@ La suite Rhino/Grasshopper copre tutti i 19 componenti aggiunti: 21 prove, 17 ri
 | Descriptor Ext: liste diverse | Avviso seguito da eccezione per indice fuori intervallo. | Avviso e interruzione senza risultato. |
 
 I primi falsi negativi del banco di prova (documento Rhino non attivo, output letti dopo la chiusura del documento GH e valori aggiunti ai default) sono stati eliminati nel test harness; non richiedono cambiamenti ai componenti. Line-Up e gli strumenti che usano la tolleranza del documento passano con il contesto Rhino corretto.
+
+## Passo 5 - correzioni Patterning dopo il commit 388be78
+
+- ARAPHelper: scala i pin secondo la normalizzazione della DLL nativa 0.9.0, sia per Deform sia per Unwrap. Mesh, indici e coordinate controllati prima delle chiamate native. La DLL nativa non e stata modificata.
+- DeformArap: rifiuta indici negativi o fuori mesh e posizioni in eccesso; non elimina piu solo gli indici lasciando disallineate le posizioni. Conserva il completamento dei pin senza coordinate e la gestione dei duplicati. Gli errori di caricamento/configurazione sono gestiti nello stesso blocco della chiamata nativa.
+- Decompensation: usa la lunghezza geometrica originale; inserisce i punti di cambio del descrittore; interpola copie locali ordinate. Gestisce segmenti lineari, estremi, punti coincidenti con scale uguali e segnala quelli con scale incompatibili. Non modifica piu descrittori o curve condivisi. Conservata la convenzione originale di scala rispetto al centro medio degli estremi.
+- Descriptor Ext: dopo l'avviso per liste diverse termina senza produrre un descrittore parziale.
+- Aggiunti quattro controlli ai 21 precedenti: ARAP Unwrap traslato, rifiuto dei pin negativi, compensazione 10%/20% e descrittori con punti coincidenti su una linea.
+
+Esito: **25/25 prove Patterning**, nessun errore di compilazione. Ricalcolo e riapertura dello schema SaddleNet riusciti; equilibrio con 25 nodi, 40 cavi e 16 facce. Gli output nulli predisposti da Grasshopper nei percorsi di errore vengono distinti da vera geometria nei test.

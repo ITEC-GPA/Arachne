@@ -59,23 +59,33 @@ namespace Arachne.Grasshopper.Components.Patterning
             DA.GetDataList(3, points);
             DA.GetData(4, ref isUnwrap);
 
-            ARAPHelper.Configure(max_iter, 0, 0, 0, 0);
+            if (mesh.Value == null || !mesh.Value.IsValid || mesh.Value.Faces.Count == 0 || max_iter <= 0)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "A valid mesh and positive iteration count are required.");
+                return;
+            }
 
             Mesh mesh3D = mesh.Value.DuplicateMesh();
             mesh3D.Faces.ConvertQuadsToTriangles();
 
             for (int i = 0; i < pins.Count; i++)
             {
-                if (pins[i] >= mesh.Value.Vertices.Count)
+                if (pins[i] < 0 || pins[i] >= mesh.Value.Vertices.Count)
                 {
-                    pins.RemoveAt(i);
-                    i--;
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Pinned vertex index is outside the mesh.");
+                    return;
                 }
             }
 
             if (pins.Count == 0)
             {
                 pins.Add(0);
+            }
+
+            if (points.Count > pins.Count)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "More pin positions than pinned vertices.");
+                return;
             }
 
             while (points.Count < pins.Count)
@@ -102,6 +112,7 @@ namespace Arachne.Grasshopper.Components.Patterning
 
             try
             {
+                ARAPHelper.Configure(max_iter, 0, 0, 0, 0);
                 if (isUnwrap)
                 {
                     List<Point2d> positions = new List<Point2d>();

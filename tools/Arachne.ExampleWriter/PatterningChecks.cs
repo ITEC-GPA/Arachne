@@ -22,13 +22,13 @@ internal static class PatterningChecks
         parameter.PersistentData.Clear();
         parameter.SetPersistentData((IEnumerable<T>)values);
     }
-    private static void Solve(GH_Component component)
+    private static void Solve(GH_Component component, bool expectError=false)
     {
         var doc=new GH_Document { Enabled=true };
         documents.Add(doc);
             component.CreateAttributes();doc.AddObject(component,false);doc.NewSolution(false);
             var errors=component.RuntimeMessages(GH_RuntimeMessageLevel.Error);
-            Check(errors.Count==0,component.Name+": "+string.Join("; ",errors));
+            Check(expectError ? errors.Count>0 : errors.Count==0,component.Name+": "+string.Join("; ",errors));
     }
     private static T Output<T>(GH_Component component,int index=0) where T:class,IGH_Goo
     { return (T)component.Params.Output[index].VolatileData.AllData(true).First(); }
@@ -66,6 +66,24 @@ internal static class PatterningChecks
             Set(c,2,new GH_Integer(0),new GH_Integer(1));Set(c,3,new GH_Point(new Point3d(1,1,0)),new GH_Point(new Point3d(3,1,0)));Solve(c);ValidMesh(c);
             Check(Output<GH_Mesh>(c).Value.Vertices[0].DistanceTo(new Point3f(1,1,0))<1e-5,"Pin moved: " + Output<GH_Mesh>(c).Value.Vertices[0]);
         });
+        Test("Native ARAP unwrap respects translated pins",()=>{
+            var c=new DeformArapComponent();var panel=Panel(false);panel.Translate(new Vector3d(-20,-30,-5));
+            Set(c,0,new GH_Mesh(panel));Set(c,1,new GH_Integer(20));Set(c,2,new GH_Integer(0),new GH_Integer(1));
+            Set(c,3,new GH_Point(new Point3d(-19,-29,0)),new GH_Point(new Point3d(-17,-29,0)));Set(c,4,new GH_Boolean(true));Solve(c);ValidMesh(c);
+            var mesh=Output<GH_Mesh>(c).Value;
+            Check(mesh.Vertices[0].DistanceTo(new Point3f(-19,-29,0))<1e-5 && mesh.Vertices[1].DistanceTo(new Point3f(-17,-29,0))<1e-5,"Unwrap moved pins");
+        });
+        Test("ARAP rejects invalid pins before native call",()=>{
+            var c=new DeformArapComponent();Set(c,0,new GH_Mesh(Panel(false)));Set(c,2,new GH_Integer(-1));Set(c,3,new GH_Point(Point3d.Origin));Solve(c,true);
+            Check(!c.Params.Output[0].VolatileData.AllData(true).Any(),"Invalid pins produced geometry");
+        });
+        Test("Compensation applies warp and weft percentages",()=>{
+            var c=new CompensationComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(10));Set(c,3,new GH_Number(20));Solve(c);ValidMesh(c);
+            var result=Output<GH_Mesh>(c).Value;
+            Check(Math.Abs(AreaMassProperties.Compute(result).Area-2.88)<1e-3,"Wrong compensated area");
+            Check(Math.Abs(result.Vertices[0].DistanceTo(result.Vertices[1])-1.8)<1e-3,"Wrong warp length");
+            Check(Math.Abs(result.Vertices[1].DistanceTo(result.Vertices[2])-1.6)<1e-3,"Wrong weft length");
+        });
         Test("Decompensation descriptor and identity mapping",()=>{
             var descriptor=new DecompensationDescriptorComponent();for(int i=2;i<6;i++)Set(descriptor,i,new GH_Number(0));Solve(descriptor);
             var c=new DecompensationComponent();var curve=new PolylineCurve(new[]{new Point3d(1,1,0),new Point3d(3,1,0),new Point3d(3,3,0)});
@@ -93,10 +111,16 @@ internal static class PatterningChecks
             Set<IGH_Goo>(c,1,new GH_ObjectWrapper(descriptor));Solve(c);
             Check(!descriptor.Points[1].IsNormalized && descriptor.Points[1].Length==4,"Input descriptor was changed");
         });
+        Test("Decompensation accepts lines and identical duplicate breakpoints",()=>{
+            var descriptor=new Arachne.Grasshopper.Helpers.DecompensationDescriptor();
+            foreach(double s in new[]{0.0,0.5,0.5,1.0})descriptor.Points.Add(new Arachne.Grasshopper.Helpers.DecompensationDescriptor.DecompensationPoint(true,s,1,1));
+            var c=new DecompensationComponent();Set(c,0,new GH_Curve(new LineCurve(Point3d.Origin,new Point3d(4,0,0))));Set<IGH_Goo>(c,1,new GH_ObjectWrapper(descriptor));Solve(c);
+            Check(Output<GH_Curve>(c).Value.IsValid && Math.Abs(Output<GH_Curve>(c).Value.GetLength()-4)<1e-7,"Invalid curve at a breakpoint");
+        });
         Test("Extended descriptor rejects mismatched lists",()=>{
             var c=new DecompensationDescriptorExtComponent();Set(c,0,new GH_Number(0),new GH_Number(1));Set(c,1,new GH_Boolean(true));
             Set(c,2,new GH_Number(0),new GH_Number(0));Set(c,3,new GH_Number(0),new GH_Number(0));Solve(c);
-            Check(c.Params.Output[0].VolatileDataCount==0 && c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0,"Invalid lists accepted");
+            Check(!c.Params.Output[0].VolatileData.AllData(true).Any() && c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0,"Invalid lists accepted");
         });
         Test("Borders and ordering",()=>{
             var c=new BordersComponent();Set(c,0,new GH_Mesh(Panel()));Solve(c);Check(c.Params.Output[0].VolatileDataCount>0,"No borders");

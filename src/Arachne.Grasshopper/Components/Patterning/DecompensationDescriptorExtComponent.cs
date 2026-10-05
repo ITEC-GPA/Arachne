@@ -66,6 +66,7 @@ namespace Arachne.Grasshopper.Components.Patterning
             if (length.Count != normalized.Count || length.Count != warp.Count || length.Count != weft.Count)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "All lists must have the same length");
+                return;
             }
 
             DecompensationDescriptor descriptor = new DecompensationDescriptor();

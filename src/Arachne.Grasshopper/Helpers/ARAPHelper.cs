@@ -11,6 +11,30 @@ namespace Arachne.Grasshopper.Helpers
 	internal class ARAPHelper
 	{
 
+        // Native 0.9.0 normalizes vertices to 100 but reads pin positions without scaling.
+        // Reproduce its scale here; do not change the caller's coordinates or the native binary.
+        private static double NativePinScale(Mesh mesh)
+        {
+            if (mesh == null || !mesh.IsValid || mesh.Faces.Count == 0 || mesh.Faces.QuadCount != 0)
+                throw new ArgumentException("ARAP requires a valid triangulated mesh.");
+            double min = float.MaxValue, max = 1.1754943508222875e-38; // FLT_MIN in the native implementation
+            foreach (var vertex in mesh.Vertices)
+            {
+                min = Math.Min(min, Math.Min(vertex.X, Math.Min(vertex.Y, vertex.Z)));
+                max = Math.Max(max, Math.Max(vertex.X, Math.Max(vertex.Y, vertex.Z)));
+            }
+            double scale = (max - min) / 100.0;
+            if (scale <= 0 || double.IsInfinity(scale) || double.IsNaN(scale))
+                throw new ArgumentException("ARAP mesh has zero or invalid coordinate range.");
+            return scale;
+        }
+
+        private static void ValidatePins(Mesh mesh, List<int> pins, int positionCount)
+        {
+            if (pins.Count == 0 || pins.Count != positionCount || pins.Distinct().Count() != pins.Count ||
+                pins.Any(i => i < 0 || i >= mesh.Vertices.Count))
+                throw new ArgumentException("ARAP pins must be distinct valid vertex indices with matching positions.");
+        }
 		public static void LibVersion()
 		{
 			IGLWrapper.Version();
@@ -69,6 +93,9 @@ namespace Arachne.Grasshopper.Helpers
 
 		public static void Unwrap(Mesh input, Mesh output, List<int> pins, List<Point2d> pinsPositions)
 		{
+            double scale = NativePinScale(input);
+            ValidatePins(input, pins, pinsPositions.Count);
+            if (pinsPositions.Any(p => !p.IsValid)) throw new ArgumentException("Pin coordinates must be finite.");
 			if (input.IsValid)
 			{
 				if (input.Vertices.Count > 0 && input.Faces.Count > 0)
@@ -101,8 +128,8 @@ namespace Arachne.Grasshopper.Helpers
 					for (int i = 0; i < nP; ++i)
 					{
 						P[i] = pins[i];
-						Z[i * 2 + 0] = pinsPositions[i].X;
-						Z[i * 2 + 1] = pinsPositions[i].Y;
+						Z[i * 2 + 0] = pinsPositions[i].X / scale;
+						Z[i * 2 + 1] = pinsPositions[i].Y / scale;
 					}
 
 					try
@@ -121,6 +148,9 @@ namespace Arachne.Grasshopper.Helpers
 
 		public static void Deform(Mesh input, Mesh output, List<int> pins, List<Point3d> pinsPositions)
 		{
+            double scale = NativePinScale(input);
+            ValidatePins(input, pins, pinsPositions.Count);
+            if (pinsPositions.Any(p => !p.IsValid)) throw new ArgumentException("Pin coordinates must be finite.");
 			if (input.IsValid)
 			{
 				if (input.Vertices.Count > 0 && input.Faces.Count > 0)
@@ -153,9 +183,9 @@ namespace Arachne.Grasshopper.Helpers
 					for (int i = 0; i < pins.Count; ++i)
 					{
 						P[i] = pins[i];
-						Z[i * 3 + 0] = pinsPositions[i].X;
-						Z[i * 3 + 1] = pinsPositions[i].Y;
-						Z[i * 3 + 2] = pinsPositions[i].Z;
+						Z[i * 3 + 0] = pinsPositions[i].X / scale;
+						Z[i * 3 + 1] = pinsPositions[i].Y / scale;
+						Z[i * 3 + 2] = pinsPositions[i].Z / scale;
 					}
 
 					try
