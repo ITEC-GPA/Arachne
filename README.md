@@ -2,7 +2,7 @@
 
 Primo progetto Grasshopper dedicato alla ricerca di forma di reti di cavi e membrane, estratto dal percorso di form finding di FeMM. Il modello usa **metri, newton, chilogrammi e secondi**. SAP, Straus, ETABS e il modello FEM generale di FeMM non sono dipendenze di Arachne.
 
-**Stato:** Arachne compila con TensileLib GPC e le DLL locali. Il collegamento reale supera i test di equilibrio lineare, iterativo e non lineare. Vedere [registro modifiche](docs/CHANGELOG.md) per verifiche e limiti.
+**Stato:** Arachne compila con TensileLib GPC e le DLL locali. Contiene 30 componenti, inclusi tutti i 22 della cartella Patterning di FeMM. Sono disponibili due schemi Grasshopper verificati: ricerca di forma e sviluppo pannelli. Vedere [resoconto dettagliato](docs/RESOCONTO.md) e [registro modifiche](docs/CHANGELOG.md).
 
 ## Struttura
 
@@ -11,10 +11,10 @@ Arachne.sln
 src/
   Arachne.Core/           Modello, validazione, controllo iterazioni, adattatore TensileLib
   Arachne.Grasshopper/    Componenti .gha e generatori geometrici derivati da FeMM
-tests/Arachne.Core.Tests/ Controlli eseguibili senza Rhino e senza TensileLib
-tools/Arachne.ExampleWriter/ Generatore del documento di esempio, mediante Rhino
-examples/                Primo schema Grasshopper
-lib/                     Posizione prevista per TensileLib.dll
+tests/Arachne.Core.Tests/ Controlli del modello ed equilibri reali, senza Rhino
+tools/Arachne.ExampleWriter/ Prove dei componenti e generatore dei due esempi, mediante Rhino
+examples/                Ricerca di forma e sviluppo pannelli, GH e GHX
+lib/                     Eventuali DLL locali con percorsi configurati
 scripts/build.ps1         Compilazione, controlli e raccolta del plugin
 docs/                    Architettura e note sulle correzioni
 ```
@@ -38,7 +38,9 @@ flowchart LR
 
 Nel caso dimostrativo, collegare tutti i bordi della rete a Node Conditions con X, Y e Z bloccati. Usare Target = 1 N/m in Cable e il solutore Linear. La rete predefinita ha 25 nodi, 40 cavi, 16 facce e 16 nodi di bordo vincolati. Le quote del bordo definiscono una sella; i nodi interni partono da quota zero. Impostare **Run = False** durante la preparazione.
 
-Con TensileLib assente, Run = True deve dare `DependencyMissing`, con geometria di risultato vuota. La geometria iniziale resta visibile dall'uscita Model. I tipi intermedi sono dati transitori ricalcolati dai componenti: usare i collegamenti, non copie internalizzate del modello o dei cavi.
+Il plugin completo richiede TensileLib e la DLL nativa ARAP alla compilazione. Il solo Core mantiene la modalita senza motore per la diagnostica. I tipi intermedi sono dati transitori ricalcolati dai componenti: usare i collegamenti, non copie internalizzate del modello, dei descrittori o dei cavi.
+
+[02_Patterning.gh](examples/02_Patterning.gh) contiene un pannello inclinato, Flattening, ARAP alternativo, Compensation 2%/1%, Borders, OrderBorders, descrittori neutri, Decompensation e Line-Up. Anche la versione [GHX](examples/02_Patterning.ghx) e stata riaperta e ricalcolata.
 
 ## Componenti
 
@@ -47,6 +49,7 @@ Con TensileLib assente, Run = True deve dare `DependencyMissing`, con geometria 
 | 0 Geometry | Demo Saddle Net, Cable Net, Radial Cable Net, Compound Net |
 | 1 Model | Cable, Cable Constraints, Cable Load, Node Conditions, Model |
 | 2 Form Finding | Solver Settings, Form Find |
+| 3 Patterning | Borders, OrderBorders, Compensation, Decompensation, DecompensationDescriptor, DecompensationDescriptorExt, Flattening, Flattening ARAP, Deform ARAP, Geodesic Offsets, Mesh Divide, Mesh Geodesic, Mesh Clean, Mesh Pipe, Mesh Remap, Split Mesh On Curves, Subdivide Mesh, Unweld Mesh, Line-Up |
 
 Cable espone densità di forza, forza nel cavo, membrana e curvatura; distingue trama e ordito e consente pesi non lineari. Cable Constraints gestisce lunghezza, forza assiale e compensazione percentuale. Cable Load applica una forza concentrata in una frazione della lunghezza: per carichi distribuiti serve fornire la risultante e la posizione corretta. Node Conditions unisce vincoli, forze nodali e pesi per mantenere la posizione. Per caricare un nodo libero disattivare i tre vincoli.
 
@@ -56,7 +59,7 @@ Per una rete ottenuta con i generatori FeMM, unire le linee di trama, ordito e b
 
 ## Compilazione
 
-Prerequisiti di questa prima configurazione: Windows, SDK .NET 8 o successivo, Rhino 8 installato, DLL GPC locali. Il plugin usa il target `net48`; la compilazione non certifica il caricamento nelle diverse modalità runtime di Rhino.
+Prerequisiti: Windows x64, SDK .NET 8 o successivo, .NET Framework 4.8 Developer Pack, Rhino 8 installato e utilizzabile, DLL GPC, TensileLib Release e DLL nativa ARAP locali. Il plugin usa `net48`; i test sono eseguiti in Rhino in-process con .NET Framework, non in tutte le modalita runtime di Rhino.
 
 ```powershell
 .\scripts\build.ps1
@@ -71,6 +74,7 @@ I percorsi predefiniti, modificabili tramite proprietà MSBuild o parametri dell
 | GpcGeometryPath | `../Geometry/GPCGeometry/bin/Release/netstandard2.0/GPCGeometry.dll` |
 | GpcUtilitiesPath | `../Utilities/GPCUtilities/bin/Release/netstandard2.0/GPCUtilities.dll` |
 | TensileLibPath | `../tensilelib/TensileLib/bin/Release/TensileLib.dll` |
+| NativeIglPath | `../maffeisigl/x64/Release/MaffeisIGL.dll`, distribuita come `Arachne.IGL.dll` |
 | RhinoSystemDir | `C:/Program Files/Rhino 8/System` |
 | GrasshopperDir | `C:/Program Files/Rhino 8/Plug-ins/Grasshopper` |
 
@@ -78,7 +82,7 @@ I percorsi predefiniti, modificabili tramite proprietà MSBuild o parametri dell
 
 Compilare prima `../tensilelib/TensileLib.sln` in Release, poi eseguire `./scripts/build.ps1 -RequireTensile`. I percorsi possono essere cambiati con i parametri dello script. Core e test usano net48, coerente con il motore net472 e il plugin Grasshopper.
 
-Il pacchetto include TensileLib, alglibnet2, GPCGeometry, GPCUtilities, MathNet.Numerics e System.Drawing.Common. La tolleranza algebrica B deve essere 0; A=0 e AI=0 scelgono i default del motore (1e-5 e 10000). Create mesh disattivato sopprime l'output mesh, ma il motore puo generare facce interne.
+Il pacchetto include TensileLib, alglibnet2, GPCGeometry, GPCUtilities, MathNet.Numerics, System.Drawing.Common e Arachne.IGL. ARAP usa la libreria nativa 0.9.0 presente localmente; nessun assembly gestito della vecchia geometria e richiesto. La tolleranza algebrica B deve essere 0; A=0 e AI=0 scelgono i default del motore (1e-5 e 10000). Create mesh disattivato sopprime l'output mesh, ma il motore puo generare facce interne.
 
 Il riferimento teorico indicato e Shell Structures for Architecture: Form Finding and Optimization (Routledge, 2014), capitoli 6 e 12. I casi con membrane, pressioni, peso proprio e vincoli combinati richiedono ulteriori confronti dedicati.
 

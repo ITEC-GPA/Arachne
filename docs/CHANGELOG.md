@@ -59,3 +59,9 @@ I primi falsi negativi del banco di prova (documento Rhino non attivo, output le
 - Aggiunti quattro controlli ai 21 precedenti: ARAP Unwrap traslato, rifiuto dei pin negativi, compensazione 10%/20% e descrittori con punti coincidenti su una linea.
 
 Esito: **25/25 prove Patterning**, nessun errore di compilazione. Ricalcolo e riapertura dello schema SaddleNet riusciti; equilibrio con 25 nodi, 40 cavi e 16 facce. Gli output nulli predisposti da Grasshopper nei percorsi di errore vengono distinti da vera geometria nei test.
+
+## Passo 6 - esempio pannelli e verifica dei percorsi di errore
+
+Creato 02_Patterning (10 oggetti, 8 collegamenti), verificato e ricalcolato dopo la riapertura di GH e GHX. Aggiornata la documentazione per le dipendenze e i componenti ora disponibili.
+
+Sei ulteriori prove aggiunte prima delle correzioni: 25 passano, 6 falliscono. Rilevati: PlanarFixedLengthsSolver respinge un pannello gia convergente all'ultima iterazione; Flattening e Compensation pubblicano la mesh non convergente; Compensation pubblica una mesh anche dopo un'eccezione del solver; Flattening ARAP pubblica l'output quando la DLL restituisce false; Mesh Remap prosegue nonostante topologie incompatibili. Quest'ultimo gruppo e distinto dai sei difetti originali di TensileLib e dai quattro difetti del passo 4.

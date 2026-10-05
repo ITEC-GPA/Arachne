@@ -132,6 +132,7 @@ internal static class Program
             throw new IOException("Could not write the binary GH example.");
         Console.WriteLine("Generated and parsed: " + path);
         Console.WriteLine("9 objects, 10 connections; saved with Run=False. Solver checked when available.");
+        PatterningExample.Write(root);
         return 0;
     }
 

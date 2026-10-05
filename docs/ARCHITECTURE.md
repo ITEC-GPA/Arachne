@@ -1,4 +1,4 @@
-# Architettura iniziale
+# Architettura dopo il trasferimento
 
 Arachne.Core usa GPCGeometry per punti, vettori e piani e GPCUtilities per le conversioni di unità. Non dipende da Rhino, Grasshopper, SAP o Straus. Arachne.Grasshopper converte la geometria Rhino nel modello Core e visualizza gli esiti. I generatori di reti rimangono nel progetto Grasshopper perché utilizzano intersezioni, curve, mesh e Brep di Rhino.
 
@@ -8,8 +8,10 @@ flowchart TD
   GH --> RHINO[RhinoCommon e Grasshopper]
   CORE --> GPC[GPCGeometry e GPCUtilities]
   CORE --> A[Adattatore TensileFormFindingSolver]
-  A -->|DLL presente alla compilazione| TL[TensileLib · calcolo numerico]
-  A -->|DLL assente| M[DependencyMissing · nessun risultato numerico]
+  A --> TL[TensileLib · calcolo numerico]
+  GH --> P[Patterning · algoritmi Rhino e sviluppo pannelli]
+  P --> TL
+  P --> IGL[Arachne.IGL · ARAP nativo x64]
 ```
 
 ## Dati
@@ -30,6 +32,6 @@ La cancellazione è verificata prima e dopo ogni chiamata a TensileLib: non inte
 
 ## Confini della prima versione
 
-Il progetto contiene l'interfaccia dei tre modi osservati in FeMM, non una reimplementazione matematica di TensileLib. Finché la DLL manca, il ramo dell'adattatore numerico è escluso dalla compilazione. La generazione automatica delle facce da parte del motore, le convenzioni della pressione, i pesi e il comportamento di convergenza devono essere confrontati con la DLL reale.
+Il progetto contiene l'interfaccia dei tre modi osservati in FeMM, non una reimplementazione matematica di TensileLib. Il plugin completo richiede TensileLib e ARAP; il Core isolato conserva un ramo diagnostico senza motore. I tre modi sono stati verificati con equilibri analitici reali. Pressioni, peso proprio, membrane e pesi combinati richiedono una campagna di confronto piu ampia.
 
-Flattening, geodetiche, compensazione dei pannelli 2D, verifiche di resistenza e scambio con programmi FEM non appartengono a questo primo nucleo. La compensazione della lunghezza dei singoli cavi è invece inclusa in Cable Constraints.
+Flattening, geodetiche, compensazione dei pannelli 2D e strumenti mesh sono ora inclusi in Components/Patterning. Il loro primo trasferimento mantiene gli algoritmi di FeMM e dipende direttamente da Rhino e, per lo sviluppo, da TensileLib. ARAPHelper traduce i dati per il C ABI della DLL nativa e adegua la scala dei pin alla versione 0.9.0. Il prossimo refactoring proposto e separare questi algoritmi dalle classi GH_Component senza cambiare GUID e porte. Le verifiche di resistenza e lo scambio con programmi FEM restano fuori dallo scopo.

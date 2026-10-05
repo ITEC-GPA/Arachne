@@ -15,7 +15,7 @@ Il progetto FeMM originario è stato lasciato invariato. Le correzioni descritte
 | Components/Analysis/FormFindComponent.cs e Helpers/FormFindingHelper.cs | Riorganizzati in Core/ModelBuilder, Core/IterationControl e Core/TensileFormFindingSolver |
 | Attributi di force density, fixed length, fixed axial force, keep position e fixed compensation | Sostituiti dai tipi Core e dai componenti Cable, Cable Constraints e Node Conditions |
 
-I componenti Arachne hanno GUID nuovi per coesistere con FeMM. Le vecchie definizioni non vengono convertite automaticamente. Le icone FeMM non sono state importate.
+I componenti Arachne hanno GUID nuovi per coesistere con FeMM. Le vecchie definizioni non vengono convertite automaticamente. Il secondo trasferimento comprende gli altri 19 componenti Patterning e 16 icone originali; vedere [mappa completa](PATTERNING-PORT.md).
 
 ## Difetti corretti nel trasferimento
 
@@ -38,9 +38,9 @@ I componenti Arachne hanno GUID nuovi per coesistere con FeMM. Le vecchie defini
 La suite console verifica topologia, fusione dei nodi, somma dei carichi, copia dei dati, input invalidi, limite delle iterazioni, cancellazione, divisioni per zero, conversione tramite GPCUtilities e comportamento in assenza del motore. Il programma termina con codice diverso da zero se una verifica fallisce.
 
 ```powershell
-dotnet tests/Arachne.Core.Tests/bin/Release/net8.0/Arachne.Core.Tests.dll
+./tests/Arachne.Core.Tests/bin/Release/net48/Arachne.Core.Tests.exe
 ```
 
-Il superamento di questi controlli non dimostra l'equilibrio strutturale: per quello serve la DLL TensileLib, con confronti numerici dedicati. I generatori geometrici derivati da FeMM richiedono inoltre prove in Rhino su perimetri e superfici rappresentativi; questa prima estrazione non è una revisione completa di tutte le loro casistiche.
+I 17 controlli includono tre equilibri analitici con la DLL TensileLib reale. La suite non copre tutte le tipologie strutturali. I generatori geometrici derivati da FeMM richiedono ulteriori prove su perimetri e superfici rappresentativi.
 
-Il generatore in `tools/Arachne.ExampleWriter` avvia Rhino senza finestra e crea un documento temporaneo. Verifica una rete rettangolare con perimetro quadrato e una rete radiale con perimetro circolare. Nell'esempio a sella verifica la soluzione Grasshopper di preparazione (25 nodi, 40 cavi, 16 facce), l'esito DependencyMissing con Run attivato e il ricalcolo del modello dopo la riapertura dell'archivio GHX. Produce anche il file binario GH. Non esegue il calcolo di equilibrio.
+Il generatore in `tools/Arachne.ExampleWriter` avvia Rhino senza finestra con un documento attivo temporaneo. Verifica reti rettangolari e radiali, tutti i 19 componenti Patterning recuperati e i difetti riprodotti. Risolve l'esempio a sella (25 nodi, 40 cavi, 16 facce) e salva lo schema con Run=False. Genera inoltre lo schema Patterning, verifica area compensata e quattro bordi decompensati, riaprendo e ricalcolando sia GH sia GHX. Gli esiti aggiornati sono in [RESOCONTO.md](RESOCONTO.md).

@@ -53,6 +53,26 @@ internal static class PatterningChecks
             var flat=Output<GH_Mesh>(c).Value;Check(Math.Abs(flat.Vertices[0].DistanceTo(flat.Vertices[1])-2)<1e-4,"Edge length changed");
             Check(input.Faces[0].IsQuad,"Input mesh modified");
         });
+        Test("Flattening accepts convergence on last iteration",()=>{
+            var c=new FlatteningComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,2,new GH_Integer(1));Solve(c);ValidMesh(c);
+            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count==0,"Converged panel rejected at iteration limit");
+        });
+        Test("Flattening suppresses unconverged output",()=>{
+            var m=Panel();m.Vertices.SetVertex(2,3,3,1);var c=new FlatteningComponent();Set(c,0,new GH_Mesh(m));Set(c,2,new GH_Integer(1));Set(c,3,new GH_Number(1e-12));Solve(c);
+            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Unconverged flattening published geometry");
+        });
+        Test("Compensation suppresses unconverged output",()=>{
+            var c=new CompensationComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(50));Set(c,3,new GH_Number(50));Set(c,5,new GH_Integer(1));Set(c,6,new GH_Number(1e-12));Solve(c);
+            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Unconverged compensation published geometry");
+        });
+        Test("Compensation suppresses output after solver exception",()=>{
+            var c=new CompensationComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(10));Set(c,3,new GH_Number(10));Set(c,8,new GH_Number(-1));Solve(c);
+            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Solver exception published geometry");
+        });
+        Test("ARAP flatten suppresses unsuccessful native result",()=>{
+            var c=new FlatteningArapComponent();Set(c,0,new GH_Mesh(Panel(false)));Set(c,1,new GH_Integer(20));Set(c,2,new GH_Integer(0));Solve(c);
+            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Unsuccessful ARAP result published geometry");
+        });
         Test("Compensation without shrink preserves area",()=>{
             var c=new CompensationComponent();var input=Panel();Set(c,0,new GH_Mesh(input));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(0));Set(c,3,new GH_Number(0));Solve(c);ValidMesh(c);
             Check(Math.Abs(AreaMassProperties.Compute(Output<GH_Mesh>(c).Value).Area-4)<1e-4,"Area changed");Check(input.Faces[0].IsQuad,"Input mesh modified");
@@ -133,6 +153,10 @@ internal static class PatterningChecks
             var c=new MeshRemapComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Mesh(Panel()));
             Set<IGH_GeometricGoo>(c,2,new GH_Point(new Point3d(2,2,0)));Set<IGH_GeometricGoo>(c,3,new GH_Point(new Point3d(2,2,0)));Solve(c);
             var p=Output<GH_Point>(c).Value;Check(p.DistanceTo(new Point3d(2,2,0))<1e-6,"Remap changed point");
+        });
+        Test("Mesh remap rejects incompatible topology",()=>{
+            var c=new MeshRemapComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Mesh(Panel(false)));Set<IGH_GeometricGoo>(c,2,new GH_Point(new Point3d(2,2,0)));Solve(c);
+            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Incompatible topology was mapped");
         });
         Test("Line-up",()=>{
             var c=new LineUpComponent();Set<IGH_GeometricGoo>(c,0,new GH_Mesh(Panel()),new GH_Mesh(Panel()));Set(c,2,new GH_Number(1));Solve(c);Check(c.Params.Output[0].VolatileDataCount==2,"Lost geometry; inputs="+string.Join(",",c.Params.Input.Select(p=>p.VolatileDataCount))+"; phase="+c.Phase+"; warnings="+string.Join(";",c.RuntimeMessages(GH_RuntimeMessageLevel.Warning)));
