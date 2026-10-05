@@ -46,6 +46,7 @@ namespace Arachne.Grasshopper.Helpers
 
 		public static bool Flattening(Mesh input, Mesh output)
 		{
+            NativePinScale(input); // validates the triangulated mesh before entering native code
 			if (input.IsValid)
 			{
 				if (input.Vertices.Count > 0 && input.Faces.Count > 0)
@@ -76,6 +77,9 @@ namespace Arachne.Grasshopper.Helpers
 					try
 					{
 						result = IGLWrapper.MeshFlattening(V, F, nV, nT, U);
+                        if (!result) return false;
+                        if (U.Any(v => double.IsNaN(v) || double.IsInfinity(v)))
+                            throw new InvalidOperationException("Native ARAP returned non-finite coordinates.");
 					}
 					catch (Exception ex) { throw new InvalidOperationException("Native ARAP calculation failed.", ex); }
 

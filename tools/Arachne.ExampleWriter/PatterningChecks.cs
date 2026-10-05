@@ -62,7 +62,9 @@ internal static class PatterningChecks
             Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Unconverged flattening published geometry");
         });
         Test("Compensation suppresses unconverged output",()=>{
-            var c=new CompensationComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(50));Set(c,3,new GH_Number(50));Set(c,5,new GH_Integer(1));Set(c,6,new GH_Number(1e-12));Solve(c);
+            var c=new CompensationComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(0));Set(c,3,new GH_Number(0));Set(c,5,new GH_Integer(1));Set(c,6,new GH_Number(1e-12));
+            var incompatible=new Arachne.Core.Cable {Start=new GPC.Geometry.Point3d(1,1,0),End=new GPC.Geometry.Point3d(3,1,0),FixedLength=20,ConstraintWeight=1};
+            Set<IGH_Goo>(c,4,new GH_ObjectWrapper(incompatible));Solve(c);
             Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Unconverged compensation published geometry");
         });
         Test("Compensation suppresses output after solver exception",()=>{

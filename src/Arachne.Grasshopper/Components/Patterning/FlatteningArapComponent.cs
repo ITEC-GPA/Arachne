@@ -63,8 +63,6 @@ namespace Arachne.Grasshopper.Components.Patterning
             if (!DA.GetData(5, ref convergence_speed))
                 return;
 
-            ARAPHelper.Configure(max_iter, max_perimeter_iter, perimeter_tol, angle_tol, convergence_speed);
-
             Mesh mesh3D = mesh.Value.DuplicateMesh();
             mesh3D.Faces.ConvertQuadsToTriangles();
             /* 
@@ -79,9 +77,11 @@ namespace Arachne.Grasshopper.Components.Patterning
 
             try
             {
+                ARAPHelper.Configure(max_iter, max_perimeter_iter, perimeter_tol, angle_tol, convergence_speed);
                 if (!ARAPHelper.Flattening(mesh3D, flat))
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged at max iteration number");
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Native flattening did not converge. No mesh produced.");
+                    return;
                 }
             }
             catch (Exception ex)

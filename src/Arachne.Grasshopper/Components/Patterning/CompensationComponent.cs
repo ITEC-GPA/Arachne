@@ -223,16 +223,17 @@ namespace Arachne.Grasshopper.Components.Patterning
                         }
                     case Solver.ResultCodes.NotconvergedAtMaxIterationNumber:
                         {
-                            AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged");
-                            break;
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged. No compensated mesh produced.");
+                            return;
                         }
                     default:
                         throw new NotSupportedException();
                 }
             }
-            catch (Exception)
+            catch (Exception error)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Fail to solve");
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Failed to solve: " + error.Message);
+                return;
             }
 
             // If success make a new compensated mesh

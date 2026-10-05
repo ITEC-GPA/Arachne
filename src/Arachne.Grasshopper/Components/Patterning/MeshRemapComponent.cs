@@ -74,6 +74,15 @@ namespace Arachne.Grasshopper.Components.Patterning
             if (meshA.Value.Vertices.Count != meshB.Value.Vertices.Count || meshA.Value.Faces.Count != meshB.Value.Faces.Count)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Mesh A and mesh B have a different number of vertices or faces.");
+                return;
+            }
+
+            for (int i = 0; i < meshA.Value.Faces.Count; i++)
+            {
+                var a = meshA.Value.Faces[i]; var b = meshB.Value.Faces[i];
+                if (a.A == b.A && a.B == b.B && a.C == b.C && a.D == b.D) continue;
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Mesh A and mesh B must have identical ordered face topology.");
+                return;
             }
 
             for (int i = 0; i < geomA.Count; ++i)

@@ -65,3 +65,14 @@ Esito: **25/25 prove Patterning**, nessun errore di compilazione. Ricalcolo e ri
 Creato 02_Patterning (10 oggetti, 8 collegamenti), verificato e ricalcolato dopo la riapertura di GH e GHX. Aggiornata la documentazione per le dipendenze e i componenti ora disponibili.
 
 Sei ulteriori prove aggiunte prima delle correzioni: 25 passano, 6 falliscono. Rilevati: PlanarFixedLengthsSolver respinge un pannello gia convergente all'ultima iterazione; Flattening e Compensation pubblicano la mesh non convergente; Compensation pubblica una mesh anche dopo un'eccezione del solver; Flattening ARAP pubblica l'output quando la DLL restituisce false; Mesh Remap prosegue nonostante topologie incompatibili. Quest'ultimo gruppo e distinto dai sei difetti originali di TensileLib e dai quattro difetti del passo 4.
+
+## Passo 7 - correzioni dopo il commit 66b2bac
+
+- TensileLib `1cf5ac4`: risolto il controllo dell'ultima iterazione anche in PlanarFixedLengthsSolver, con due regressioni numeriche aggiuntive. Pubblicato su GitHub. Totale motore: 16 prove superate.
+- Flattening e Compensation: interruzione senza geometria in caso di mancata convergenza; Compensation interrompe anche dopo un'eccezione, riportandone il messaggio.
+- Flattening ARAP e ARAPHelper: esito false non pubblicato; controllo mesh triangolata e coordinate finite; configurazione nativa nel blocco di gestione errori.
+- GetFlattenedMesh duplica l'ingresso e restituisce null se il solver non converge. GeodesicOffsets adeguato: fallback ARAP con copia triangolata, output con topologia inizializzata e configurazione esplicita, senza riusare un risultato non convergente.
+- Mesh Remap: interrompe su conteggi incompatibili e su connettivita delle facce diversa, anziche proseguire con un semplice avviso.
+- Il banco di prova usa un vincolo di lunghezza geometricamente incompatibile per il test negativo della compensazione: una riduzione uniforme puo convergere correttamente in una sola iterazione. Aggiunto riferimento GPCGeometry al progetto dei test Rhino per costruire questo vincolo.
+
+Esito finale dei componenti: **31/31**; Core **17/17**; motore **16/16**. Entrambi gli esempi ricalcolano correttamente. Il refactoring generale delle classi e rinviato al passo da concordare; le modifiche fino a qui sono trasferimento, adeguamento API e correzione dei difetti riprodotti.

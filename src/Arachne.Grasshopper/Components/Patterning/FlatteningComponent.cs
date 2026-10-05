@@ -85,8 +85,8 @@ namespace Arachne.Grasshopper.Components.Patterning
                         }
                     case Solver.ResultCodes.NotconvergedAtMaxIterationNumber:
                         {
-                            AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged at max iteration number. Test internal lengths and area.");
-                            break;
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged at max iteration number. No flattened mesh produced.");
+                            return;
                         }
                     default:
                         throw new NotSupportedException();
@@ -103,6 +103,7 @@ namespace Arachne.Grasshopper.Components.Patterning
 
         internal static void GetFlattenedMesh(Mesh mesh, double borderWeigth, int max_iter, double tol, double epsS, int maxIterSolver, out Solver.ResultCodes ret, out Mesh flat)
         {
+            mesh = mesh.DuplicateMesh();
             mesh.Faces.ConvertQuadsToTriangles();
 
             //Moving vertices to a fitted plane througth the 3d mesh
@@ -221,6 +222,9 @@ namespace Arachne.Grasshopper.Components.Patterning
             // Solve 
             PlanarFixedLengthsSolver solver = new PlanarFixedLengthsSolver(model, max_iter, tol, epsS, maxIterSolver);
             ret = solver.Solve(out PlanarFixedLengthsSolver.PlanarFixedLengthsResult planarFixedLengthsResult);
+            flat = null;
+            if (ret != Solver.ResultCodes.Converged && ret != Solver.ResultCodes.ConvergedUsingSlowMethodWithoutWeigths)
+                return;
 
             // If success make a new flatten mesh
             flat = new Mesh();

@@ -270,10 +270,14 @@ namespace Arachne.Grasshopper.Components.Patterning
                     //Flattening
                     FlatteningComponent.GetFlattenedMesh(internalCut, 1, 10, 0.01, 0, 0, out TensileLib.FormFinding.Solver.ResultCodes ret, out Mesh flat);
 
-                    if (ret != TensileLib.FormFinding.Solver.ResultCodes.Converged)
+                    if (ret != TensileLib.FormFinding.Solver.ResultCodes.Converged &&
+                        ret != TensileLib.FormFinding.Solver.ResultCodes.ConvergedUsingSlowMethodWithoutWeigths)
                     {
-                        Mesh flatBuffer = new Mesh();
-                        if (!ARAPHelper.Flattening(internalCut, flatBuffer))
+                        var arapInput = internalCut.DuplicateMesh();
+                        arapInput.Faces.ConvertQuadsToTriangles();
+                        Mesh flatBuffer = arapInput.DuplicateMesh();
+                        ARAPHelper.Configure(1000, 1000, tol, Math.PI * 7 / 8, 0.1);
+                        if (!ARAPHelper.Flattening(arapInput, flatBuffer))
                         {
                             if (flat == null)
                             {
