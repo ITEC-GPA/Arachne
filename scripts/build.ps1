@@ -31,6 +31,18 @@ try {
     $files = @('Arachne.Grasshopper.gha','Arachne.Core.dll','GPCGeometry.dll','GPCUtilities.dll','MathNet.Numerics.dll','System.Drawing.Common.dll','Arachne.IGL.dll')
     if (Test-Path -LiteralPath $tensilePath) { $files += @('TensileLib.dll','alglibnet2.dll') }
     foreach ($name in $files) { Copy-Item -LiteralPath (Join-Path $sourceDir $name) -Destination $destination -Force }
+    $manifest = foreach ($name in $files) {
+        $binaryPath = Join-Path $destination $name
+        try { $assemblyVersion = [Reflection.AssemblyName]::GetAssemblyName($binaryPath).Version.ToString() }
+        catch { $assemblyVersion = 'native x64' }
+        [pscustomobject]@{
+            File = $name
+            Version = $assemblyVersion
+            SHA256 = (Get-FileHash -LiteralPath $binaryPath -Algorithm SHA256).Hash
+            Bytes = (Get-Item -LiteralPath $binaryPath).Length
+        }
+    }
+    $manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'DEPENDENCIES.json') -Encoding utf8
     # A previous complete build must not leave a stale solver in a skeleton package.
     foreach ($name in @('TensileLib.dll','alglibnet2.dll')) {
         $packagedTensile = Join-Path $destination $name

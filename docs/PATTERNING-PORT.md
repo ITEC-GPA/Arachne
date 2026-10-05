@@ -2,6 +2,18 @@
 
 Le tre reti Cable Net, Radial Cable Net e Compound Net erano gia presenti. I seguenti 19 componenti completano tutti i 22 componenti della cartella Patterning di FeMM. I GUID nuovi permettono la coesistenza con FeMM.
 
+I 19 componenti hanno prove funzionali in `tools/Arachne.ExampleWriter/PatterningChecks.cs`, con 31 controlli complessivi inclusi i casi negativi. La mappa riguarda i componenti Patterning; la ricerca di forma di Analysis e i relativi Attributes sono stati accorpati nei componenti del modello Arachne.
+
+| Componente/attributo precedente | Equivalente Arachne |
+| --- | --- |
+| FormFind + FormFindingHelper | Model, Solver Settings, Form Find |
+| ForceDensity, ForceDensityCable, ForceDensityMembrane | Cable: Kind, Target, Project, Direction e Target weight |
+| FixedLength, FixedAxialForce, FixedCompensation | Cable Constraints: Length, Force, Compensation, Weight |
+| KeepPosition e vincoli del nodo FEM | Node Conditions: vincoli XYZ e pesi per mantenere la posizione |
+| Carichi sui cavi/nodi del modello FEM | Cable Load e Node Conditions, con modello dedicato senza dipendenza FEM |
+
+Compensation accetta i Cable Constraints di Arachne come lunghezze prescritte ai bordi. Decompensation lavora su linee e polilinee; altre curve richiedono una conversione esplicita. Le scale dei descrittori restano frazioni `1 - ingresso`, mentre Compensation usa percentuali intere. Non e una conversione automatica inversa fra i due strumenti.
+
 | Componente | GUID FeMM | GUID Arachne |
 | --- | --- | --- |
 | BordersComponent | 49141274-7CAD-44B1-8C31-BA5D2C9D74DC | 810c4b07-ff37-5c08-b92e-a7a9a288ef41 |
