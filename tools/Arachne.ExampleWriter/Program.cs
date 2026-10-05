@@ -40,8 +40,12 @@ internal static class Program
     {
         using (var rhino = new Rhino.Runtime.InProcess.RhinoCore(new[] { "/nosplash", "/notemplate" }, Rhino.Runtime.InProcess.WindowStyle.NoWindow))
         {
-            Rhino.RhinoDoc.Create(null);
-            return Write(root);
+            using (var modelDocument = Rhino.RhinoDoc.CreateHeadless(null))
+            {
+                modelDocument.ModelAbsoluteTolerance = 1e-6;
+                Rhino.RhinoDoc.ActiveDoc = modelDocument;
+                return Write(root);
+            }
         }
     }
 
@@ -55,6 +59,7 @@ internal static class Program
             null, new[] { typeof(GH_ExternalFile), typeof(bool) }, null);
         if (loader == null || !(bool)loader.Invoke(Grasshopper.Instances.ComponentServer, new object[] { new GH_ExternalFile(pluginPath), false }))
             throw new InvalidOperationException("Could not register the Arachne plugin for archive verification.");
+        PatterningChecks.Run();
         var document = new GH_Document { Enabled = true };
         var demo = new DemoComponent(); var cable = new CableComponent(); var node = new NodeComponent();
         var model = new ModelComponent(); var settings = new SolverSettingsComponent(); var solver = new FormFindComponent();
