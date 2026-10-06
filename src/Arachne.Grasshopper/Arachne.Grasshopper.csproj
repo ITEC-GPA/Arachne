@@ -16,6 +16,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="TensileLib"><HintPath>$(TensileLibPath)</HintPath><Private>true</Private></Reference>
     <EmbeddedResource Include="Resources\Patterning\*.png" />
+    <EmbeddedResource Include="Resources\Icons\*.png" />
   </ItemGroup>
   <Target Name="CheckRhino" BeforeTargets="ResolveReferences">
     <Error Condition="!Exists('$(TensileLibPath)')" Text="TensileLib Release richiesta dai componenti Patterning." />

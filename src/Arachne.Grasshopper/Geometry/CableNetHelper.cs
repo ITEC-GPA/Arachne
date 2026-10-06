@@ -1085,7 +1085,7 @@ namespace Arachne.Grasshopper.Geometry
 				{
 					if (gridPts[i, j].isins && !gridPts[i, j].isborder)
 					{
-						internalPoint.Add(gridPts[i, j].world);
+						if (!Contains(internalPoint, gridPts[i, j].world, tolerance)) internalPoint.Add(gridPts[i, j].world);
 					}
 				}
 			}
@@ -1590,7 +1590,6 @@ namespace Arachne.Grasshopper.Geometry
 						evPt.warpOrder = new Point3d(evPt.local.X, evPt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 						var vec = refPlane.ClosestPoint(refInters[n]) - refPlane.Origin;
 						var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-						if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 						evPt.weftOrder = currAngle;
 						evPt.isins = true;
 						evPt.isborder = true;
@@ -1635,7 +1634,6 @@ namespace Arachne.Grasshopper.Geometry
 					evPt.warpOrder = new Point3d(evPt.local.X, evPt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 					var vec = refPlane.ClosestPoint(refInters[n]) - refPlane.Origin;
 					var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-					if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 					evPt.weftOrder = currAngle;
 					evPt.isins = true;
 					evPt.isborder = true;
@@ -1671,7 +1669,6 @@ namespace Arachne.Grasshopper.Geometry
 						netpt.warpOrder = new Point3d(netpt.local.X, netpt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 						var vec = refPlane.ClosestPoint(netpt.world) - refPlane.Origin;
 						var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-						if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 						netpt.weftOrder = currAngle;
 						lineEndings.Add(netpt);
 					}
@@ -1683,7 +1680,6 @@ namespace Arachne.Grasshopper.Geometry
 						netpt.warpOrder = new Point3d(netpt.local.X, netpt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 						var vec = refPlane.ClosestPoint(netpt.world) - refPlane.Origin;
 						var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-						if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 						netpt.weftOrder = currAngle;
 						lineEndings.Add(netpt);
 					}
@@ -1710,7 +1706,6 @@ namespace Arachne.Grasshopper.Geometry
 						netpt.warpOrder = new Point3d(netpt.local.X, netpt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 						var vec = refPlane.ClosestPoint(netpt.world) - refPlane.Origin;
 						var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-						if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 						netpt.weftOrder = currAngle;
 						lineEndings.Add(netpt);
 					}
@@ -1722,7 +1717,6 @@ namespace Arachne.Grasshopper.Geometry
 						netpt.warpOrder = new Point3d(netpt.local.X, netpt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 						var vec = refPlane.ClosestPoint(netpt.world) - refPlane.Origin;
 						var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-						if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 						netpt.weftOrder = currAngle;
 						lineEndings.Add(netpt);
 					}
@@ -1863,7 +1857,7 @@ namespace Arachne.Grasshopper.Geometry
 				{
 					if (gridPts[i, j].isins && !gridPts[i, j].isborder)
 					{
-						internalPoint.Add(gridPts[i, j].world);
+						if (!Contains(internalPoint, gridPts[i, j].world, tolerance)) internalPoint.Add(gridPts[i, j].world);
 					}
 				}
 			}

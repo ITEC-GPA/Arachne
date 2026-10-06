@@ -1,88 +1,62 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security;
 using System.Security.Cryptography;
+using System.Text;
 using Arachne.Core;
 using Arachne.Grasshopper.Components;
-using Grasshopper.GUI.Canvas;
 using Grasshopper.Kernel;
 
+// SVG previews avoid creating/discarding WinForms canvases in the headless Rhino process.
 internal static class ExampleAssets
 {
+    private static string F(double value)=>value.ToString("0.###",CultureInfo.InvariantCulture);
+    private static string E(string text)=>SecurityElement.Escape(text);
+    private static StringBuilder Svg(int width,int height)=>new StringBuilder($"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}' viewBox='0 0 {width} {height}'><rect width='100%' height='100%' fill='white'/><g font-family='Segoe UI, sans-serif' fill='#28394a'>");
+    private static void Text(StringBuilder svg,double x,double y,string text,int size=16)=>svg.Append($"<text x='{F(x)}' y='{F(y)}' font-size='{size}'>{E(text)}</text>");
     internal static void Icons(string root)
     {
-        string folder=Path.Combine(root,"docs","icons");Directory.CreateDirectory(folder);
-        var components=typeof(FormFindComponent).Assembly.GetTypes().Where(t=>!t.IsAbstract&&typeof(GH_Component).IsAssignableFrom(t))
-            .Select(t=>(GH_Component)Activator.CreateInstance(t)).OrderBy(c=>c.SubCategory).ThenBy(c=>c.Name).ToArray();
+        var assembly=typeof(FormFindComponent).Assembly;
+        var types=assembly.GetTypes().Where(t=>!t.IsAbstract&&typeof(GH_Component).IsAssignableFrom(t));
+        var components=types.Select(t=>(GH_Component)Activator.CreateInstance(t)).OrderBy(c=>c.SubCategory).ThenBy(c=>c.Name).ToArray();
+        var svg=Svg(1200,1300);Text(svg,25,42,"ARACHNE / 43 componenti",26);
         var hashes=new HashSet<string>();
-        using(var sheet=new Bitmap(1120,80+((components.Length+3)/4)*105))
-        using(var g=Graphics.FromImage(sheet))
-        using(var title=new Font("Segoe UI",20,FontStyle.Bold))
-        using(var label=new Font("Segoe UI",10))
-        using(var small=new Font("Segoe UI",8))
+        for(int i=0;i<components.Length;i++)
         {
-            g.Clear(Color.White);g.DrawString("ARACHNE / 43 component icons",title,Brushes.DarkSlateGray,25,20);
-            for(int i=0;i<components.Length;i++)
-            {
-                var c=components[i];using(var icon=c.Icon_24x24)
-                {
-                    if(icon==null||icon.Width!=24||icon.Height!=24)throw new InvalidOperationException("Invalid icon: "+c.Name);
-                    using(var stream=new MemoryStream())using(var sha=SHA256.Create())
-                    {icon.Save(stream,ImageFormat.Png);if(!hashes.Add(Convert.ToBase64String(sha.ComputeHash(stream.ToArray()))))throw new InvalidOperationException("Duplicate icon: "+c.Name);}
-                    icon.Save(Path.Combine(folder,c.GetType().Name+".png"),ImageFormat.Png);
-                    int x=25+(i%4)*280,y=90+(i/4)*105;
-                    g.InterpolationMode=InterpolationMode.NearestNeighbor;g.DrawImage(icon,new Rectangle(x,y,48,48));
-                    g.DrawImageUnscaled(icon,x+55,y+12);g.DrawString(c.Name,label,Brushes.DarkSlateGray,x,y+53);g.DrawString(c.SubCategory,small,Brushes.Gray,x,y+73);
-                }
-            }
-            sheet.Save(Path.Combine(root,"docs","ICONS.png"),ImageFormat.Png);
+            var c=components[i];string suffix=".Icons."+c.GetType().Name+".png";
+            string resource=assembly.GetManifestResourceNames().Single(n=>n.EndsWith(suffix,StringComparison.OrdinalIgnoreCase));
+            byte[] bytes;using(var input=assembly.GetManifestResourceStream(resource))using(var buffer=new MemoryStream()){input.CopyTo(buffer);bytes=buffer.ToArray();}
+            if(bytes.Length<24||bytes[0]!=137||bytes[1]!=80||bytes[19]!=24||bytes[23]!=24)throw new InvalidOperationException("Invalid 24px PNG icon: "+c.Name);
+            using(var sha=SHA256.Create())if(!hashes.Add(Convert.ToBase64String(sha.ComputeHash(bytes))))throw new InvalidOperationException("Duplicate icon: "+c.Name);
+            int x=25+(i%4)*300,y=75+(i/4)*108;
+            svg.Append($"<image x='{x}' y='{y}' width='48' height='48' href='data:image/png;base64,{Convert.ToBase64String(bytes)}'/>");
+            Text(svg,x,y+69,c.Name,14);Text(svg,x,y+89,c.SubCategory,12);
         }
-        using(var icon=new Arachne.Grasshopper.AssemblyInfo().Icon)icon.Save(Path.Combine(folder,"Arachne.png"),ImageFormat.Png);
-        Console.WriteLine("ICON PASS | 43 distinct 24px icons + assembly icon");
-    }
-    internal static void Canvas(GH_Document document,string path)
-    {
-        foreach(var obj in document.Objects)obj.Attributes.PerformLayout();
-        var bounds=document.Objects.Select(o=>o.Attributes.Bounds).Aggregate(RectangleF.Union);bounds.Inflate(35,35);
-        using(var canvas=new GH_Canvas())
-        {
-            canvas.Document=document;
-            var view=new GH_Viewport {Size=new Size((int)Math.Ceiling(bounds.Width),(int)Math.Ceiling(bounds.Height)),Zoom=1,Tx=-(int)bounds.Left,Ty=-(int)bounds.Top};
-            using(var bitmap=canvas.GenerateHiResImageTile(view,Color.FromArgb(247,248,248)))bitmap.Save(path,ImageFormat.Png);
-            canvas.Document=null;
-        }
+        svg.Append("</g></svg>");File.WriteAllText(Path.Combine(root,"docs","ICONS.svg"),svg.ToString(),Encoding.UTF8);
+        Console.WriteLine("ICON PASS | 43 distinct embedded PNG icons, 24 x 24 px");
     }
     internal static void Geometry(FormResult r,string path,string title)
     {
         var nodes=r.Solved.Nodes;
-        Func<GPC.Geometry.Point3d,PointF> project=p=>new PointF((float)(p.X-.60*p.Y),(float)(.28*p.X+.38*p.Y-p.Z));
-        var projected=nodes.Select(n=>project(n.Position)).ToArray();
-        float minX=projected.Min(p=>p.X),maxX=projected.Max(p=>p.X),minY=projected.Min(p=>p.Y),maxY=projected.Max(p=>p.Y);
-        float scale=Math.Min(940/Math.Max(1,maxX-minX),490/Math.Max(1,maxY-minY));
-        Func<PointF,PointF> screen=p=>new PointF(80+(p.X-minX)*scale,150+(p.Y-minY)*scale);
-        using(var image=new Bitmap(1100,760))using(var g=Graphics.FromImage(image))
-        using(var heading=new Font("Segoe UI",21,FontStyle.Bold))using(var font=new Font("Segoe UI",12))
-        using(var pen=new Pen(Color.Gray,2))
+        Func<GPC.Geometry.Point3d,(double X,double Y)> project=p=>(p.X-.60*p.Y,.28*p.X+.38*p.Y-p.Z);
+        var points=nodes.Select(n=>project(n.Position)).ToArray();
+        double minX=points.Min(p=>p.X),maxX=points.Max(p=>p.X),minY=points.Min(p=>p.Y),maxY=points.Max(p=>p.Y);
+        double scale=Math.Min(940/Math.Max(1,maxX-minX),490/Math.Max(1,maxY-minY));
+        Func<int,string> point=id=>F(80+(points[id-1].X-minX)*scale)+","+F(150+(points[id-1].Y-minY)*scale);
+        var svg=Svg(1100,760);Text(svg,35,52,title,26);
+        Text(svg,35,84,r.Settings.Kind+" | "+nodes.Count+" nodi / "+r.Solved.Beams.Count+" aste / "+r.Solved.Plates.Count+" piastre",17);
+        foreach(var plate in r.Solved.Plates)svg.Append("<polygon fill='#edf7f8' points='"+string.Join(" ",plate.NodeIds.Select(point))+"'/>");
+        foreach(var beam in r.Solved.Beams)
         {
-            g.Clear(Color.White);g.SmoothingMode=SmoothingMode.AntiAlias;
-            g.DrawString(title,heading,Brushes.DarkSlateGray,35,25);
-            g.DrawString(r.Settings.Kind+"   |   "+nodes.Count+" nodes   /   "+r.Solved.Beams.Count+" cables   /   "+r.Solved.Plates.Count+" plates",font,Brushes.Gray,35,68);
-            foreach(var plate in r.Solved.Plates)
-            {using(var fill=new SolidBrush(Color.FromArgb(18,0,137,153)))g.FillPolygon(fill,plate.NodeIds.Select(id=>screen(project(nodes[id-1].Position))).ToArray());}
-            foreach(var edge in r.Solved.Beams)
-            {
-                pen.Color=edge.Direction==MembraneDirection.Warp?Color.FromArgb(0,137,153):edge.Direction==MembraneDirection.Weft?Color.FromArgb(224,131,40):Color.FromArgb(91,108,122);
-                g.DrawLine(pen,screen(project(nodes[edge.StartNodeId-1].Position)),screen(project(nodes[edge.EndNodeId-1].Position)));
-            }
-            foreach(var node in nodes){var p=screen(project(node.Position));float radius=node.FixZ?4:2;g.FillEllipse(node.FixZ?Brushes.DarkSlateGray:Brushes.Gray,p.X-radius,p.Y-radius,2*radius,2*radius);}
-            g.DrawString("Warp: teal   |   Weft: orange   |   Fixed nodes: dark dots",font,Brushes.DarkSlateGray,35,682);
-            var eq=EquilibriumReport.Evaluate(r.Solved,.1,1);
-            g.DrawString("Computed geometry · no vertical exaggeration · max free residual "+eq.MaxFreeResidual.ToString("G3")+" N",font,Brushes.Gray,35,712);
-            image.Save(path,ImageFormat.Png);
+            string color=beam.Direction==MembraneDirection.Warp?"#008999":beam.Direction==MembraneDirection.Weft?"#e08328":"#5b6c7a";
+            svg.Append("<polyline fill='none' stroke='"+color+"' stroke-width='2' points='"+point(beam.StartNodeId)+" "+point(beam.EndNodeId)+"'/>");
         }
+        foreach(var node in nodes){var p=point(node.Id).Split(',');svg.Append($"<circle cx='{p[0]}' cy='{p[1]}' r='{(node.FixZ?4:2)}' fill='#28394a'/>");}
+        Text(svg,35,699,"Warp: azzurro / weft: arancio / nodi vincolati: punti scuri",17);
+        Text(svg,35,731,"Geometria calcolata, scala Z reale. Residuo massimo: "+EquilibriumReport.Evaluate(r.Solved,.1,1).MaxFreeResidual.ToString("G3",CultureInfo.InvariantCulture)+" N",16);
+        svg.Append("</g></svg>");File.WriteAllText(path,svg.ToString(),Encoding.UTF8);
     }
 }

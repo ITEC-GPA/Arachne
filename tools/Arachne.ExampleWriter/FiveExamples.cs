@@ -52,6 +52,9 @@ internal static class FiveExamples
 
     internal static void Write(string root)
     {
+        Console.WriteLine("Preparing five examples.");
+        string validationPath=Path.Combine(root,"examples","VALIDATION.txt");
+        if(File.Exists(validationPath))File.Delete(validationPath);
         Directory.CreateDirectory(Path.Combine(root,"examples"));
         Directory.CreateDirectory(Path.Combine(root,"examples","previews"));
         ExampleAssets.Icons(root);
@@ -69,9 +72,8 @@ internal static class FiveExamples
                 foreach(var c in components.Where(c=>c.GetType().Assembly==typeof(FormFindComponent).Assembly))
                 {string type=c.GetType().Name;if(!coverage.ContainsKey(type))coverage[type]=new List<string>();if(!coverage[type].Contains(e.File))coverage[type].Add(e.File);}
                 summaries.Add(Summarize(e.Document,e.File));
-                ExampleAssets.Canvas(e.Document,Path.Combine(root,"examples","previews",e.File+"_canvas.png"));
                 var solved=(FormResult)Data(e.Document.Objects.OfType<FormFindComponent>().First(),9).Cast<GH_ObjectWrapper>().Single().Value;
-                ExampleAssets.Geometry(solved,Path.Combine(root,"examples","previews",e.File+"_model.png"),e.File.Replace('_',' '));
+                ExampleAssets.Geometry(solved,Path.Combine(root,"examples","previews",e.File+".svg"),e.File.Replace('_',' '));
                 foreach(string extension in new[]{".gh",".ghx"})
                 {
                     string path=Path.Combine(root,"examples",e.File+extension);var archive=new GH_Archive();
@@ -129,7 +131,7 @@ internal static class FiveExamples
         boundaries.PersistentData.AppendRange(Rectangle(0,0,4,4,0.5).DuplicateSegments().Select(c=>new GH_Curve(c)),new GH_Path(0));
         boundaries.PersistentData.AppendRange(Rectangle(6,0,4,4,0.7).DuplicateSegments().Select(c=>new GH_Curve(c)),new GH_Path(1));
         var net=e.Add(new CompoundNetComponent(),400,280);Link(net,0,boundaries);Link(net,2,boundaries);
-        Set(net,3,new GH_Number(2),new GH_Number(2));Set(net,4,new GH_Number(2),new GH_Number(2));
+        Set(net,3,new GH_Number(1),new GH_Number(1));Set(net,4,new GH_Number(1),new GH_Number(1));
         Set(net,5,new GH_Number(0),new GH_Number(0));Set(net,6,new GH_Point(Point3d.Origin),new GH_Point(new Point3d(6,0,0)));
         Set(net,8,new GH_Number(1e-5));Set(net,10,new GH_Number(6));
         e.Group("01 / GEOMETRIA MULTIPANNELLO",GeometryColor,boundaries,net);
@@ -149,7 +151,7 @@ internal static class FiveExamples
         if(cableLoads)
         {
             var load=e.Add(new CableLoadComponent(),1240,160);Link(load,0,warpSource);Set(load,1,new GH_Vector(new Vector3d(0,0,-100)));warpSource=load.Params.Output[0];
-            e.Note("-100 N a meta di ogni segmento warp.\nCable Load riceve una forza concentrata, non N/m.",1050,20,350,90);
+            e.Note("-100 N a meta di ogni segmento warp.\nCable Load riceve una forza concentrata, non N/m.",1120,20,290,90);
         }
         var border=e.Add(new CableComponent{NickName="Cavi bordo vincolato"},810,750);Link(border,0,net.Params.Output[0],true);Set(border,1,new GH_Number(5000));
         var supports=e.Add(new NodeComponent{NickName="Vincoli perimetrali XYZ"},1070,760);Link(supports,0,net.Params.Output[4],true);
@@ -253,7 +255,6 @@ internal static class FiveExamples
         foreach(var c in document.Objects.OfType<GH_Component>())
         {
             var errors=c.RuntimeMessages(GH_RuntimeMessageLevel.Error).Concat(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning)).ToArray();
-            if(c is FormFindComponent)errors=errors.Where(s=>!s.Contains("fallback method")).ToArray();
             if(errors.Length>0)throw new InvalidOperationException(label+" | "+c.Name+" ("+c.NickName+") | "+string.Join("; ",errors));
             if(!c.Params.Output.Any(p=>p.VolatileData.AllData(true).Any()))throw new InvalidOperationException(label+" | "+c.Name+" produced no output; phase="+c.Phase);
         }

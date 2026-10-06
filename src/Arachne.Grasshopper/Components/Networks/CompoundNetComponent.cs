@@ -403,7 +403,8 @@ namespace Arachne.Grasshopper.Components.Networks
                 double t = 0;
                 for (int j = 0; j < allRestrain.Count; j++)
                 {
-                    if (uniqueFix[i].ClosestPoint(allRestrain[j], out t, matching))
+                    // Rhino treats maximumDistance=0 as unlimited, not as exact matching.
+                    if (uniqueFix[i].ClosestPoint(allRestrain[j], out t, Math.Max(tolerance, matching)))
                     {
                         splits.Add(t);
                     }
@@ -425,7 +426,7 @@ namespace Arachne.Grasshopper.Components.Networks
                 double t = 0;
                 for (int j = 0; j < allNotRestrain.Count; j++)
                 {
-                    if (uniqueFree[i].ClosestPoint(allNotRestrain[j], out t, matching))
+                    if (uniqueFree[i].ClosestPoint(allNotRestrain[j], out t, Math.Max(tolerance, matching)))
                     {
                         splits.Add(t);
                     }
@@ -524,7 +525,7 @@ namespace Arachne.Grasshopper.Components.Networks
                     }
                 }));
 
-                if (notableId > 0)
+                if (notableId >= 0)
                 {
                     map[points[i]] = notablePoints[notableId];
                     continue;

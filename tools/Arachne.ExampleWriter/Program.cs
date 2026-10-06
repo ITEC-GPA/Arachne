@@ -52,6 +52,7 @@ internal static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int Write(string root, string mode)
     {
+        Console.WriteLine("ExampleWriter mode: "+(mode??"legacy-examples"));
         VerifyNetworkGeometry();
         // Keep this headless validation process independent of installed third-party plugins.
         // This changes only this process, never the user's Grasshopper settings.
@@ -65,11 +66,12 @@ internal static class Program
             null, new[] { typeof(GH_ExternalFile), typeof(bool) }, null);
         if (loader == null || !(bool)loader.Invoke(Grasshopper.Instances.ComponentServer, new object[] { new GH_ExternalFile(pluginPath), false }))
             throw new InvalidOperationException("Could not register the Arachne plugin for archive verification.");
+        // Run document generation separately from component regression fixtures.
+        if (mode == "--five-examples") { GH_Document.EnableSolutions=true; FiveExamples.Write(root); return 0; }
         PatterningChecks.Run();
         ReleaseChecks.Run();
         NetworkChecks.Run();
         if (mode == "--tests-only") return 0;
-        if (mode == "--five-examples") { FiveExamples.Write(root); return 0; }
         var document = new GH_Document { Enabled = true };
         var demo = new DemoComponent(); var cable = new CableComponent(); var node = new NodeComponent();
         var model = new ModelComponent(); var settings = new SolverSettingsComponent(); var solver = new FormFindComponent();
