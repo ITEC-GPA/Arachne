@@ -546,13 +546,6 @@ namespace Arachne.Common.Helpers
             return ff_model;
         }
 
-
-        private struct Vertex
-        {
-            public int id;
-            public Point3d pt;
-        }
-
         private struct Edge
         {
             public int A;

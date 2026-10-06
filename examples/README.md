@@ -1,43 +1,17 @@
 # Esempi Grasshopper
 
-## Cinque esempi completi della release 0.2.0-rc.2
+Ogni esempio è disponibile in formato binario (`.gh`) e XML (`.ghx`). Installare prima il plug-in Arachne con tutte le DLL raccolte da `scripts/build.ps1`.
 
-| File GH (disponibile anche GHX) | Contenuto |
+| File | Contenuto |
 | --- | --- |
-| [03_Rectangular_Iterative.gh](03_Rectangular_Iterative.gh) | Cable Net, tiro warp 6 kN / weft 3 kN, carichi sui cavi, solver iterativo. |
-| [04_Rectangular_Nonlinear.gh](04_Rectangular_Nonlinear.gh) | Cable Net, tiro warp 9 kN / weft 4.5 kN, pressione 100 N/m², solver non lineare. |
-| [05_Radial_Iterative.gh](05_Radial_Iterative.gh) | Radial Cable Net, warp iniziale 8 kN con q conservata, weft imposto 4 kN, carichi nodali. |
-| [06_Compound_Nonlinear.gh](06_Compound_Nonlinear.gh) | Compound Net, due pannelli separati, warp 6 kN / weft 2.5 kN, 32 piastre complessive. |
-| [07_Patterning_Workshop.gh](07_Patterning_Workshop.gh) | Tutti gli strumenti per pannelli, ARAP, compensazione, bordi, geodetiche, taglio, rimappatura e Line-Up. |
+| [01_SaddleNet.gh](01_SaddleNet.gh) | Sella 10 x 10 m con 4 x 4 campi e bordo vincolato, quote ±2 m agli angoli. Comprende:<br>• Beam con Beam Property (Cable, sezione piena D 10 mm, acciaio) e Force Density 1 N/m nel caso di carico FF;<br>• Node con Restraints;<br>• Build Model in SI e Form Find lineare. |
+| [02_Patterning.gh](02_Patterning.gh) | Pannello inclinato: Flattening e, in alternativa, Flattening ARAP; Compensation 2% / 1%, Borders, OrderBorders, descrittori neutri, Decompensation e Line-Up. |
+| [03_CableNet.gh](03_CableNet.gh) | Cable Net su un perimetro a sella 12 x 8 m, maglia 1 x 1 m. Ordito con q = 2 N/m, trama con q = 1 N/m, linee di bordo vincolate; Form Find lineare con mesh. |
 
-I nuovi file sono autosufficienti e salvati con **Run=True**: ricalcolano all'apertura, dopo aver caricato il plugin aggiornato con tutte le DLL. Coordinate in metri, forze in newton. Ogni componente Arachne viene eseguito almeno una volta nei cinque file; vedere [copertura](COMPONENT-COVERAGE.tsv) e [verifiche](VALIDATION.txt).
+Negli esempi 01 e 03 Form Find ha **Auto Run** collegato a un interruttore attivo: il calcolo parte all'apertura. Disattivarlo per lavorare con il pulsante Run.
 
-Guida a parametri, risultati e correzioni: [FIVE-EXAMPLES.md](../docs/FIVE-EXAMPLES.md). Per rigenerare i cinque documenti usare `./scripts/build-examples.ps1`. Gli esempi iniziali 01 e 02 sono conservati e vengono rigenerati solo con la modalita storica di ExampleWriter.
+Nel 03 gli ingressi delle Beam e l'ingresso Elements di Build Model sono appiattiti: le uscite di Cable Net sono alberi con un ramo per cavo.
 
-## Esempi iniziali
+Gli esempi vengono generati da `scripts/build-examples.ps1` (`tools/Arachne.ExampleWriter`). Il generatore calcola ogni definizione, la salva nei due formati, la riapre e la ricalcola. Controlla anche che Form Find produca modello e mesh senza errori. Per l'esempio 02 confronta l'area compensata con `2*sqrt(5)*0.98*0.99` e verifica i quattro bordi decompensati.
 
-`01_SaddleNet.gh` è il documento binario Grasshopper; `01_SaddleNet.ghx` è lo stesso schema in formato XML. Installare prima il plugin Arachne con tutte le DLL raccolte da `scripts/build.ps1`.
-
-Il documento contiene 9 oggetti e 10 collegamenti. Usare Demo Saddle Net per modificare la discretizzazione, la luce e la quota dei vertici. Cable applica una densità uniforme di 1 N/m; Node Conditions blocca il bordo. Model assembla la rete, mentre Solver Settings e il booleano Run controllano Form Find.
-
-I valori predefiniti producono una rete 10 x 10 m, discretizzata in 4 x 4 celle, con quote agli angoli pari a +2 e -2 m. Il peso proprio e la pressione sono disattivati. Le coordinate interne sono inizialmente a quota zero; il file non contiene una forma di equilibrio precalcolata.
-
-Il file e salvato con Run=False. Con le DLL del pacchetto Release, Run=True calcola l'equilibrio. Il generatore ha verificato convergenza e geometria risultante prima del salvataggio.
-
-## Sviluppo dei pannelli
-
-`02_Patterning.gh` e `02_Patterning.ghx` contengono 10 oggetti e 8 collegamenti. Un pannello rettangolare inclinato viene sviluppato con Flattening e, in un ramo alternativo, con ARAP. Compensation applica 2% in trama e 1% in ordito. Seguono estrazione e ordinamento dei bordi, quattro descrittori neutri, Decompensation e Line-Up.
-
-I descrittori conservano la convenzione FeMM: ingresso 0 = scala 1, ingresso 0.02 = scala 0.98. Non sono le percentuali intere di Compensation e non calcolano automaticamente l'inversa della compensazione. La lunghezza del descrittore puo essere assoluta o normalizzata; i valori negativi partono dall'estremita finale. Lo schema usa quattro descrittori per i quattro bordi: se cambia il numero dei bordi, adeguare anche la lista dei descrittori.
-
-Entrambi i formati del secondo esempio sono stati riaperti e ricalcolati; il controllo confronta l'area con `2*sqrt(5)*0.98*0.99` e verifica quattro curve valide.
-
-Per rigenerare l'esempio da sorgente, da PowerShell nella radice Arachne:
-
-```powershell
-dotnet build tools/Arachne.ExampleWriter/Arachne.ExampleWriter.csproj -c Release
-$env:PATH = 'C:\Program Files\Rhino 8\System;' + $env:PATH
-& bin/Arachne.ExampleWriter/Release/net48/Arachne.ExampleWriter.exe $PWD.Path 'C:\Program Files\Rhino 8\System' 'C:\Program Files\Rhino 8\Plug-ins\Grasshopper'
-```
-
-Il generatore richiede un'installazione Rhino utilizzabile e inizializza il runtime senza finestra. La registrazione del plugin è limitata al suo processo; non installa il plugin nelle Libraries. Utilizza il caricatore interno di Grasshopper solo per la verifica dell'archivio, quindi potrebbe richiedere adeguamenti con versioni diverse di Grasshopper.
+I descrittori di decompensazione seguono la convenzione FeMM: ingresso 0 = scala 1, ingresso 0.02 = scala 0.98. Non sono le percentuali intere di Compensation e non calcolano automaticamente l'inversa della compensazione.

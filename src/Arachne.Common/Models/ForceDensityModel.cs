@@ -155,7 +155,7 @@ namespace Arachne.Common.Models
             info.AddValue("Type", _type);
             info.AddValue("CurvatureLengthValue", _curvatureRatioValue);
             info.AddValue("Project", _project);
-            info.AddValue("MembraneTypes", _membraneType);
+            info.AddValue("MembraneType", _membraneType); // same key used by the deserialization constructor
 		}
 
         #endregion

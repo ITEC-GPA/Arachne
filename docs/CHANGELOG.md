@@ -1,3 +1,28 @@
+# Registro delle modifiche
+
+## 0.3.0-rc.1 - 6 ottobre 2026: componenti originali FeMM
+
+Sostituiti i componenti introdotti nel primo trasferimento con quelli di FeMM. I componenti rimossi sono:
+- Cable, Cable Constraints, Cable Load, Node Conditions, Model, Solver Settings e Form Find;
+- Check Model, Deconstruct Model e Deconstruct Result;
+- Node, Beam e Plate Results, Equilibrium Report, Solver History e Result Preview;
+- Unit Settings, Convert Units, Panel Distortion, Dependency Check e Demo Saddle Net.
+
+Ingressi e uscite dei componenti ripristinati sono identici a FeMM, con GUID nuovi e icone nel nuovo stile. Mappa completa e bug corretti in [PORTING.md](PORTING.md).
+
+- Nuovo progetto `Arachne.Common` (modello FEM e helper di FeMM.Common), al posto di `Arachne.Core`.
+- 42 componenti e parametri FeMM aggiunti: Form Find, attributi, carichi, modello, definizioni, proprietà, materiali, sezioni, parametri, Remesh e Curve2Mesh.
+- Patterning:
+  - Compensation riceve di nuovo le Beam FeMM con Fixed Length o Fixed compensation;
+  - Flattening ARAP e Deform ARAP hanno di nuovo le sole uscite FeMM, con GUID nuovo, e continuano a usare il motore C#;
+  - Flattening e Compensation pubblicano il risultato non convergente con un avviso, come FeMM;
+  - le reti di cavi tornano nel pannello 09-Patterning.
+- Pannelli Grasshopper con i nomi di FeMM (01-Parameters … 14-Tools).
+- Banco di prova riscritto (176 controlli). Confronta ingressi e uscite con i sorgenti FeMM e verifica il form finding su casi analitici.
+- Esempi rigenerati: 01 Sella, 02 Patterning, 03 Cable Net.
+
+TensileLib e il motore ARAP non sono stati modificati. Le voci seguenti descrivono la versione precedente. I documenti che citano (RELEASE-1, RESULTS, RESOCONTO, FIVE-EXAMPLES, PATTERNING-PORT) sono stati rimossi insieme a quei componenti; restano nella storia git.
+
 ## 0.2.0-rc.2 - 6 ottobre 2026
 
 Cinque nuovi esempi GH/GHX con tutti i 43 componenti, tiri warp/weft distinti, calcolo iterativo e non lineare, risultati interrogabili e laboratorio completo dei pannelli. Nuove icone incorporate per ogni componente e assembly, anteprime SVG e rigenerazione tramite scripts/build-examples.ps1.
@@ -15,7 +40,6 @@ Nuovo progetto Arachne.Arap C# netstandard2.0, indipendente da Rhino/FEM e dalle
 ## 0.1.0-rc.1 - 6 ottobre 2026
 
 13 nuovi componenti (43 totali), snapshot del modello, risultati per ID, forze di bordo delle piastre, reazioni/residui, bilancio, storia/cancellazione, background, unita, distorsioni e controllo DLL. Refactoring dei tre algoritmi principali dei pannelli e build nativa ARAP dai sorgenti. TensileLib aggiornato a 2.1.0.0 dopo correzioni di pressione, accumulo del peso proprio, copia dei nodi e coordinate interamente vincolate. 100 test locali superati; esempi invariati. Dettagli, righe e limiti in [RELEASE-1.md](RELEASE-1.md) e [RESULTS.md](RESULTS.md).
-# Registro delle modifiche
 
 ## Stato iniziale salvato
 

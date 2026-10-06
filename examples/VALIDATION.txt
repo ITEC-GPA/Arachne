@@ -1,7 +1,0 @@
-Generated and reopened both GH and GHX. Run=True; all 43 Arachne components used. SI units: m, N.
-Verified UTC: 2026-10-06T10:22:53.6983674Z
-03_Rectangular_Iterative | LinearIterative | nodes=20 | cables=31 | plates=12 | outer=99 | history=198 | max relative tension error=8.92685E-08 | components=23
-04_Rectangular_Nonlinear | NonLinear | nodes=20 | cables=31 | plates=12 | outer=1 | history=98 | max relative tension error=1.39433E-07 | components=19
-05_Radial_Iterative | LinearIterative | nodes=65 | cables=128 | plates=64 | outer=11 | history=21 | max relative tension error=6.43597E-08 | components=20
-06_Compound_Nonlinear | NonLinear | nodes=50 | cables=80 | plates=32 | outer=1 | history=56 | max relative tension error=2.14987E-07 | components=19
-07_Patterning_Workshop | Linear | nodes=16 | cables=24 | plates=9 | outer=1 | history=2 | max relative tension error=0 | components=27

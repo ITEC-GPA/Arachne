@@ -161,7 +161,6 @@ namespace Arachne.Common.Models
 		#region Serialization
 
 		private readonly string SERIALIZATION_RELEASE_NAME = "SERIALIZATION_RELEASE"; //do not modify the name!
-		private readonly int SERIALIZATION_RELEASE = 2;
 
 		protected BeamPropertyModel(SerializationInfo info, StreamingContext context)
 		{
@@ -190,13 +189,11 @@ namespace Arachne.Common.Models
 		{
 			if (info == null)
 				throw new ArgumentNullException("info");
+			// The base class already stores the release, Id, Name and Material: adding them
+			// again made the serialization throw.
 			base.GetObjectData(info, context);
-			info.AddValue(SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
-			info.AddValue("Id", _id);
-			info.AddValue("Name", _name);
 			info.AddValue("BeamPropertyType", _beamPropertyType, typeof(BeamPropertyType));
 			info.AddValue("SectionModel", _section, typeof(SectionModel));
-			info.AddValue("Material", _material, typeof(MaterialModel));
 			info.AddValue("MaxTension", _maxTension);
 			info.AddValue("MaxCompression", _maxCompression);
 			info.AddValue("CutoffType", _cutoffType, typeof(CutoffType));

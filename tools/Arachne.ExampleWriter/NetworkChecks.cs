@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Arachne.Grasshopper.Geometry;
-using Arachne.Grasshopper.Components.Networks;
+using Arachne.Grasshopper.Components.Patterning;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
@@ -10,7 +10,7 @@ using Rhino.Geometry;
 internal static class NetworkChecks
 {
     private static void Require(bool ok,string message){if(!ok)throw new InvalidOperationException(message);}
-    internal static void Run()
+    internal static int Run()
     {
         var empty=new List<Curve>();
         var border=new PolylineCurve(new[]{new Point3d(0,0,.8),new Point3d(8,0,-.8),new Point3d(8,6,.8),new Point3d(0,6,-.8),new Point3d(0,0,.8)}).DuplicateSegments().ToList();
@@ -47,6 +47,7 @@ internal static class NetworkChecks
             Console.WriteLine("NETWORK PASS Compound perimeter, matching="+snap);
         }
         Console.WriteLine("Network checks: 6 passed, 0 failed.");
+        return 0;
     }
     private static void Set<T>(GH_Component c,int input,params T[] values) where T:class,IGH_Goo
     {var p=(GH_PersistentParam<T>)c.Params.Input[input];p.PersistentData.Clear();p.SetPersistentData((IEnumerable<T>)values);}

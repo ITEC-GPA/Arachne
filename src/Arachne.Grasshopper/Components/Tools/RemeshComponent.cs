@@ -25,7 +25,7 @@ namespace Arachne.Grasshopper.Components.Tools
         {
             pManager.AddMeshParameter("Mesh", "M", "The mesh to remesh", GH_ParamAccess.item);
             pManager.AddNumberParameter("Target length", "TL", "The target length of the mesh", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Max distance", "MD", "Max distance to consider two points collinear", GH_ParamAccess.item, 100 * RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+            pManager.AddNumberParameter("Max distance", "MD", "Max distance to consider two points collinear", GH_ParamAccess.item, 100 * (RhinoDoc.ActiveDoc?.ModelAbsoluteTolerance ?? 0.001)); // the component can be created without an open document
             pManager.AddPlaneParameter("Plane", "P", "The plane where the geometry will be remeshed", GH_ParamAccess.item);
             pManager[pManager.ParamCount - 1].Optional = true;
         }
@@ -131,12 +131,6 @@ namespace Arachne.Grasshopper.Components.Tools
                 {
                     iNext = 0;
                 }
-                if (iNext == startingIndex)
-                {
-                    //closing 
-                    cleanedPolyline.Add(pl[startingIndex]);
-                    break;
-                }
                 bool add = false;
                 Vector3d dir = pl[iNext] - pl[i0];
                 dir.Unitize();
@@ -189,6 +183,13 @@ namespace Arachne.Grasshopper.Components.Tools
 
                     i0 = iNext;
                     cleanedPolyline.Add(pl[iNext]);
+                }
+                else if (iNext == startingIndex)
+                {
+                    // closing, after checking also the last stretch: a corner just before the
+                    // starting point was dropped
+                    cleanedPolyline.Add(pl[startingIndex]);
+                    break;
                 }
             } while (true == true);
 

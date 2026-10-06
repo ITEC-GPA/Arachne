@@ -12,6 +12,7 @@ using System.Drawing;
 
 namespace Arachne.Common.Models
 {
+	[Serializable]
 	public class FunctionModel : ICloneable, ISerializable
 	{
 		public virtual string Description { get; set;  }

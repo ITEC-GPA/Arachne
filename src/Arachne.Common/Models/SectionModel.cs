@@ -6,6 +6,8 @@ using System.Security.Permissions;
 
 namespace Arachne.Common.Models
 {
+	// ISerializable without the attribute: the binary serialization failed
+	[Serializable]
 	public class SectionModel : ISerializable
 	{
 		public enum SectionTypes

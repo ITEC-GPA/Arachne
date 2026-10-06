@@ -82,7 +82,7 @@ namespace Arachne.Common.Models
 		private readonly string SERIALIZATION_RELEASE_NAME = "BeamNonPrismaticPropertyModel_SERIALIZATION_RELEASE"; //do not modify the name!
 		private readonly int SERIALIZATION_RELEASE = 1;
 
-		protected BeamNonPrismaticPropertyModel(SerializationInfo info, StreamingContext context)
+		protected BeamNonPrismaticPropertyModel(SerializationInfo info, StreamingContext context) : base(info, context)
 		{
 			int savedRelease;
 			try
@@ -97,7 +97,7 @@ namespace Arachne.Common.Models
 			EndSection = (SectionModel)info.GetValue("EndSection", typeof(SectionModel));
 			Length = (double)info.GetValue("Length", typeof(double));
 			Name = (string)info.GetValue("Name", typeof(string));
-			LengthType = (LengthTypes)info.GetValue("LengthType", typeof(string));
+			LengthType = (LengthTypes)info.GetValue("LengthType", typeof(LengthTypes));
 			Inertia33Type = (InertiaTypes)info.GetValue("Inertia33Type", typeof(InertiaTypes));
 			Inertia22Type = (InertiaTypes)info.GetValue("Inertia22Type", typeof(InertiaTypes));
 		}
@@ -108,7 +108,7 @@ namespace Arachne.Common.Models
 			info.AddValue(SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
 			info.AddValue("EndSection", EndSection);
 			info.AddValue("Length", Length);
-			info.AddValue("Name", Name);
+			// Name is stored by the base class
 			info.AddValue("LengthType", LengthType);
 			info.AddValue("Inertia33Type", Inertia33Type);
 			info.AddValue("Inertia22Type", Inertia22Type);

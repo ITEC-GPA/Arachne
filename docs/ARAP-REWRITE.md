@@ -1,3 +1,5 @@
+> **Nota 0.3.0:** il motore descritto qui è invariato. Flattening ARAP e Deform ARAP hanno di nuovo le sole uscite FeMM: Status, Report, Energy, Edge distortion e Perimeter error non ci sono più, e il motivo di un esito non riuscito è indicato nei messaggi del componente. Arachne.Core, Dependency Check e Panel Distortion sono stati rimossi; vedere [PORTING.md](PORTING.md).
+
 # Riscrittura autonoma ARAP in C#
 
 Richiesta del 6 ottobre 2026: nuova implementazione del motore ARAP in C#, indipendente da libigl/Eigen a runtime, con geometria GPC, da collegare ad Arachne dopo le verifiche.

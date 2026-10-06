@@ -38,16 +38,18 @@ internal static class PatterningChecks
         if(quad)m.Faces.AddFace(0,1,2,3);else{m.Faces.AddFace(0,1,2);m.Faces.AddFace(0,2,3);}
         m.Normals.ComputeNormals();return m;
     }
+    private static IGH_Goo FixedBeam(Line line,double length)
+    {
+        var c=new Canvas();var chain=FormFindingChecks.Start(c);var fl=c.Add(new Arachne.Grasshopper.Components.Attributes.FixedLengthComponent());
+        Canvas.Link(fl,0,FormFindingChecks.Beams(chain,new[]{line}));Canvas.Link(fl,1,chain.LoadCase);Canvas.Set(fl,2,new GH_Number(length));c.Solve();
+        documents.Add(c.Document);return Canvas.Out(fl).Single();
+    }
     private static void ValidMesh(GH_Component component)
     { var m=Output<GH_Mesh>(component).Value;Check(m!=null && m.IsValid && m.Vertices.Count>0,"Invalid or empty mesh"); }
-    public static void Run()
+    internal static int Run()
     {
+        passed = failed = 0;
         GH_Document.EnableSolutions = true;
-        Test("All 43 components instantiate with distinct GUIDs",()=>{
-            var types=typeof(FlatteningComponent).Assembly.GetTypes().Where(t=>!t.IsAbstract && typeof(GH_Component).IsAssignableFrom(t)).ToArray();
-            var components=types.Select(t=>(GH_Component)Activator.CreateInstance(t)).ToArray();
-            Check(components.Length==43 && components.Select(c=>c.ComponentGuid).Distinct().Count()==43,"Incomplete inventory or duplicate GUIDs");
-        });
         Test("Flattening preserves planar lengths",()=>{
             var c=new FlatteningComponent();var input=Panel();Set(c,0,new GH_Mesh(input));Solve(c);ValidMesh(c);
             var flat=Output<GH_Mesh>(c).Value;Check(Math.Abs(flat.Vertices[0].DistanceTo(flat.Vertices[1])-2)<1e-4,"Edge length changed");
@@ -57,19 +59,19 @@ internal static class PatterningChecks
             var c=new FlatteningComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,2,new GH_Integer(1));Solve(c);ValidMesh(c);
             Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count==0,"Converged panel rejected at iteration limit");
         });
-        Test("Flattening suppresses unconverged output",()=>{
+        Test("Flattening publishes the not converged mesh with a warning (FeMM)",()=>{
             var m=Panel();m.Vertices.SetVertex(2,3,3,1);var c=new FlatteningComponent();Set(c,0,new GH_Mesh(m));Set(c,2,new GH_Integer(1));Set(c,3,new GH_Number(1e-12));Solve(c);
-            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Unconverged flattening published geometry");
+            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && c.Params.Output[0].VolatileData.AllData(true).Any(),"Not converged flattening without warning or geometry");
         });
-        Test("Compensation suppresses unconverged output",()=>{
+        Test("Compensation publishes the not converged panel with a warning (FeMM)",()=>{
             var c=new CompensationComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(0));Set(c,3,new GH_Number(0));Set(c,5,new GH_Integer(1));Set(c,6,new GH_Number(1e-12));
-            var incompatible=new Arachne.Core.Cable {Start=new GPC.Geometry.Point3d(1,1,0),End=new GPC.Geometry.Point3d(3,1,0),FixedLength=20,ConstraintWeight=1};
-            Set<IGH_Goo>(c,4,new GH_ObjectWrapper(incompatible));Solve(c);
-            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Unconverged compensation published geometry");
+            var incompatible=FixedBeam(new Line(1,1,0,3,1,0),20);
+            Set<IGH_Goo>(c,4,incompatible);Solve(c);
+            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && c.Params.Output[0].VolatileData.AllData(true).Any(),"Not converged compensation without warning or geometry");
         });
         Test("Compensation suppresses output after solver exception",()=>{
-            var c=new CompensationComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(10));Set(c,3,new GH_Number(10));Set(c,8,new GH_Number(-1));Solve(c);
-            Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Solver exception published geometry");
+            var c=new CompensationComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(10));Set(c,3,new GH_Number(10));Set(c,8,new GH_Number(-1));Solve(c,true);
+            Check(!c.Params.Output[0].VolatileData.AllData(true).Any(),"Solver exception published geometry");
         });
         Test("ARAP flatten suppresses unconverged managed result",()=>{
             var c=new FlatteningArapComponent();Set(c,0,new GH_Mesh(Panel(false)));Set(c,1,new GH_Integer(20));Set(c,2,new GH_Integer(0));Solve(c);
@@ -99,18 +101,14 @@ internal static class PatterningChecks
             var c=new DeformArapComponent();Set(c,0,new GH_Mesh(Panel(false)));Set(c,2,new GH_Integer(-1));Set(c,3,new GH_Point(Point3d.Origin));Solve(c,true);
             Check(!c.Params.Output[0].VolatileData.AllData(true).Any(),"Invalid pins produced geometry");
         });
-        Test("ARAP vertical quad preserves topology and reports diagnostics",()=>{
+        Test("ARAP vertical quad preserves topology",()=>{
             var panel=Panel();panel.Transform(Transform.Rotation(Math.PI/2,Vector3d.YAxis,Point3d.Origin));
             var c=new FlatteningArapComponent();Set(c,0,new GH_Mesh(panel));Solve(c);ValidMesh(c);
             Check(Output<GH_Mesh>(c).Value.Faces[0].IsQuad,"Quad topology lost");
-            Check(c.Params.Output[1].VolatileData.AllData(true).OfType<GH_String>().Single().Value=="Converged","Missing status");
-            Check(c.Params.Output[3].VolatileData.AllData(true).Any(),"Missing energy history");
-            Check(c.Params.Output[4].VolatileData.AllData(true).OfType<GH_Number>().Single().Value<1e-6,"Wrong edge distortion");
         });
         Test("ARAP invalid tolerances report failure without a mesh",()=>{
             var c=new FlatteningArapComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,3,new GH_Number(-1));Solve(c,true);
             Check(!c.Params.Output[0].VolatileData.AllData(true).Any(),"Invalid settings produced geometry");
-            Check(c.Params.Output[1].VolatileData.AllData(true).OfType<GH_String>().Single().Value=="InvalidInput","Wrong invalid status");
         });
         Test("ARAP default anchors support disconnected mesh parts",()=>{
             var panel=Panel();var second=Panel();second.Translate(5,0,0);panel.Append(second);
@@ -214,11 +212,16 @@ internal static class PatterningChecks
             Check(c.Params.Output[0].VolatileDataCount>0,"No offset curve");
             Check(Math.Abs(AreaMassProperties.Compute(Output<GH_Mesh>(c,1).Value).Area-1)<0.03,"Incorrect strip area");
         });
+        Test("Remesh keeps the panel area",()=>{
+            var c=new Arachne.Grasshopper.Components.Tools.RemeshComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Number(0.5));Solve(c);
+            var m=c.Params.Output[0].VolatileData.AllData(true).OfType<GH_Mesh>().Single().Value;
+            Check(m.IsValid && m.Faces.Count>4 && Math.Abs(AreaMassProperties.Compute(m).Area-4)<1e-3,"Remeshed area "+AreaMassProperties.Compute(m).Area+", faces "+m.Faces.Count);
+        });
         Test("Unweld shared edge",()=>{
             var c=new UnweldMeshComponent();Set(c,0,new GH_Mesh(Panel(false)));Set(c,1,new GH_Curve(new LineCurve(new Point3d(1,1,0),new Point3d(3,3,0))));Solve(c);Check(c.Params.Output[0].VolatileDataCount>0,"No unweld output");
         });
         Console.WriteLine("Patterning checks: "+passed+" passed, "+failed+" failed.");
         foreach(var document in documents) document.Dispose();
-        if(failed>0)throw new Exception("Patterning checks failed.");
+        return failed;
     }
 }

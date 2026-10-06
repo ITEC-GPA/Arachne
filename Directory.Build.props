@@ -2,7 +2,7 @@
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
-    <Version>0.2.0-rc.2</Version>
+    <Version>0.3.0-rc.1</Version>
     <Authors>GPC</Authors>
     <ArachneRoot>$(MSBuildThisFileDirectory)</ArachneRoot>
     <!-- Keep each managed project's outputs separate inside the repository's root bin. -->
