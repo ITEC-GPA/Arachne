@@ -60,6 +60,8 @@ namespace Arachne.Grasshopper.Components
             p.AddTextParameter("Status","S","Converged, NotConverged, Failed or DependencyMissing",GH_ParamAccess.item);
             p.AddTextParameter("Log","L","Warnings and diagnostics",GH_ParamAccess.list);
             p.AddIntegerParameter("Outer iterations","I","Number of calls to the TensileLib solver",GH_ParamAccess.item);
+            p.AddGenericParameter("Result","R","Complete calculation, initial model, solved element records and history",GH_ParamAccess.item);
+            p.AddGenericParameter("Solved model","SM","Immutable solved nodes, cables and plates; connect to result query components",GH_ParamAccess.item);
         }
         protected override void Solve(IGH_DataAccess data)
         {
@@ -67,6 +69,8 @@ namespace Arachne.Grasshopper.Components
             var settings=Read<SolverSettings>(data,1)??new SolverSettings();bool run=false;data.GetData(2,ref run);
             if(!run){Message="Ready";data.SetData(6,"Ready");return;}
             var result=new TensileFormFindingSolver().Solve(model,settings);
+            data.SetData(9,new GH_ObjectWrapper(result));
+            if(result.Solved!=null)data.SetData(10,new GH_ObjectWrapper(result.Solved));
             Message=result.Status.ToString(); data.SetData(6,Message); data.SetDataList(7,result.Messages); data.SetData(8,result.OuterIterations);
             foreach(string message in result.Messages) AddRuntimeMessage(result.Status==SolveStatus.Converged?GH_RuntimeMessageLevel.Warning:GH_RuntimeMessageLevel.Error,message);
             if(result.Status!=SolveStatus.Converged)return;

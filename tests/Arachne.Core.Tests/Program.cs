@@ -107,5 +107,6 @@ if(TensileFormFindingSolver.IsAvailable)
         Check(result.Status==SolveStatus.Failed && result.Positions.Count==0 && result.Messages.Any(m=>m.Contains("one algebraic tolerance")));
     });
 }
+ReleaseTests.Run(Test);
 Console.WriteLine($"{passed} passed, {failed} failed. Includes analytical equilibrium checks when TensileLib is available.");
 return failed==0?0:1;

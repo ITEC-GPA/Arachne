@@ -23,7 +23,7 @@ namespace Arachne.Core
             }
         }
 
-        public FormResult Solve(FormModel model, SolverSettings settings, CancellationToken cancellation = default)
+        public FormResult Solve(FormModel model, SolverSettings settings, CancellationToken cancellation = default, Action<SolverIteration> progress = null)
         {
             var result = new FormResult { Status = SolveStatus.Failed };
             try
@@ -31,8 +31,11 @@ namespace Arachne.Core
                 if (model == null) throw new ArgumentNullException(nameof(model));
                 Validation.Settings(settings);
                 cancellation.ThrowIfCancellationRequested();
+                model=model.Snapshot();settings=settings.Copy();result.Model=model;result.Settings=settings.Copy();
+                var checks=ModelChecks.Check(model);
+                if(!checks.Valid)throw new ArgumentException(string.Join(" ",checks.Errors));
 #if TENSILELIB
-                SolveAvailable(model, settings, cancellation, result);
+                SolveAvailable(model, settings, cancellation, result, progress);
 #else
                 result.Status = SolveStatus.DependencyMissing;
                 result.Messages.Add("TensileLib non disponibile: compilare il progetto adiacente in Release o impostare TensileLibPath e ricompilare. Nessun calcolo eseguito.");
@@ -45,13 +48,14 @@ namespace Arachne.Core
             {
                 result.Positions.Clear(); result.AxialForces.Clear(); result.ForceDensities.Clear();
                 result.PressureForces.Clear(); result.Faces.Clear();
+                result.Solved=null;
             }
             return result;
         }
 
 #if TENSILELIB
         // Adapter for the local TensileLib 2.0.5.3 API migrated to GPC.Geometry.
-        private static void SolveAvailable(FormModel source, SolverSettings settings, CancellationToken cancellation, FormResult result)
+        private static void SolveAvailable(FormModel source, SolverSettings settings, CancellationToken cancellation, FormResult result, Action<SolverIteration> progress)
         {
             var model = new Model();
             var plane = new Plane(settings.PlaneOrigin, settings.PlaneNormal);
@@ -126,8 +130,15 @@ namespace Arachne.Core
                 ? (ForceDensitySolver)new NonLinearForceDensitySolver(model, settings.MaxIterations, settings.Tolerance, algebraicTolerance, algebraicIterations)
                 : new LinearForceDensitySolver(model, settings.MaxIterations, settings.Tolerance, algebraicTolerance, algebraicIterations);
             bool acceptedCode = false;
+            var watch=System.Diagnostics.Stopwatch.StartNew();
+            solver.CancellationToken=cancellation;
             bool converged = IterationControl.Run(settings.Kind == SolverKind.LinearIterative ? settings.MaxIterations : 1, iteration =>
             {
+                result.OuterIterations=iteration;
+                solver.IterationCompleted=(inner,criterion,metric)=>{
+                    var step=new SolverIteration(iteration,inner,criterion,metric,watch.Elapsed.TotalMilliseconds);
+                    result.History.Add(step);progress?.Invoke(step);
+                };
                 var code = solver.SolveForceDensity();
                 cancellation.ThrowIfCancellationRequested();
                 // Unknown or failure codes never count as success.
@@ -174,7 +185,7 @@ namespace Arachne.Core
                 double density = beam.AxialForce / beam.Length; Validation.Finite(density, "Solved force density");
                 result.AxialForces.Add(beam.AxialForce); result.ForceDensities.Add(density);
             }
-            if (settings.CreateMesh)
+            // Retain topology for result interrogation even when preview mesh output is disabled.
             {
                 var nodeIndices = nodes.Select((n, i) => new { n.Id, Index = i }).ToDictionary(n => n.Id, n => n.Index);
                 foreach (var plate in model.Plates)
@@ -184,6 +195,9 @@ namespace Arachne.Core
                     result.Faces.Add(face.ToArray());
                 }
             }
+            result.Solved=new SolvedModel(source,result.Positions,result.AxialForces,result.ForceDensities,
+                nodes.Select(n=>new Vector3d(n.BeamSelfWeightForce)).ToArray(),nodes.Select(n=>new Vector3d(n.BeamLoadForce)).ToArray(),result.PressureForces,result.Faces);
+            if(result.AxialForces.Any(f=>f<0))Warn(result,"Negative axial forces found: these members are in compression and are not valid tension-only cables.");
             result.Status = SolveStatus.Converged;
         }
         private static void Warn(FormResult result, string message)

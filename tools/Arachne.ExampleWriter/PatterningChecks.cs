@@ -43,10 +43,10 @@ internal static class PatterningChecks
     public static void Run()
     {
         GH_Document.EnableSolutions = true;
-        Test("All 30 components instantiate with distinct GUIDs",()=>{
+        Test("All 43 components instantiate with distinct GUIDs",()=>{
             var types=typeof(FlatteningComponent).Assembly.GetTypes().Where(t=>!t.IsAbstract && typeof(GH_Component).IsAssignableFrom(t)).ToArray();
             var components=types.Select(t=>(GH_Component)Activator.CreateInstance(t)).ToArray();
-            Check(components.Length==30 && components.Select(c=>c.ComponentGuid).Distinct().Count()==30,"Incomplete inventory or duplicate GUIDs");
+            Check(components.Length==43 && components.Select(c=>c.ComponentGuid).Distinct().Count()==43,"Incomplete inventory or duplicate GUIDs");
         });
         Test("Flattening preserves planar lengths",()=>{
             var c=new FlatteningComponent();var input=Panel();Set(c,0,new GH_Mesh(input));Solve(c);ValidMesh(c);

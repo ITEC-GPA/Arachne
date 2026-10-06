@@ -32,7 +32,6 @@ namespace Arachne.Core
             NonNegative(settings.Gravity, "Gravity"); Finite(settings.Pressure, "Pressure");
             Point(settings.PlaneOrigin); Vector(settings.PlaneNormal);
             Positive(settings.PlaneNormal.X * settings.PlaneNormal.X + settings.PlaneNormal.Y * settings.PlaneNormal.Y + settings.PlaneNormal.Z * settings.PlaneNormal.Z, "Plane normal squared length");
-            if (settings.Pressure != 0 && !settings.CreateMesh) throw new ArgumentException("Pressure requires Create mesh.");
         }
     }
 

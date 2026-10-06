@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net48</TargetFramework><OutputType>Exe</OutputType><PlatformTarget>x64</PlatformTarget></PropertyGroup>
   <ItemGroup>
+    <Reference Include="GPCUtilities"><HintPath>$(GpcUtilitiesPath)</HintPath><Private>true</Private></Reference>
     <ProjectReference Include="..\..\src\Arachne.Grasshopper\Arachne.Grasshopper.csproj" />
     <Reference Include="Grasshopper"><HintPath>$(GrasshopperDir)\Grasshopper.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="GH_IO"><HintPath>$(GrasshopperDir)\GH_IO.dll</HintPath><Private>false</Private></Reference>

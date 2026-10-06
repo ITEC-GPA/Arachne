@@ -17,7 +17,7 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length != 3) { Console.Error.WriteLine("Usage: ExampleWriter <Arachne root> <Rhino System> <Grasshopper dir>"); return 2; }
+        if (args.Length != 3 && !(args.Length == 4 && args[3] == "--tests-only")) { Console.Error.WriteLine("Usage: ExampleWriter <Arachne root> <Rhino System> <Grasshopper dir> [--tests-only]"); return 2; }
         var root = Path.GetFullPath(args[0]);
         var pluginDir = Path.Combine(root, "src", "Arachne.Grasshopper", "bin", "Release", "net48");
         AppDomain.CurrentDomain.AssemblyResolve += (sender, request) =>
@@ -31,12 +31,12 @@ internal static class Program
                 }
             return null;
         };
-        try { return StartRhino(root); }
+        try { return StartRhino(root, args.Length == 4); }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int StartRhino(string root)
+    private static int StartRhino(string root, bool testsOnly)
     {
         using (var rhino = new Rhino.Runtime.InProcess.RhinoCore(new[] { "/nosplash", "/notemplate" }, Rhino.Runtime.InProcess.WindowStyle.NoWindow))
         {
@@ -44,13 +44,13 @@ internal static class Program
             {
                 modelDocument.ModelAbsoluteTolerance = 1e-6;
                 Rhino.RhinoDoc.ActiveDoc = modelDocument;
-                return Write(root);
+                return Write(root, testsOnly);
             }
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int Write(string root)
+    private static int Write(string root, bool testsOnly)
     {
         VerifyNetworkGeometry();
         string pluginPath = Path.Combine(root, "src", "Arachne.Grasshopper", "bin", "Release", "net48", "Arachne.Grasshopper.gha");
@@ -60,6 +60,8 @@ internal static class Program
         if (loader == null || !(bool)loader.Invoke(Grasshopper.Instances.ComponentServer, new object[] { new GH_ExternalFile(pluginPath), false }))
             throw new InvalidOperationException("Could not register the Arachne plugin for archive verification.");
         PatterningChecks.Run();
+        ReleaseChecks.Run();
+        if (testsOnly) return 0;
         var document = new GH_Document { Enabled = true };
         var demo = new DemoComponent(); var cable = new CableComponent(); var node = new NodeComponent();
         var model = new ModelComponent(); var settings = new SolverSettingsComponent(); var solver = new FormFindComponent();
