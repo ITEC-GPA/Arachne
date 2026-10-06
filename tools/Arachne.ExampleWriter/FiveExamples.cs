@@ -204,12 +204,13 @@ internal static class FiveExamples
         var cable=e.Add(new CableComponent(),350,200);Link(cable,0,demo.Params.Output[0]);Set(cable,1,new GH_Number(1500));
         var support=e.Add(new NodeComponent(),350,430);Link(support,0,demo.Params.Output[1]);
         var model=e.Add(new ModelComponent(),620,260);Link(model,0,cable.Params.Output[0],true);Link(model,1,support.Params.Output[0],true);Link(model,2,demo.Params.Output[2]);
-        var solver=e.Add(new FormFindComponent(),880,240);Link(solver,0,model.Params.Output[0]);Set(solver,2,new GH_Boolean(true));
+        var run=e.Add(new GH_BooleanToggle{Value=true,NickName="CALCOLA / Run"},690,470);
+        var solver=e.Add(new FormFindComponent(),880,240);Link(solver,0,model.Params.Output[0]);Link(solver,2,run);
         var plate=e.Add(new PlateResultsComponent(),1160,250);Link(plate,0,solver.Params.Output[9]);Set(plate,1,new GH_Integer(1));
         var arap=e.Add(new FlatteningArapComponent(),1450,230);Link(arap,0,plate.Params.Output[1]);Set(arap,3,new GH_Number(0.001));
         var distortion=e.Add(new PanelDistortionComponent(),1750,230);Link(distortion,0,plate.Params.Output[1]);Link(distortion,1,arap.Params.Output[0]);
         e.Readout("Distorsione pannello",distortion.Params.Output[4],1910,210,270,100);
-        e.Group("01 / PANNELLO DALLA RETE RISOLTA",GeometryColor,demo,cable,support,model,solver,plate,arap,distortion);
+        e.Group("01 / PANNELLO DALLA RETE RISOLTA",GeometryColor,demo,cable,support,model,run,solver,plate,arap,distortion);
 
         var panel=MeshInput(e,"Pannello piano 2 x 2 m",Panel(),80,780);
         var clean=e.Add(new MeshCleanComponent(),320,720);Link(clean,0,panel);
@@ -262,6 +263,8 @@ internal static class FiveExamples
         {
             var result=(FormResult)Data(solver,9).Cast<GH_ObjectWrapper>().Single().Value;
             if(result.Status!=SolveStatus.Converged||result.Solved==null)throw new InvalidOperationException(label+": form finding did not converge");
+            int expectedPlates=label.StartsWith("03")||label.StartsWith("04")?12:label.StartsWith("05")?64:label.StartsWith("06")?32:9;
+            if(result.Solved.Plates.Count!=expectedPlates)throw new InvalidOperationException(label+": incomplete plate topology, expected "+expectedPlates+", got "+result.Solved.Plates.Count);
             var model=result.Model;double worst=0;
             foreach(var edge in model.Edges)if(edge.Cable.FixedForce.HasValue)
                 worst=Math.Max(worst,Math.Abs(result.Solved.Beam(edge.Id).AxialForce/edge.Cable.FixedForce.Value-1));

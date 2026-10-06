@@ -2,7 +2,7 @@
 
 Primo progetto Grasshopper dedicato alla ricerca di forma di reti di cavi e membrane, estratto dal percorso di form finding di FeMM. Il modello usa **metri, newton, chilogrammi e secondi**. SAP, Straus, ETABS e il modello FEM generale di FeMM non sono dipendenze di Arachne.
 
-**Stato:** release candidata 0.2.0-rc.1, con motore ARAP C# autonomo, 43 componenti e TensileLib GPC 2.1.0.0. Include tutti i 22 componenti della cartella Patterning di FeMM e 13 nuovi componenti per risultati e diagnostica. Vedere [resoconto ARAP](docs/ARAP-REWRITE.md), [API e limiti della libreria](src/Arachne.Arap/README.md), [resoconto della prima release](docs/RELEASE-1.md), [guida ai risultati](docs/RESULTS.md) e [storico della migrazione](docs/RESOCONTO.md). Gli esempi esistenti sono invariati; i nuovi esempi saranno preparati dall'utente.
+**Stato:** release candidata 0.2.0-rc.2, con motore ARAP C# autonomo, 43 componenti e TensileLib GPC 2.1.0.0. Include tutti i 22 componenti della cartella Patterning di FeMM e 13 componenti per risultati e diagnostica. Sono disponibili [cinque nuovi esempi completi](docs/FIVE-EXAMPLES.md), con copertura di tutti i componenti, solver iterativo/non lineare e [nuove icone](docs/ICONS.svg). Vedere anche [resoconto ARAP](docs/ARAP-REWRITE.md), [API della libreria](src/Arachne.Arap/README.md), [prima release](docs/RELEASE-1.md), [risultati](docs/RESULTS.md) e [storico della migrazione](docs/RESOCONTO.md).
 
 ## Struttura
 
@@ -14,10 +14,11 @@ src/
   Arachne.Core/           Modello, validazione, controllo iterazioni, adattatore TensileLib
   Arachne.Grasshopper/    Componenti .gha e generatori geometrici derivati da FeMM
 tests/Arachne.Core.Tests/ Controlli del modello ed equilibri reali, senza Rhino
-tools/Arachne.ExampleWriter/ Prove dei componenti e generatore dei due esempi, mediante Rhino
+tools/Arachne.ExampleWriter/ Prove dei componenti e generatore degli esempi, mediante Rhino
 examples/                Ricerca di forma e sviluppo pannelli, GH e GHX
 lib/                     Eventuali DLL locali con percorsi configurati
 scripts/build.ps1         Compilazione, controlli e raccolta del plugin
+scripts/build-examples.ps1 Cinque esempi GH/GHX, calcolo e verifica dopo riapertura
 bin/                     Output centralizzati per progetto, configurazione e framework
 docs/                    Architettura e note sulle correzioni
 ```

@@ -1,3 +1,9 @@
+## 0.2.0-rc.2 - 6 ottobre 2026
+
+Cinque nuovi esempi GH/GHX con tutti i 43 componenti, tiri warp/weft distinti, calcolo iterativo e non lineare, risultati interrogabili e laboratorio completo dei pannelli. Nuove icone incorporate per ogni componente e assembly, anteprime SVG e rigenerazione tramite scripts/build-examples.ps1.
+
+Corretti collegamenti mancanti al bordo, ordinamento degli angoli radiali, duplicati del centro, suddivisioni spurie del composto con Match=0 e snapping del primo punto notevole. L'adattatore genera ora le piastre di tutte le parti scollegate: il composto conserva 32 piastre anziché 16. TensileLib e il motore ARAP non sono stati modificati. Dettagli, prove, commit e righe: [FIVE-EXAMPLES.md](FIVE-EXAMPLES.md).
+
 ## Output di compilazione centralizzati - 6 ottobre 2026
 
 Checkpoint prima delle modifiche: `5f7ef66`. Directory.Build.props imposta automaticamente `bin/<progetto>/<configurazione>/<framework>` alla radice per tutti i progetti C#, anche con compilazione diretta o da Visual Studio. Aggiornati i percorsi negli script completi/autonomi, nel caricamento del plugin da ExampleWriter e nella documentazione. Eliminate le sei precedenti cartelle bin sotto src, tests e tools dopo aver verificato i percorsi e l'assenza di file tracciati o collegamenti. Gli intermedi obj e i pacchetti artifacts mantengono la loro collocazione; le DLL dei repository GPC/TensileLib restano referenziate nei percorsi esterni esistenti.

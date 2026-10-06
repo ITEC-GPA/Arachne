@@ -1,5 +1,21 @@
 # Esempi Grasshopper
 
+## Cinque esempi completi della release 0.2.0-rc.2
+
+| File GH (disponibile anche GHX) | Contenuto |
+| --- | --- |
+| [03_Rectangular_Iterative.gh](03_Rectangular_Iterative.gh) | Cable Net, tiro warp 6 kN / weft 3 kN, carichi sui cavi, solver iterativo. |
+| [04_Rectangular_Nonlinear.gh](04_Rectangular_Nonlinear.gh) | Cable Net, tiro warp 9 kN / weft 4.5 kN, pressione 100 N/m², solver non lineare. |
+| [05_Radial_Iterative.gh](05_Radial_Iterative.gh) | Radial Cable Net, warp iniziale 8 kN con q conservata, weft imposto 4 kN, carichi nodali. |
+| [06_Compound_Nonlinear.gh](06_Compound_Nonlinear.gh) | Compound Net, due pannelli separati, warp 6 kN / weft 2.5 kN, 32 piastre complessive. |
+| [07_Patterning_Workshop.gh](07_Patterning_Workshop.gh) | Tutti gli strumenti per pannelli, ARAP, compensazione, bordi, geodetiche, taglio, rimappatura e Line-Up. |
+
+I nuovi file sono autosufficienti e salvati con **Run=True**: ricalcolano all'apertura, dopo aver caricato il plugin aggiornato con tutte le DLL. Coordinate in metri, forze in newton. Ogni componente Arachne viene eseguito almeno una volta nei cinque file; vedere [copertura](COMPONENT-COVERAGE.tsv) e [verifiche](VALIDATION.txt).
+
+Guida a parametri, risultati e correzioni: [FIVE-EXAMPLES.md](../docs/FIVE-EXAMPLES.md). Per rigenerare i cinque documenti usare `./scripts/build-examples.ps1`. Gli esempi iniziali 01 e 02 sono conservati e vengono rigenerati solo con la modalita storica di ExampleWriter.
+
+## Esempi iniziali
+
 `01_SaddleNet.gh` è il documento binario Grasshopper; `01_SaddleNet.ghx` è lo stesso schema in formato XML. Installare prima il plugin Arachne con tutte le DLL raccolte da `scripts/build.ps1`.
 
 Il documento contiene 9 oggetti e 10 collegamenti. Usare Demo Saddle Net per modificare la discretizzazione, la luce e la quota dei vertici. Cable applica una densità uniforme di 1 N/m; Node Conditions blocca il bordo. Model assembla la rete, mentre Solver Settings e il booleano Run controllano Form Find.

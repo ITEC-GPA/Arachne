@@ -58,7 +58,7 @@ try {
         $obsoletePath=Join-Path $destination $obsolete
         if(Test-Path -LiteralPath $obsoletePath){Remove-Item -LiteralPath $obsoletePath}
     }
-    foreach($doc in @('RELEASE-1.md','RESULTS.md','ARAP-REWRITE.md')){
+    foreach($doc in @('RELEASE-1.md','RESULTS.md','ARAP-REWRITE.md','FIVE-EXAMPLES.md')){
         $docPath=Join-Path $projectRoot "docs\$doc"
         if(Test-Path -LiteralPath $docPath){Copy-Item -LiteralPath $docPath -Destination $destination -Force}
     }

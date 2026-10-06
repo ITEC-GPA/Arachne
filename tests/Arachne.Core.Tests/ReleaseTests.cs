@@ -29,6 +29,19 @@ internal static class ReleaseTests
         test("Units preserve dimensions and round trip",()=>{var u=new UnitSettings(UnitsConvert.LengthUnits.mm,UnitsConvert.ForceUnits.kN);Near(u.Convert(1000,Quantity.Length),1);Near(u.Convert(2,Quantity.ForcePerLength),2e6);Near(u.Convert(3,Quantity.Pressure),3e9);Near(u.Convert(u.Convert(45,Quantity.MassDensity),Quantity.MassDensity,false),45);});
         test("Panel distortion measures known anisotropic shrinkage",()=>{var a=new[]{new Point3d(0,0,0),new Point3d(2,0,0),new Point3d(2,2,0),new Point3d(0,2,0)};var b=a.Select(p=>new Point3d(p.X*0.9,p.Y*0.8,p.Z)).ToArray();var r=PanelDistortion.Evaluate(a,b,new[]{new[]{0,1,2,3}});Near(r.MaxEdgeChange,0.2);Near(r.AreaChanges[0],-0.28);Check(!r.Accepted);});
         if(!TensileFormFindingSolver.IsAvailable)return;
+        test("Disconnected nets generate all plates and pressure loads",()=>{
+            var cables=new List<Cable>();var supports=new List<NodeCondition>();
+            foreach(double shift in new[]{0.0,5.0}){
+                var grid=Grid();foreach(var edge in grid.Edges){var c=edge.Cable;c.Start=new Point3d(c.Start.X+shift,c.Start.Y,0);c.End=new Point3d(c.End.X+shift,c.End.Y,0);cables.Add(c);}
+                supports.AddRange(grid.Nodes.Where(n=>n.FixZ).Select(n=>new NodeCondition{Position=new Point3d(n.Position.X+shift,n.Position.Y,0),FixX=true,FixY=true,FixZ=true}));
+            }
+            var result=new TensileFormFindingSolver().Solve(ModelBuilder.Build(cables,supports),new SolverSettings{Pressure=0.1,CreateMesh=false,Tolerance=1e-10,AlgebraicToleranceA=1e-12});
+            Check(result.Status==SolveStatus.Converged,string.Join("; ",result.Messages));
+            Check(result.Solved.Plates.Count==8,"Expected 8 plates, got "+result.Solved.Plates.Count);
+            Check(result.Solved.Plates.Select(p=>p.Id).SequenceEqual(Enumerable.Range(1,8)),"Plate IDs are not unique and consecutive");
+            Near(result.Solved.Nodes.Sum(n=>n.PressureForce.Z),0.8);Check(EquilibriumReport.Evaluate(result.Solved).Accepted);
+            foreach(var plate in result.Solved.Plates)foreach(int beamId in plate.BoundaryBeamIds)Check(beamId>0,"Plate lost its global cable reference");
+        });
         test("Fully restrained triangle retains pressure and reaction results",()=>{
             var p=new[]{new Point3d(0,0,0),new Point3d(2,0,0),new Point3d(0,3,0)};
             var m=ModelBuilder.Build(Enumerable.Range(0,3).Select(i=>new Cable{Start=p[i],End=p[(i+1)%3],Target=2}),p.Select(x=>new NodeCondition{Position=x,FixX=true,FixY=true,FixZ=true}),new[]{p});

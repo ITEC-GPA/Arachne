@@ -119,7 +119,7 @@ namespace Arachne.Core
             // This engine always performs its internal mesh initialization. CreateMesh
             // controls only the output returned by Arachne, not the engine's topology.
             model.Plane = plane;
-            if (model.Plates.Count == 0) model.GeneratePlatesFromBeams();
+            if (model.Plates.Count == 0) GeneratePlatesForConnectedParts(source, model, nodes, plane, edgesByNodes, cancellation);
             if (settings.Pressure != 0 && model.Plates.Count == 0) throw new InvalidOperationException("Pressure requires valid faces; supply a mesh to Model.");
             if (settings.Gravity != 0 && source.Edges.Any(e => e.Cable.Area == 0 || e.Cable.Density == 0))
                 Warn(result, "Some cables have zero area or density and therefore no self-weight.");
@@ -199,6 +199,38 @@ namespace Arachne.Core
                 nodes.Select(n=>new Vector3d(n.BeamSelfWeightForce)).ToArray(),nodes.Select(n=>new Vector3d(n.BeamLoadForce)).ToArray(),result.PressureForces,result.Faces);
             if(result.AxialForces.Any(f=>f<0))Warn(result,"Negative axial forces found: these members are in compression and are not valid tension-only cables.");
             result.Status = SolveStatus.Converged;
+        }
+        private static void GeneratePlatesForConnectedParts(FormModel source, Model target, List<Node> nodes, Plane plane,
+            Dictionary<(int,int),Beam> edgesByNodes, CancellationToken cancellation)
+        {
+            // TensileLib starts face traversal from beam 1, so disconnected nets need separate traversals.
+            var adjacent=source.Nodes.Select(_=>new List<int>()).ToArray();
+            foreach(var edge in source.Edges){adjacent[edge.Start].Add(edge.End);adjacent[edge.End].Add(edge.Start);}
+            var seen=new HashSet<int>();var parts=new List<List<int>>();
+            for(int start=0;start<nodes.Count;start++)
+            {
+                if(!seen.Add(start))continue;var part=new List<int>();var queue=new Queue<int>();queue.Enqueue(start);
+                while(queue.Count>0){int index=queue.Dequeue();part.Add(index);foreach(int next in adjacent[index])if(seen.Add(next))queue.Enqueue(next);}
+                parts.Add(part);
+            }
+            if(parts.Count==1){target.GeneratePlatesFromBeams();return;}
+            foreach(var part in parts)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                var local=new Model{Plane=plane};var localIds=new Dictionary<int,int>();var globalIndices=new Dictionary<int,int>();
+                foreach(int index in part){var p=source.Nodes[index].Position;int id=local.AddNewNode(p.X,p.Y,p.Z);localIds.Add(index,id);globalIndices.Add(id,index);}
+                foreach(var edge in source.Edges)if(localIds.ContainsKey(edge.Start))local.AddNewBeam(localIds[edge.Start],localIds[edge.End],plane);
+                if(local.Beams.Count==0)continue;
+                local.GeneratePlatesFromBeams();
+                foreach(var plate in local.Plates)
+                {
+                    var ids=new List<int>{globalIndices[plate.Node1.Id],globalIndices[plate.Node2.Id],globalIndices[plate.Node3.Id]};
+                    if(plate.PlateType==Plate.PlateTypes.Quad4)ids.Add(globalIndices[plate.Node4.Id]);
+                    var boundary=new List<Beam>();
+                    for(int i=0;i<ids.Count;i++)if(edgesByNodes.TryGetValue((ids[i],ids[(i+1)%ids.Count]),out var beam))boundary.Add(beam);
+                    target.Plates.Add(new Plate(ids.Select(i=>nodes[i]).ToArray(),boundary.ToArray(),plane){Id=target.Plates.Count+1});
+                }
+            }
         }
         private static void Warn(FormResult result, string message)
         { if (!result.Messages.Contains(message)) result.Messages.Add(message); }
