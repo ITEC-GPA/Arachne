@@ -1,6 +1,6 @@
 ## 0.1.0-rc.1 - 6 ottobre 2026
 
-13 nuovi componenti (43 totali), snapshot del modello, risultati per ID, forze di bordo delle piastre, reazioni/residui, bilancio, storia/cancellazione, background, unita, distorsioni e controllo DLL. Refactoring dei tre algoritmi principali dei pannelli e build nativa ARAP dai sorgenti. TensileLib aggiornato a 2.1.0.0 dopo correzioni di pressione, accumulo del peso proprio, copia dei nodi e coordinate interamente vincolate. 98 test locali superati; esempi invariati. Dettagli, righe e limiti in [RELEASE-1.md](RELEASE-1.md) e [RESULTS.md](RESULTS.md).
+13 nuovi componenti (43 totali), snapshot del modello, risultati per ID, forze di bordo delle piastre, reazioni/residui, bilancio, storia/cancellazione, background, unita, distorsioni e controllo DLL. Refactoring dei tre algoritmi principali dei pannelli e build nativa ARAP dai sorgenti. TensileLib aggiornato a 2.1.0.0 dopo correzioni di pressione, accumulo del peso proprio, copia dei nodi e coordinate interamente vincolate. 100 test locali superati; esempi invariati. Dettagli, righe e limiti in [RELEASE-1.md](RELEASE-1.md) e [RESULTS.md](RESULTS.md).
 # Registro delle modifiche
 
 ## Stato iniziale salvato

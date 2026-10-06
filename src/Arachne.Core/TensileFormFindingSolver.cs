@@ -119,7 +119,7 @@ namespace Arachne.Core
             // This engine always performs its internal mesh initialization. CreateMesh
             // controls only the output returned by Arachne, not the engine's topology.
             model.Plane = plane;
-            if (settings.CreateMesh && model.Plates.Count == 0) model.GeneratePlatesFromBeams();
+            if (model.Plates.Count == 0) model.GeneratePlatesFromBeams();
             if (settings.Pressure != 0 && model.Plates.Count == 0) throw new InvalidOperationException("Pressure requires valid faces; supply a mesh to Model.");
             if (settings.Gravity != 0 && source.Edges.Any(e => e.Cable.Area == 0 || e.Cable.Density == 0))
                 Warn(result, "Some cables have zero area or density and therefore no self-weight.");

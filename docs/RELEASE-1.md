@@ -60,16 +60,18 @@ E una release candidata: la validazione locale e completata per i casi sotto, me
 
 | Difetto riprodotto | Correzione e conseguenza | Test salvato prima | Codice |
 | --- | --- | --- | --- |
-| Un triangolo sotto pressione restituiva forza nulla; i nodi di bordo erano ignorati e la normale era forzata verso Z positivo. | Integrazione sulle facce orientate, inclusi i nodi di bordo; triangoli con carico nodale costante e quad divisi lungo la diagonale 1-3. Cambia intenzionalmente la convenzione del verso della pressione. | 9118f7e | [Model.cs:1076](C:/Users/g.pacini/Documents/Repository/tensilelib/TensileLib/Geometry/Model.cs:1076) |
-| Ricalcolare il peso proprio portava una risultante -200 N a -400 N. | Azzeramento del contributo prima di ogni ricalcolo. | 9118f7e | [Model.cs:1024](C:/Users/g.pacini/Documents/Repository/tensilelib/TensileLib/Geometry/Model.cs:1024) |
+| Un triangolo sotto pressione restituiva forza nulla; i nodi di bordo erano ignorati e la normale era forzata verso Z positivo. | Integrazione sulle facce orientate, inclusi i nodi di bordo; triangoli con carico nodale costante e quad divisi lungo la diagonale 1-3. Cambia intenzionalmente la convenzione del verso della pressione. | 9118f7e | [Model.cs:1082](C:/Users/g.pacini/Documents/Repository/tensilelib/TensileLib/Geometry/Model.cs:1082) |
+| Ricalcolare il peso proprio portava una risultante -200 N a -400 N. | Azzeramento del contributo prima di ogni ricalcolo. | 9118f7e | [Model.cs:1030](C:/Users/g.pacini/Documents/Repository/tensilelib/TensileLib/Geometry/Model.cs:1030) |
 | La copia di un nodo leggeva il settimo vincolo di un array di sei elementi; inoltre condivideva i vettori e perdeva i pesi non lineari. | Copia dei sei vincoli, vettori indipendenti e conservazione dei pesi. | 38044a0 | [Node.cs:251](C:/Users/g.pacini/Documents/Repository/tensilelib/TensileLib/Geometry/Node.cs:251) |
 | Un asse completamente vincolato mandava alla libreria algebrica un sistema senza incognite. | Soluzione vuota per quell'asse, mantenendo calcolo dei tiri/carichi/reazioni. Verificati anche modelli completamente vincolati. | 4f1f83a | [ForceDensitySolver.cs:912](C:/Users/g.pacini/Documents/Repository/tensilelib/TensileLib/FormFinding/ForceDensitySolver.cs:912) |
 
 Durante il refactoring una prima guardia rifiutava il valore 0 delle iterazioni algebriche usato dalle geodetiche: il test esistente lo ha rilevato. Ora 0 sceglie il limite predefinito 10000; la regressione Geodesic Offsets e tornata verde. Aggiunte inoltre guardie per direzione warp nulla, percentuali di compensazione non finite o >=100 e pannelli vuoti.
 
+Un ultimo test (commit 1986c27) ha riprodotto una dipendenza impropria tra calcolo e anteprima: CreateMesh=False impediva il calcolo della pressione quando le facce erano generate dal motore. La generazione della topologia e ora indipendente dalla visualizzazione della mesh; vedere [TensileFormFindingSolver.cs:122](C:/Users/g.pacini/Documents/Repository/Arachne/src/Arachne.Core/TensileFormFindingSolver.cs:122). Il test prima della correzione e in `artifacts/tensile-audit/release1-preview-before.txt`.
+
 ## Verifiche
 
-**98 test superati:** 21 nel motore, 32 nel Core, 31 Patterning e 14 integrazione dei nuovi componenti. In aggiunta vengono eseguite le verifiche geometriche dei generatori rettangolare e radiale.
+**100 test superati:** 22 nel motore, 33 nel Core, 31 Patterning e 14 integrazione dei nuovi componenti. In aggiunta vengono eseguite le verifiche geometriche dei generatori rettangolare e radiale.
 
 - Caso analitico: rete quadrata, q=2 N/m e pressione 8 N/m2; spostamento centrale 1 m, risultante verticale 32 N, reazioni verticali -32 N e bilancio dei momenti entro tolleranza.
 - Triangolo completamente vincolato: area 3 m2, pressione 10 N/m2, risultante 30 N e reazioni -30 N.
@@ -108,8 +110,12 @@ I sorgenti C++ originali sono disponibili localmente; il progetto native/Arachne
 Ordine del lavoro successivo:
 
 1. Inventario dell'ABI e confronto fra DLL attuale e sorgenti; usare la decompilazione/disassemblaggio per le parti non ricostruibili o divergenti, preservando le informazioni di provenienza.
-2. Definizione del perimetro: progetto C++ autonomo con libigl/Eigen oppure sostituzione del motore con una nuova implementazione. Preferenza chiesta all'utente, ancora da confermare.
+2. **Scelta confermata dall'utente: nuova implementazione del motore numerico ARAP, preferibilmente in C#.** Il lavoro previsto e un motore C# autonomo, con geometria GPC, separato da Rhino/Grasshopper e senza dipendenza esecutiva da libigl/Eigen. Sorgenti e DLL C++ restano il riferimento di confronto.
 3. Commit della baseline e creazione del progetto indipendente, con API esplicita, configurazione per istanza e gestione degli errori.
 4. Eliminazione della dipendenza dai percorsi del vecchio repository e definizione delle dipendenze necessarie alla build.
 5. Test comparativi di flattening, unwrap/deform, pin, scale, orientamento, mesh invalide, prestazioni e ripetibilita.
 6. Collegamento ad Arachne dopo il superamento delle prove, documentando gli eventuali cambiamenti numerici.
+
+## Ultima correzione: facce esterne sovrapposte
+
+Il test della topologia implicita ha inoltre rivelato che TensileLib generava otto facce su una griglia di quattro celle: triangolava anche il contorno esterno sopra le celle gia presenti. Questo alterava aree e carichi di pressione. Salvata la regressione nel commit TensileLib 9ea9ab6, poi corretto nel commit 0e7f5a6 applicando il controllo TestFace prima di accettare il contorno. Ora la griglia restituisce quattro facce e area totale 4 m2. Codice da visionare: [Model.cs:770](C:/Users/g.pacini/Documents/Repository/tensilelib/TensileLib/Geometry/Model.cs:770). Il log prima del fix e `artifacts/tensile-audit/release1-outer-face-before.txt`.

@@ -42,7 +42,7 @@ internal static class ReleaseTests
         });
         test("Disabling mesh preview does not prevent generated pressure topology",()=>{
             var grid=Grid();var implicitModel=ModelBuilder.Build(grid.Edges.Select(e=>e.Cable),grid.Nodes.Where(n=>n.FixZ).Select(n=>new NodeCondition{Position=n.Position,FixX=true,FixY=true,FixZ=true}));
-            var r=new TensileFormFindingSolver().Solve(implicitModel,new SolverSettings{Pressure=0.1,CreateMesh=false,Tolerance=1e-9});Check(r.Status==SolveStatus.Converged,string.Join(";",r.Messages));Check(r.Solved.Plates.Count==4);
+            var r=new TensileFormFindingSolver().Solve(implicitModel,new SolverSettings{Pressure=0.1,CreateMesh=false,Tolerance=1e-9});Check(r.Status==SolveStatus.Converged,string.Join(";",r.Messages));Check(r.Solved.Plates.Count==4,"Generated plate count: "+r.Solved.Plates.Count+"; faces: "+string.Join(" / ",r.Faces.Select(f=>string.Join(",",f))));
         });
         test("Plate result maps all ordered sides to solved cable force",()=>{var r=new TensileFormFindingSolver().Solve(Grid(),new SolverSettings());Check(r.Status==SolveStatus.Converged,string.Join(";",r.Messages));foreach(var p in r.Solved.Plates){Near(p.Area,1);Check(!p.HasMembraneResultants);for(int i=0;i<4;i++)Near(p.BoundaryAxialForces[i],r.Solved.Beam(p.BoundaryBeamIds[i]).AxialForce);}Check(r.Solved.ModelId==r.Model.Id);});
         test("Membrane target mapping preserves direction and legacy area conversion",()=>{

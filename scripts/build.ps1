@@ -67,7 +67,7 @@ try {
         $packagedTensile = Join-Path $destination $name
         if (!(Test-Path -LiteralPath $tensilePath) -and (Test-Path -LiteralPath $packagedTensile)) { Remove-Item -LiteralPath $packagedTensile }
     }
-    $status = if (Test-Path -LiteralPath $tensilePath) { 'TensileLib GPC included. See docs/CHANGELOG.md for tests and validation limits.' } else { 'TensileLib missing. Geometry/model components available; no equilibrium calculation.' }
+    $status = if (Test-Path -LiteralPath $tensilePath) { 'Arachne release candidate with TensileLib GPC. Read RELEASE-1.md and RESULTS.md for verified behavior and remaining validation.' } else { 'TensileLib missing. Geometry/model components available; no equilibrium calculation.' }
     Set-Content -LiteralPath (Join-Path $destination 'BUILD-STATUS.txt') -Value $status -Encoding utf8
     Write-Host "Plugin: $destination"
     Write-Host $status
