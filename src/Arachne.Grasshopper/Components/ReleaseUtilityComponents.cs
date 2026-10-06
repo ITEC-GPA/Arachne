@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices;
+using Arachne.Arap;
 using Arachne.Core;
 using GPC.Utilities.Units;
 using Grasshopper.Kernel;
@@ -70,21 +70,28 @@ namespace Arachne.Grasshopper.Components
     }
     public sealed class DependencyCheckComponent:ComponentBase
     {
-        public DependencyCheckComponent():base("Dependency Check","DLL","Inspect loaded DLL versions and locations, solver API and native ARAP exports on this computer.","0 Utilities"){}
+        public DependencyCheckComponent():base("Dependency Check","DLL","Inspect loaded DLL versions and locations, solver API and the managed ARAP engine on this computer.","0 Utilities"){}
         public override Guid ComponentGuid=>new Guid("e64bd7b8-5b21-4485-a27d-c61a0cd85313");
-        protected override void RegisterInputParams(GH_InputParamManager p)=>p.AddBooleanParameter("Check native","N","Try loading ARAP and checking its exported functions",GH_ParamAccess.item,true);
+        protected override void RegisterInputParams(GH_InputParamManager p)=>p.AddBooleanParameter("Check ARAP","A","Run a small managed ARAP calculation",GH_ParamAccess.item,true);
         protected override void RegisterOutputParams(GH_OutputParamManager p){p.AddBooleanParameter("Available","OK","All required dependencies passed inspection",GH_ParamAccess.item);p.AddTextParameter("Report","R","Versions, actual paths and errors",GH_ParamAccess.list);}
         protected override void Solve(IGH_DataAccess d)
         {
-            bool native=true,ok=true;d.GetData(0,ref native);var report=new List<string>();
-            foreach(string name in new[]{"Arachne.Core","GPCGeometry","GPCUtilities","TensileLib","MathNet.Numerics","alglibnet2","RhinoCommon","Grasshopper"})
+            bool arap=true,ok=true;d.GetData(0,ref arap);var report=new List<string>();
+            foreach(string name in new[]{"Arachne.Core","Arachne.Arap","GPCGeometry","GPCUtilities","TensileLib","MathNet.Numerics","alglibnet2","RhinoCommon","Grasshopper"})
             {try{var a=AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(x=>x.GetName().Name==name)??Assembly.Load(name);report.Add(name+" "+a.GetName().Version+" | "+a.Location);if(name=="TensileLib"&&a.GetType("TensileLib.FormFinding.Solver")?.GetProperty("IterationCompleted")==null){ok=false;report.Add("TensileLib lacks the required release-one iteration API.");}}catch(Exception e){ok=false;report.Add(name+": "+e.Message);}}
-            if(native){string path=Path.Combine(Path.GetDirectoryName(GetType().Assembly.Location),"Arachne.IGL.dll");IntPtr handle=LoadLibrary(path);if(handle==IntPtr.Zero){ok=false;report.Add("ARAP load failed, Win32 error "+Marshal.GetLastWin32Error()+": "+path);}else{try{foreach(string export in new[]{"Version","SetConfig","MeshFlattening","MeshUnwrap","MeshDeform"})if(GetProcAddress(handle,export)==IntPtr.Zero){ok=false;report.Add("ARAP missing export: "+export);}report.Add("ARAP x64 loaded | "+path);}finally{FreeLibrary(handle);}}}
-            else report.Add("Native ARAP load was not checked.");
+            if(arap)
+            {
+                try
+                {
+                    var mesh = new ArapMesh(new[]{new GPC.Geometry.Point3d(0,0,0),new GPC.Geometry.Point3d(1,0,0),new GPC.Geometry.Point3d(0,1,0)},new[]{0,1,2});
+                    var result=ArapSolver.Unwrap(mesh);
+                    ok &= result.Success;
+                    report.Add("ARAP managed calculation: "+result.Status+" | "+result.Message);
+                }
+                catch(Exception e){ok=false;report.Add("ARAP managed calculation: "+e.Message);}
+            }
+            else report.Add("ARAP calculation was not checked; managed assembly loading was checked.");
             d.SetData(0,ok);d.SetDataList(1,report);
         }
-        [DllImport("kernel32",CharSet=CharSet.Unicode,SetLastError=true)]private static extern IntPtr LoadLibrary(string name);
-        [DllImport("kernel32",CharSet=CharSet.Ansi,ExactSpelling=true)]private static extern IntPtr GetProcAddress(IntPtr handle,string name);
-        [DllImport("kernel32")]private static extern bool FreeLibrary(IntPtr handle);
     }
 }

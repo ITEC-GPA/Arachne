@@ -26,6 +26,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
     & "tests\Arachne.Core.Tests\bin\$Configuration\net48\Arachne.Core.Tests.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Core checks failed.' }
+    & "tests\Arachne.Arap.Tests\bin\$Configuration\net48\Arachne.Arap.Tests.exe"
+    if ($LASTEXITCODE -ne 0) { throw 'Managed ARAP checks failed.' }
     if($RhinoTests) {
         if($Configuration -ne 'Release'){throw 'The Rhino verification tool currently requires Release.'}
         $rhinoDir=if($RhinoSystemDir){$RhinoSystemDir}else{'C:\Program Files\Rhino 8\System'}
@@ -36,7 +38,7 @@ try {
     $sourceDir = Join-Path $projectRoot "src\Arachne.Grasshopper\bin\$Configuration\net48"
     $destination = Join-Path $projectRoot "artifacts\$Configuration\Arachne"
     New-Item -ItemType Directory -Force -Path $destination | Out-Null
-    $files = @('Arachne.Grasshopper.gha','Arachne.Core.dll','GPCGeometry.dll','GPCUtilities.dll','MathNet.Numerics.dll','System.Drawing.Common.dll','Arachne.IGL.dll')
+    $files = @('Arachne.Grasshopper.gha','Arachne.Core.dll','Arachne.Arap.dll','GPCGeometry.dll','GPCUtilities.dll','MathNet.Numerics.dll','System.Drawing.Common.dll')
     if (Test-Path -LiteralPath $tensilePath) { $files += @('TensileLib.dll','alglibnet2.dll') }
     foreach ($name in $files) { Copy-Item -LiteralPath (Join-Path $sourceDir $name) -Destination $destination -Force }
     $manifest = foreach ($name in $files) {
@@ -51,23 +53,23 @@ try {
         }
     }
     $manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'DEPENDENCIES.json') -Encoding utf8
-    $nativeProvenance=Join-Path $projectRoot 'artifacts\native\Release\NATIVE-BUILD.json'
-    if(Test-Path -LiteralPath $nativeProvenance){
-        $nativeInfo=Get-Content -LiteralPath $nativeProvenance -Raw | ConvertFrom-Json
-        if($nativeInfo.BinarySHA256 -eq (Get-FileHash -LiteralPath (Join-Path $destination 'Arachne.IGL.dll')).Hash){Copy-Item -LiteralPath $nativeProvenance -Destination $destination -Force}
+    # The original native binary remains available only for optional comparison tests.
+    foreach($obsolete in @('Arachne.IGL.dll','NATIVE-BUILD.json')) {
+        $obsoletePath=Join-Path $destination $obsolete
+        if(Test-Path -LiteralPath $obsoletePath){Remove-Item -LiteralPath $obsoletePath}
     }
-    foreach($doc in @('RELEASE-1.md','RESULTS.md')){
+    foreach($doc in @('RELEASE-1.md','RESULTS.md','ARAP-REWRITE.md')){
         $docPath=Join-Path $projectRoot "docs\$doc"
         if(Test-Path -LiteralPath $docPath){Copy-Item -LiteralPath $docPath -Destination $destination -Force}
     }
     $revision=& git rev-parse HEAD
-    [pscustomobject]@{ArachneCommit=$revision;RhinoChecksPerformed=[bool]$RhinoTests;BuiltUtc=[DateTime]::UtcNow.ToString('o');Framework='net48';Platform='Windows x64'} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'BUILD.json') -Encoding utf8
+    [pscustomobject]@{ArachneCommit=$revision;RhinoChecksPerformed=[bool]$RhinoTests;ManagedArapChecksPerformed=$true;BuiltUtc=[DateTime]::UtcNow.ToString('o');Framework='net48';Platform='Windows x64';ArapEngine='Managed C# netstandard2.0'} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'BUILD.json') -Encoding utf8
     # A previous complete build must not leave a stale solver in a skeleton package.
     foreach ($name in @('TensileLib.dll','alglibnet2.dll')) {
         $packagedTensile = Join-Path $destination $name
         if (!(Test-Path -LiteralPath $tensilePath) -and (Test-Path -LiteralPath $packagedTensile)) { Remove-Item -LiteralPath $packagedTensile }
     }
-    $status = if (Test-Path -LiteralPath $tensilePath) { 'Arachne release candidate with TensileLib GPC. Read RELEASE-1.md and RESULTS.md for verified behavior and remaining validation.' } else { 'TensileLib missing. Geometry/model components available; no equilibrium calculation.' }
+    $status = if (Test-Path -LiteralPath $tensilePath) { 'Arachne release candidate with TensileLib GPC and managed C# ARAP. Read ARAP-REWRITE.md, RELEASE-1.md and RESULTS.md for verified behavior and remaining validation.' } else { 'TensileLib missing. Geometry/model components available; no equilibrium calculation.' }
     Set-Content -LiteralPath (Join-Path $destination 'BUILD-STATUS.txt') -Value $status -Encoding utf8
     Write-Host "Plugin: $destination"
     Write-Host $status

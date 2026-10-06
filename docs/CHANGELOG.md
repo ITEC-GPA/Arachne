@@ -1,3 +1,7 @@
+## 0.2.0-rc.1 - 6 ottobre 2026
+
+Nuovo progetto Arachne.Arap C# netstandard2.0, indipendente da Rhino/FEM e dalle librerie native. Implementati sviluppo 2D, deformazione 3D, vincoli, perimetro, algebra sparsa, diagnostica e cancellazione; collegati i componenti Grasshopper e aggiunte uscite informative senza cambiare GUID o ingressi. Correzioni a precisione dei pin, conversione Rhino e gestione del doppio fallimento nella geodetica. Pacchetto autonomo e distribuzione Arachne senza Arachne.IGL.dll. 144 controlli superati, inclusi sei confronti con il motore nativo. Resoconto, righe e limiti: [ARAP-REWRITE.md](ARAP-REWRITE.md). Esempi invariati.
+
 ## 0.1.0-rc.1 - 6 ottobre 2026
 
 13 nuovi componenti (43 totali), snapshot del modello, risultati per ID, forze di bordo delle piastre, reazioni/residui, bilancio, storia/cancellazione, background, unita, distorsioni e controllo DLL. Refactoring dei tre algoritmi principali dei pannelli e build nativa ARAP dai sorgenti. TensileLib aggiornato a 2.1.0.0 dopo correzioni di pressione, accumulo del peso proprio, copia dei nodi e coordinate interamente vincolate. 100 test locali superati; esempi invariati. Dettagli, righe e limiti in [RELEASE-1.md](RELEASE-1.md) e [RESULTS.md](RESULTS.md).

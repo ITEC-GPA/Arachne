@@ -32,7 +32,7 @@ internal static class ReleaseChecks
         Test("Preview scalar and geometry counts",()=>{var c=new ResultPreviewComponent();Set<IGH_Goo>(c,0,new GH_ObjectWrapper(result));Run(c,()=>Check(Output(c,0).Length==2&&Output(c,1).Length==2&&Output(c,2).Length==2));});
         Test("Unit settings and numeric conversion",()=>{var c=new UnitSettingsComponent();Set(c,0,new GH_Integer(0));Run(c,()=>Check(Math.Abs((double)Output(c,1).Single()-0.001)<1e-12));var convert=new ConvertUnitsComponent();Set(convert,0,new GH_Number(1000));Set<IGH_Goo>(convert,1,new GH_ObjectWrapper(new UnitSettings(GPC.Utilities.Units.UnitsConvert.LengthUnits.mm)));Run(convert,()=>Check((double)Output(convert,0).Single()==1));});
         Test("Panel distortion detects 10 percent scaling",()=>{var m=new Mesh();m.Vertices.Add(0,0,0);m.Vertices.Add(1,0,0);m.Vertices.Add(0,1,0);m.Faces.AddFace(0,1,2);var flat=m.DuplicateMesh();flat.Scale(0.9);var c=new PanelDistortionComponent();Set(c,0,new GH_Mesh(m));Set(c,1,new GH_Mesh(flat));Run(c,()=>Check(Math.Abs((double)Output(c,4).Single()-0.1)<1e-6));});
-        Test("All local managed and native dependencies load",()=>{var c=new DependencyCheckComponent();Run(c,()=>Check((bool)Output(c,0).Single(),string.Join(";",Output(c,1))));});
+        Test("All local dependencies load and managed ARAP runs",()=>{var c=new DependencyCheckComponent();Run(c,()=>Check((bool)Output(c,0).Single(),string.Join(";",Output(c,1))));});
         Test("Background result completes and Run false clears all result outputs",()=>{
             var c=new FormFindComponent();Set<IGH_Goo>(c,0,new GH_ObjectWrapper(model));Set(c,2,new GH_Boolean(true));Set(c,3,new GH_Boolean(true));
             using(var doc=new GH_Document{Enabled=true}){

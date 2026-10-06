@@ -11,7 +11,8 @@ flowchart TD
   A --> TL[TensileLib · calcolo numerico]
   GH --> P[Patterning · algoritmi Rhino e sviluppo pannelli]
   P --> TL
-  P --> IGL[Arachne.IGL · ARAP nativo x64]
+  P --> ARAP[Arachne.Arap · motore C# autonomo]
+  ARAP --> GPC
 ```
 
 ## Dati
@@ -34,6 +35,6 @@ La cancellazione e verificata anche tra le iterazioni interne di TensileLib. Una
 
 Il progetto contiene l'interfaccia dei tre modi osservati in FeMM, non una reimplementazione matematica di TensileLib. Il plugin completo richiede TensileLib e ARAP; il Core isolato conserva un ramo diagnostico senza motore. I tre modi sono stati verificati con equilibri analitici reali. Pressioni, peso proprio, membrane e pesi combinati richiedono una campagna di confronto piu ampia.
 
-Flattening, geodetiche, compensazione dei pannelli 2D e strumenti mesh sono inclusi in Components/Patterning. ARAPHelper traduce i dati per il C ABI della DLL nativa e adegua la scala dei pin alla versione 0.9.0. Compensation, Decompensation e Flattening sono ora servizi separati in Services/, senza accesso a Grasshopper o a RhinoDoc; le classi dei componenti raccolgono gli ingressi, passano le tolleranze e visualizzano gli esiti. GUID e porte restano invariati. Le verifiche di resistenza e lo scambio con programmi FEM restano fuori dallo scopo.
+Flattening, geodetiche, compensazione dei pannelli 2D e strumenti mesh sono inclusi in Components/Patterning. ARAPHelper converte fra Rhino e GPC e passa opzioni indipendenti al motore Arachne.Arap; non carica DLL native. ARAP 2D/3D, algebra sparsa, vincoli, perimetro e diagnostica sono nel progetto netstandard2.0 autonomo. Dettagli in [ARAP-REWRITE.md](ARAP-REWRITE.md). Compensation, Decompensation e Flattening sono ora servizi separati in Services/, senza accesso a Grasshopper o a RhinoDoc; le classi dei componenti raccolgono gli ingressi, passano le tolleranze e visualizzano gli esiti. GUID e porte restano invariati. Le verifiche di resistenza e lo scambio con programmi FEM restano fuori dallo scopo.
 
 La specifica attuale di modello, risultati, pressioni e unita e in [RESULTS.md](RESULTS.md); il registro della prima release e in [RELEASE-1.md](RELEASE-1.md).

@@ -1,4 +1,5 @@
 using Arachne.Grasshopper.Helpers;
+using Arachne.Arap;
 using System;
 using System.Collections.Generic;
 using Grasshopper.Kernel;
@@ -38,6 +39,10 @@ namespace Arachne.Grasshopper.Components.Patterning
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
             pManager.AddMeshParameter("Deformed", "D", "The deformed mesh", GH_ParamAccess.item);
+            pManager.AddTextParameter("Status", "S", "ARAP outcome; only Converged publishes a mesh", GH_ParamAccess.item);
+            pManager.AddTextParameter("Report", "R", "Solver message and convergence diagnostics", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Energy", "E", "Normalized energy per iteration; perimeter updates change the constraints between passes", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Edge distortion", "ED", "Maximum absolute fractional edge-length change; 0.02 means 2%", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -59,7 +64,7 @@ namespace Arachne.Grasshopper.Components.Patterning
             DA.GetDataList(3, points);
             DA.GetData(4, ref isUnwrap);
 
-            if (mesh.Value == null || !mesh.Value.IsValid || mesh.Value.Faces.Count == 0 || max_iter <= 0)
+            if (mesh?.Value == null || !mesh.Value.IsValid || mesh.Value.Faces.Count == 0 || max_iter <= 0)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "A valid mesh and positive iteration count are required.");
                 return;
@@ -77,10 +82,9 @@ namespace Arachne.Grasshopper.Components.Patterning
                 }
             }
 
-            if (pins.Count == 0)
-            {
-                pins.Add(0);
-            }
+            // Preserve the old position-only convention; otherwise let the engine
+            // choose one automatic anchor for every disconnected part.
+            if (pins.Count == 0 && points.Count > 0) pins.Add(0);
 
             if (points.Count > pins.Count)
             {
@@ -90,7 +94,7 @@ namespace Arachne.Grasshopper.Components.Patterning
 
             while (points.Count < pins.Count)
             {
-                points.Add(mesh.Value.Vertices[pins[points.Count]]);
+                points.Add(mesh.Value.Vertices.Point3dAt(pins[points.Count]));
             }
 
             // Check duplicate pins
@@ -112,19 +116,12 @@ namespace Arachne.Grasshopper.Components.Patterning
 
             try
             {
-                ARAPHelper.Configure(max_iter, 0, 0, 0, 0);
-                if (isUnwrap)
+                var result = ARAPHelper.Deform(mesh3D, deformed, pins, points, isUnwrap, new ArapOptions { MaxIterations = max_iter });
+                ARAPHelper.SetDiagnostics(DA, result, false);
+                if (!result.Success)
                 {
-                    List<Point2d> positions = new List<Point2d>();
-                    for (int i = 0; i < points.Count; i++)
-                    {
-                        positions.Add(new Point2d(points[i].X, points[i].Y));
-                    }
-                    ARAPHelper.Unwrap(mesh3D, deformed, pins, positions);
-                }
-                else
-                {
-                    ARAPHelper.Deform(mesh3D, deformed, pins, points);
+                    AddRuntimeMessage(ARAPHelper.FailureLevel(result), result.Message);
+                    return;
                 }
             }
             catch (Exception ex)

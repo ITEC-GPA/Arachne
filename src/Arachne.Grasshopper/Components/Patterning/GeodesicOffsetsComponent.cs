@@ -276,13 +276,10 @@ namespace Arachne.Grasshopper.Components.Patterning
                         var arapInput = internalCut.DuplicateMesh();
                         arapInput.Faces.ConvertQuadsToTriangles();
                         Mesh flatBuffer = arapInput.DuplicateMesh();
-                        ARAPHelper.Configure(1000, 1000, tol, Math.PI * 7 / 8, 0.1);
-                        if (!ARAPHelper.Flattening(arapInput, flatBuffer))
+                        var arap = ARAPHelper.Flattening(arapInput, flatBuffer, new Arachne.Arap.ArapOptions { PerimeterTolerance = tol });
+                        if (!arap.Success)
                         {
-                            if (flat == null)
-                            {
-                                throw new NotSupportedException("Unable to flat the mesh");
-                            }
+                            throw new NotSupportedException("Unable to flatten the mesh: " + arap.Message);
                         }
                         else
                         {

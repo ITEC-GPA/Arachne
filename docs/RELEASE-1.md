@@ -1,3 +1,5 @@
+> Documento storico della 0.1.0-rc.1. Il motore ARAP nativo qui descritto e stato sostituito nella 0.2.0-rc.1: vedere [riscrittura ARAP](ARAP-REWRITE.md).
+
 # Prima release: registro degli interventi
 
 Richiesta del 6 ottobre 2026: realizzare gli interventi della prima release; gli esempi saranno preparati dall'utente. Non rigenerare i file in examples.

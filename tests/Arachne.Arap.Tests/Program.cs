@@ -175,7 +175,7 @@ internal static class Program
         return new ArapMesh(p,f);
     }
     internal static ArapMesh Cylinder()=>Grid(9,4,(x,y)=>new Point3d(Math.Sin(x*0.7),y,1-Math.Cos(x*0.7)));
-    private static ArapMesh Fan(int n,double height)
+    internal static ArapMesh Fan(int n,double height)
     {
         var p=new List<Point3d>{new Point3d(0,0,height)};var f=new List<int>();
         for(int i=0;i<n;i++)p.Add(P(Math.Cos(2*Math.PI*i/n),Math.Sin(2*Math.PI*i/n)));

@@ -1,4 +1,5 @@
 using Arachne.Grasshopper.Helpers;
+using Arachne.Arap;
 using System;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
@@ -35,6 +36,11 @@ namespace Arachne.Grasshopper.Components.Patterning
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
             pManager.AddMeshParameter("Flatten", "F", "The flatten mesh", GH_ParamAccess.item);
+            pManager.AddTextParameter("Status", "S", "ARAP outcome; only Converged publishes a mesh", GH_ParamAccess.item);
+            pManager.AddTextParameter("Report", "R", "Solver message and convergence diagnostics", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Energy", "E", "Normalized energy per iteration; perimeter updates change the constraints between passes", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Edge distortion", "ED", "Maximum absolute fractional edge-length change; 0.02 means 2%", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Perimeter error", "PE", "Maximum side-length mismatch in mesh units after the last perimeter pass", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -63,24 +69,25 @@ namespace Arachne.Grasshopper.Components.Patterning
             if (!DA.GetData(5, ref convergence_speed))
                 return;
 
+            if (mesh?.Value == null || !mesh.Value.IsValid || mesh.Value.Faces.Count == 0)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "A valid mesh is required.");
+                return;
+            }
             Mesh mesh3D = mesh.Value.DuplicateMesh();
             mesh3D.Faces.ConvertQuadsToTriangles();
-            /* 
-             mesh3D.Vertices.CombineIdentical(true, true);
-             mesh3D.Faces.CullDegenerateFaces();
-             mesh3D.UnifyNormals();
-             mesh3D.RebuildNormals();
-             mesh3D.Compact();
-            */
 
             Mesh flat = mesh3D.DuplicateMesh();
 
             try
             {
-                ARAPHelper.Configure(max_iter, max_perimeter_iter, perimeter_tol, angle_tol, convergence_speed);
-                if (!ARAPHelper.Flattening(mesh3D, flat))
+                var result = ARAPHelper.Flattening(mesh3D, flat, new ArapOptions {
+                    MaxIterations = max_iter, MaxPerimeterIterations = max_perimeter_iter,
+                    PerimeterTolerance = perimeter_tol, CornerAngle = angle_tol, PerimeterStep = convergence_speed });
+                ARAPHelper.SetDiagnostics(DA, result, true);
+                if (!result.Success)
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Native flattening did not converge. No mesh produced.");
+                    AddRuntimeMessage(ARAPHelper.FailureLevel(result), result.Message);
                     return;
                 }
             }

@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Arachne.Core\Arachne.Core.csproj" />
+    <ProjectReference Include="..\Arachne.Arap\Arachne.Arap.csproj" />
     <Reference Include="RhinoCommon"><HintPath>$(RhinoSystemDir)\RhinoCommon.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Grasshopper"><HintPath>$(GrasshopperDir)\Grasshopper.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="GH_IO"><HintPath>$(GrasshopperDir)\GH_IO.dll</HintPath><Private>false</Private></Reference>
@@ -15,11 +16,9 @@
     <Reference Include="System.Drawing" />
     <Reference Include="TensileLib"><HintPath>$(TensileLibPath)</HintPath><Private>true</Private></Reference>
     <EmbeddedResource Include="Resources\Patterning\*.png" />
-    <Content Include="$(NativeIglPath)"><Link>Arachne.IGL.dll</Link><TargetPath>Arachne.IGL.dll</TargetPath><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
   </ItemGroup>
   <Target Name="CheckRhino" BeforeTargets="ResolveReferences">
     <Error Condition="!Exists('$(TensileLibPath)')" Text="TensileLib Release richiesta dai componenti Patterning." />
-    <Error Condition="!Exists('$(NativeIglPath)')" Text="DLL nativa ARAP mancante. Impostare NativeIglPath." />
     <Error Condition="!Exists('$(RhinoSystemDir)\RhinoCommon.dll')" Text="RhinoCommon.dll non trovata: impostare RhinoSystemDir." />
     <Error Condition="!Exists('$(GrasshopperDir)\Grasshopper.dll')" Text="Grasshopper.dll non trovata: impostare GrasshopperDir." />
   </Target>

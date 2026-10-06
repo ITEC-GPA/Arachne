@@ -71,7 +71,7 @@ internal static class PatterningChecks
             var c=new CompensationComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(10));Set(c,3,new GH_Number(10));Set(c,8,new GH_Number(-1));Solve(c);
             Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Solver exception published geometry");
         });
-        Test("ARAP flatten suppresses unsuccessful native result",()=>{
+        Test("ARAP flatten suppresses unconverged managed result",()=>{
             var c=new FlatteningArapComponent();Set(c,0,new GH_Mesh(Panel(false)));Set(c,1,new GH_Integer(20));Set(c,2,new GH_Integer(0));Solve(c);
             Check(c.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count>0 && !c.Params.Output[0].VolatileData.AllData(true).Any(),"Unsuccessful ARAP result published geometry");
         });
@@ -79,25 +79,59 @@ internal static class PatterningChecks
             var c=new CompensationComponent();var input=Panel();Set(c,0,new GH_Mesh(input));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(0));Set(c,3,new GH_Number(0));Solve(c);ValidMesh(c);
             Check(Math.Abs(AreaMassProperties.Compute(Output<GH_Mesh>(c).Value).Area-4)<1e-4,"Area changed");Check(input.Faces[0].IsQuad,"Input mesh modified");
         });
-        Test("Native ARAP flatten produces finite planar mesh",()=>{
+        Test("Managed ARAP flatten produces finite planar mesh",()=>{
             var c=new FlatteningArapComponent();Set(c,0,new GH_Mesh(Panel(false)));Set(c,1,new GH_Integer(20));Set(c,2,new GH_Integer(20));Solve(c);ValidMesh(c);
             Check(Output<GH_Mesh>(c).Value.Vertices.All(v=>Math.Abs(v.Z)<1e-7),"Nonplanar result");
         });
-        Test("Native ARAP deformation respects pins",()=>{
+        Test("Managed ARAP deformation respects pins",()=>{
             var c=new DeformArapComponent();Set(c,0,new GH_Mesh(Panel(false)));Set(c,1,new GH_Integer(20));
             Set(c,2,new GH_Integer(0),new GH_Integer(1));Set(c,3,new GH_Point(new Point3d(1,1,0)),new GH_Point(new Point3d(3,1,0)));Solve(c);ValidMesh(c);
             Check(Output<GH_Mesh>(c).Value.Vertices[0].DistanceTo(new Point3f(1,1,0))<1e-5,"Pin moved: " + Output<GH_Mesh>(c).Value.Vertices[0]);
         });
-        Test("Native ARAP unwrap respects translated pins",()=>{
+        Test("Managed ARAP unwrap respects translated pins",()=>{
             var c=new DeformArapComponent();var panel=Panel(false);panel.Translate(new Vector3d(-20,-30,-5));
             Set(c,0,new GH_Mesh(panel));Set(c,1,new GH_Integer(20));Set(c,2,new GH_Integer(0),new GH_Integer(1));
             Set(c,3,new GH_Point(new Point3d(-19,-29,0)),new GH_Point(new Point3d(-17,-29,0)));Set(c,4,new GH_Boolean(true));Solve(c);ValidMesh(c);
             var mesh=Output<GH_Mesh>(c).Value;
             Check(mesh.Vertices[0].DistanceTo(new Point3f(-19,-29,0))<1e-5 && mesh.Vertices[1].DistanceTo(new Point3f(-17,-29,0))<1e-5,"Unwrap moved pins");
         });
-        Test("ARAP rejects invalid pins before native call",()=>{
+        Test("ARAP rejects invalid pins before calculation",()=>{
             var c=new DeformArapComponent();Set(c,0,new GH_Mesh(Panel(false)));Set(c,2,new GH_Integer(-1));Set(c,3,new GH_Point(Point3d.Origin));Solve(c,true);
             Check(!c.Params.Output[0].VolatileData.AllData(true).Any(),"Invalid pins produced geometry");
+        });
+        Test("ARAP vertical quad preserves topology and reports diagnostics",()=>{
+            var panel=Panel();panel.Transform(Transform.Rotation(Math.PI/2,Vector3d.YAxis,Point3d.Origin));
+            var c=new FlatteningArapComponent();Set(c,0,new GH_Mesh(panel));Solve(c);ValidMesh(c);
+            Check(Output<GH_Mesh>(c).Value.Faces[0].IsQuad,"Quad topology lost");
+            Check(c.Params.Output[1].VolatileData.AllData(true).OfType<GH_String>().Single().Value=="Converged","Missing status");
+            Check(c.Params.Output[3].VolatileData.AllData(true).Any(),"Missing energy history");
+            Check(c.Params.Output[4].VolatileData.AllData(true).OfType<GH_Number>().Single().Value<1e-6,"Wrong edge distortion");
+        });
+        Test("ARAP invalid tolerances report failure without a mesh",()=>{
+            var c=new FlatteningArapComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,3,new GH_Number(-1));Solve(c,true);
+            Check(!c.Params.Output[0].VolatileData.AllData(true).Any(),"Invalid settings produced geometry");
+            Check(c.Params.Output[1].VolatileData.AllData(true).OfType<GH_String>().Single().Value=="InvalidInput","Wrong invalid status");
+        });
+        Test("ARAP default anchors support disconnected mesh parts",()=>{
+            var panel=Panel();var second=Panel();second.Translate(5,0,0);panel.Append(second);
+            var c=new DeformArapComponent();Set(c,0,new GH_Mesh(panel));Solve(c);ValidMesh(c);
+            Check(Output<GH_Mesh>(c).Value.Vertices.Count==8,"Disconnected vertices lost");
+        });
+        Test("ARAP preserves double precision Rhino vertices",()=>{
+            var panel=Panel();panel.Vertices.UseDoublePrecisionVertices=true;
+            for(int i=0;i<panel.Vertices.Count;i++){var p=panel.Vertices.Point3dAt(i);panel.Vertices.SetVertex(i,p.X+1e8+0.1,p.Y+1e8+0.3,p.Z);}
+            var c=new DeformArapComponent();Set(c,0,new GH_Mesh(panel));Solve(c);ValidMesh(c);
+            var output=Output<GH_Mesh>(c).Value;
+            Check(output.Vertices.UseDoublePrecisionVertices,"Single precision output");
+            for(int i=0;i<panel.Vertices.Count;i++)Check(output.Vertices.Point3dAt(i).DistanceTo(panel.Vertices.Point3dAt(i))<1e-7,"Precision lost");
+        });
+        Test("ARAP pin position without index keeps the original convention",()=>{
+            var c=new DeformArapComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,3,new GH_Point(new Point3d(0.1,0.3,0.7)));Solve(c);ValidMesh(c);
+            Check(Output<GH_Mesh>(c).Value.Vertices.Point3dAt(0).DistanceTo(new Point3d(0.1,0.3,0.7))<1e-12,"Default pin convention changed");
+        });
+        Test("ARAP integration never loads the legacy DLL",()=>{
+            using(var process=System.Diagnostics.Process.GetCurrentProcess())
+            Check(!process.Modules.Cast<System.Diagnostics.ProcessModule>().Any(m=>string.Equals(m.ModuleName,"Arachne.IGL.dll",StringComparison.OrdinalIgnoreCase)),"Legacy ARAP DLL loaded");
         });
         Test("Compensation applies warp and weft percentages",()=>{
             var c=new CompensationComponent();Set(c,0,new GH_Mesh(Panel()));Set(c,1,new GH_Vector(Vector3d.XAxis));Set(c,2,new GH_Number(10));Set(c,3,new GH_Number(20));Solve(c);ValidMesh(c);
