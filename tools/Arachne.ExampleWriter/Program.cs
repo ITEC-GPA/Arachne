@@ -17,7 +17,7 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length != 3 && !(args.Length == 4 && args[3] == "--tests-only")) { Console.Error.WriteLine("Usage: ExampleWriter <Arachne root> <Rhino System> <Grasshopper dir> [--tests-only]"); return 2; }
+        if (args.Length != 3 && !(args.Length == 4 && (args[3] == "--tests-only" || args[3] == "--five-examples"))) { Console.Error.WriteLine("Usage: ExampleWriter <Arachne root> <Rhino System> <Grasshopper dir> [--tests-only|--five-examples]"); return 2; }
         var root = Path.GetFullPath(args[0]);
         var pluginDir = Path.Combine(root, "bin", "Arachne.Grasshopper", "Release", "net48");
         AppDomain.CurrentDomain.AssemblyResolve += (sender, request) =>
@@ -31,12 +31,12 @@ internal static class Program
                 }
             return null;
         };
-        try { return StartRhino(root, args.Length == 4); }
+        try { return StartRhino(root, args.Length == 4 ? args[3] : null); }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int StartRhino(string root, bool testsOnly)
+    private static int StartRhino(string root, string mode)
     {
         using (var rhino = new Rhino.Runtime.InProcess.RhinoCore(new[] { "/nosplash", "/notemplate" }, Rhino.Runtime.InProcess.WindowStyle.NoWindow))
         {
@@ -44,15 +44,21 @@ internal static class Program
             {
                 modelDocument.ModelAbsoluteTolerance = 1e-6;
                 Rhino.RhinoDoc.ActiveDoc = modelDocument;
-                return Write(root, testsOnly);
+                return Write(root, mode);
             }
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int Write(string root, bool testsOnly)
+    private static int Write(string root, string mode)
     {
         VerifyNetworkGeometry();
+        // Keep this headless validation process independent of installed third-party plugins.
+        // This changes only this process, never the user's Grasshopper settings.
+        var externalFilter = typeof(GH_ComponentServer).GetMethod("SetExternalGHAs", BindingFlags.Static | BindingFlags.NonPublic);
+        if (externalFilter == null) throw new InvalidOperationException("This Grasshopper version cannot isolate validation plugins.");
+        externalFilter.Invoke(null, new object[] { Array.Empty<string>() });
+        Console.WriteLine("Registering Arachne in isolated Grasshopper component server.");
         string pluginPath = Path.Combine(root, "bin", "Arachne.Grasshopper", "Release", "net48", "Arachne.Grasshopper.gha");
         // GH exposes this loader internally in the installed version. Only the validation tool uses reflection.
         var loader = typeof(GH_ComponentServer).GetMethod("LoadExternalFile", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
@@ -61,7 +67,8 @@ internal static class Program
             throw new InvalidOperationException("Could not register the Arachne plugin for archive verification.");
         PatterningChecks.Run();
         ReleaseChecks.Run();
-        if (testsOnly) return 0;
+        if (mode == "--tests-only") return 0;
+        if (mode == "--five-examples") { FiveExamples.Write(root); return 0; }
         var document = new GH_Document { Enabled = true };
         var demo = new DemoComponent(); var cable = new CableComponent(); var node = new NodeComponent();
         var model = new ModelComponent(); var settings = new SolverSettingsComponent(); var solver = new FormFindComponent();

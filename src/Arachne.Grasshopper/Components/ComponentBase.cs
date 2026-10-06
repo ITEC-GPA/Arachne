@@ -11,7 +11,7 @@ namespace Arachne.Grasshopper.Components
     {
         protected ComponentBase(string name, string nick, string description, string category)
             : base(name, nick, description, "Arachne", category) { }
-        protected override Bitmap Icon => null;
+        protected override Bitmap Icon => Arachne.Grasshopper.Helpers.ComponentIcons.Get(GetType().Name);
         protected sealed override void SolveInstance(IGH_DataAccess data)
         {
             Message = "";
