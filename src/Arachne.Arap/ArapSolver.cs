@@ -29,7 +29,8 @@ namespace Arachne.Arap
                 var options = (inputOptions ?? new ArapOptions()).Snapshot();
                 var topology = new MeshTopology(mesh, token);
                 var u = dimension == 2 ? topology.Initial2D(options, token) : (D3[])topology.V.Clone();
-                var pins = ReadPins(inputPins, topology, u, dimension);
+                var requestedPins = inputPins?.ToArray();
+                var pins = ReadPins(requestedPins, topology, u, dimension);
                 AlignToPins(u, pins, topology, dimension);
                 var engine = new Engine(topology, dimension, options, history, token, progress);
                 if (!engine.Optimize(u, pins, options.MaxIterations, 0))
@@ -84,7 +85,7 @@ namespace Arachne.Arap
                 var output = u.Select(p => p * topology.Scale + topology.Origin).ToArray();
                 if (dimension == 2) for (int i = 0; i < output.Length; i++) output[i].Z = 0;
                 // Avoid round-trip rounding of user-specified hard constraints.
-                if (!flatten) foreach (var pin in pins) output[pin.Key] = pin.Value * topology.Scale + topology.Origin;
+                if (!flatten && requestedPins != null) foreach (var pin in requestedPins) output[pin.Vertex] = pin.Target;
                 if (dimension == 2) for (int i = 0; i < output.Length; i++) output[i].Z = 0;
                 if (output.Any(p => !p.IsFinite)) throw new ArapFailure(ArapStatus.NumericalFailure, "Output coordinates exceed the numerical range.");
                 return new ArapResult(ArapStatus.Converged, "ARAP converged. Check edge distortion before using the developed geometry for fabrication.", output, history, perimeterPass, perimeterError, edgeError);
