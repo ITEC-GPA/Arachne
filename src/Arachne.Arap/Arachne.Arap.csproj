@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <Description>Independent managed ARAP parameterization and deformation with GPC geometry.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="GPCGeometry"><HintPath>$(GpcGeometryPath)</HintPath><Private>true</Private></Reference>
+    <Reference Include="GPCUtilities"><HintPath>$(GpcUtilitiesPath)</HintPath><Private>true</Private></Reference>
+  </ItemGroup>
+  <Target Name="CheckGpc" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(GpcGeometryPath)') or !Exists('$(GpcUtilitiesPath)')" Text="Set GpcGeometryPath and GpcUtilitiesPath to the local GPC DLLs." />
+  </Target>
+</Project>
