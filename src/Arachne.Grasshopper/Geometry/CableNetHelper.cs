@@ -1039,8 +1039,11 @@ namespace Arachne.Grasshopper.Geometry
 				}
 			}
 
-			// Match internal points
-			if (matchingTol > 0)
+			// Coincident projected grid/border points must always use the real 3D border.
+            // Otherwise equal sorting keys can leave an outside grid point between
+            // a boundary intersection and its first interior neighbour, losing a cable.
+            double gridMatchTolerance = Math.Max(tolerance, matchingTol);
+			if (gridMatchTolerance > 0)
 			{
 				// Match warp grid points
 				for (int i = 0; i < warpNum; ++i)
@@ -1049,7 +1052,7 @@ namespace Arachne.Grasshopper.Geometry
 					{
 						for (int t = 0; t < warpIntersections[i].Count; ++t)
 						{
-							if (Math.Abs(warpIntersections[i][t].local.Y - gridPts[i, j].local.Y) < matchingTol)
+							if (Math.Abs(warpIntersections[i][t].local.Y - gridPts[i, j].local.Y) <= gridMatchTolerance)
 							{
 								gridPts[i, j] = warpIntersections[i][t];
 								break;
@@ -1065,7 +1068,7 @@ namespace Arachne.Grasshopper.Geometry
 					{
 						for (int t = 0; t < weftIntersections[j].Count; ++t)
 						{
-							if (Math.Abs(weftIntersections[j][t].local.X - gridPts[i, j].local.X) < matchingTol)
+							if (Math.Abs(weftIntersections[j][t].local.X - gridPts[i, j].local.X) <= gridMatchTolerance)
 							{
 								gridPts[i, j] = weftIntersections[j][t];
 								break;
@@ -1812,8 +1815,9 @@ namespace Arachne.Grasshopper.Geometry
 				}
 			}
 
-			// Match internal points
-			if (matchingTol > 0)
+			// Resolve coincident grid/border points even when optional snapping is off.
+            double gridMatchTolerance = Math.Max(tolerance, matchingTol);
+			if (gridMatchTolerance > 0)
 			{
 				// Match warp grid points
 				for (int i = 0; i < warpNum; ++i)
@@ -1824,7 +1828,7 @@ namespace Arachne.Grasshopper.Geometry
 						{
                             var pta = new Point3d(warpIntersections[i][t].local.X, warpIntersections[i][t].local.Y, 0.0);
                             var ptb = new Point3d(gridPts[i, j].local.X, gridPts[i, j].local.Y, 0.0);
-                            if (pta.DistanceTo(ptb) < matchingTol)
+                            if (pta.DistanceTo(ptb) <= gridMatchTolerance)
                             {
 								gridPts[i, j] = warpIntersections[i][t];
 								break;
@@ -1842,7 +1846,7 @@ namespace Arachne.Grasshopper.Geometry
 						{
 							var pta = new Point3d(weftIntersections[j][t].local.X, weftIntersections[j][t].local.Y, 0.0);
 							var ptb = new Point3d(gridPts[i, j].local.X, gridPts[i, j].local.Y, 0.0);
-                            if (pta.DistanceTo(ptb) < matchingTol)
+                            if (pta.DistanceTo(ptb) <= gridMatchTolerance)
 							{
 								gridPts[i, j] = weftIntersections[j][t];
 								break;

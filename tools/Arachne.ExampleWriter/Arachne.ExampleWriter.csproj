@@ -7,6 +7,7 @@
     <Reference Include="GH_IO"><HintPath>$(GrasshopperDir)\GH_IO.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="RhinoCommon"><HintPath>$(RhinoSystemDir)\RhinoCommon.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="GPCGeometry"><HintPath>$(GpcGeometryPath)</HintPath><Private>true</Private></Reference>
   </ItemGroup>
 </Project>

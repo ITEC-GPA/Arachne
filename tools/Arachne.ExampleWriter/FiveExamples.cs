@@ -53,6 +53,8 @@ internal static class FiveExamples
     internal static void Write(string root)
     {
         Directory.CreateDirectory(Path.Combine(root,"examples"));
+        Directory.CreateDirectory(Path.Combine(root,"examples","previews"));
+        ExampleAssets.Icons(root);
         var coverage=new Dictionary<string,List<string>>();var summaries=new List<string>();var failures=new List<string>();
         var examples=new[]{Rectangular(false),Rectangular(true),Radial(),Compound(),PatternWorkshop()};
         try
@@ -67,6 +69,9 @@ internal static class FiveExamples
                 foreach(var c in components.Where(c=>c.GetType().Assembly==typeof(FormFindComponent).Assembly))
                 {string type=c.GetType().Name;if(!coverage.ContainsKey(type))coverage[type]=new List<string>();if(!coverage[type].Contains(e.File))coverage[type].Add(e.File);}
                 summaries.Add(Summarize(e.Document,e.File));
+                ExampleAssets.Canvas(e.Document,Path.Combine(root,"examples","previews",e.File+"_canvas.png"));
+                var solved=(FormResult)Data(e.Document.Objects.OfType<FormFindComponent>().First(),9).Cast<GH_ObjectWrapper>().Single().Value;
+                ExampleAssets.Geometry(solved,Path.Combine(root,"examples","previews",e.File+"_model.png"),e.File.Replace('_',' '));
                 foreach(string extension in new[]{".gh",".ghx"})
                 {
                     string path=Path.Combine(root,"examples",e.File+extension);var archive=new GH_Archive();
@@ -108,7 +113,7 @@ internal static class FiveExamples
     }
     private static Example Radial()
     {
-        var e=new Example("05_Radial_Iterative","05 | RETE RADIALE ITERATIVA\nRaggi (warp) 8 kN / anelli (weft) 4 kN · -100 N sui nodi interni");
+        var e=new Example("05_Radial_Iterative","05 | RETE RADIALE ITERATIVA\nWarp: tiro iniziale 8 kN, densita conservata / weft: tiro imposto 4 kN · carichi nodali");
         var points=Enumerable.Range(0,17).Select(i=>new Point3d(4*Math.Cos(2*Math.PI*i/16),4*Math.Sin(2*Math.PI*i/16),0)).ToArray();
         var boundary=Curves(e,"Perimetro poligonale [m]",new PolylineCurve(points).DuplicateSegments(),70,220);
         var net=e.Add(new CableNetRadialComponent(),400,260);Link(net,0,boundary);Link(net,2,boundary);
@@ -138,7 +143,8 @@ internal static class FiveExamples
         var waT=e.Slider("Tiro WARP [N]",warpN,1000,15000,510,150);var weT=e.Slider("Tiro WEFT [N]",weftN,1000,15000,510,400);
         Link(wa,1,waT);Link(we,1,weT);
         var waFix=e.Add(new CableConstraintComponent{NickName="Tiro imposto WARP"},1030,230);var weFix=e.Add(new CableConstraintComponent{NickName="Tiro imposto WEFT"},1030,480);
-        Link(waFix,0,wa.Params.Output[0]);Link(weFix,0,we.Params.Output[0]);Link(waFix,2,waT);Link(weFix,2,weT);
+        Link(waFix,0,wa.Params.Output[0]);Link(weFix,0,we.Params.Output[0]);if(!nodeLoads)Link(waFix,2,waT);Link(weFix,2,weT);
+        if(nodeLoads){waFix.NickName="Warp: q iniziale conservata";waT.NickName="Tiro WARP iniziale [N]";}
         IGH_Param warpSource=waFix.Params.Output[0];
         if(cableLoads)
         {
@@ -160,7 +166,7 @@ internal static class FiveExamples
         var run=e.Add(new GH_BooleanToggle{Value=true,NickName="CALCOLA / Run"},1680,280);
         var solve=e.Add(new FormFindComponent(),2030,400);Link(solve,0,model.Params.Output[0]);Link(solve,1,settings.Params.Output[0]);Link(solve,2,run);
         var status=e.Readout("Esito",solve.Params.Output[6],1980,40,330,80);
-        var mode=e.Note("Solver: "+kind+"\nTiri imposti: warp / weft separati.\nCambiare i due slider e controllare i risultati.\nRun=False azzera i risultati.",1440,20,460,95);
+        var mode=e.Note("Solver: "+kind+"\n"+(nodeLoads?"Warp: q da tiro iniziale; weft: tiro imposto.":"Tiri imposti: warp / weft separati.")+"\nCambiare i due slider e controllare i risultati.\nRun=False azzera i risultati.",1440,20,460,95);
         e.Group("02 / TIRI E VINCOLI",ModelColor,waT,weT,wa,we,waFix,weFix,border,supports);
         e.Group("03 / MODELLO E SOLUZIONE",ResultColor,model,check,settings,run,solve,deconstruct);
         var initial=e.Add(new DeconstructResultComponent(),2310,730);Link(initial,0,solve.Params.Output[9]);
@@ -243,7 +249,6 @@ internal static class FiveExamples
             {
                 Console.WriteLine(label+" diagnostics: "+r.Status+", nodes="+r.Model.Nodes.Count+", free="+r.Model.Nodes.Count(n=>!n.FixZ)+", cables="+r.Model.Edges.Count+", outer="+r.OuterIterations+", tail="+string.Join(" / ",r.History.Skip(Math.Max(0,r.History.Count-4)).Select(h=>h.Outer+"."+h.Inner+": "+h.Criterion)));
                 if(r.Solved!=null){var eq=EquilibriumReport.Evaluate(r.Solved,.1,1);Console.WriteLine("  residual="+eq.MaxFreeResidual+", global="+ResultMath.Norm(eq.ForceImbalance)+", moment="+ResultMath.Norm(eq.MomentImbalance)+", minLength="+r.Solved.Beams.Min(b=>b.Length));}
-                if(label=="03_Rectangular_Iterative")foreach(var n in r.Model.Nodes)Console.WriteLine("  node "+n.Id+": "+n.Position+" fixed="+n.FixZ);
             }
         foreach(var c in document.Objects.OfType<GH_Component>())
         {

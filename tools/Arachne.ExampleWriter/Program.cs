@@ -67,6 +67,7 @@ internal static class Program
             throw new InvalidOperationException("Could not register the Arachne plugin for archive verification.");
         PatterningChecks.Run();
         ReleaseChecks.Run();
+        NetworkChecks.Run();
         if (mode == "--tests-only") return 0;
         if (mode == "--five-examples") { FiveExamples.Write(root); return 0; }
         var document = new GH_Document { Enabled = true };
