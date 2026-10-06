@@ -1,3 +1,7 @@
+## Output di compilazione centralizzati - 6 ottobre 2026
+
+Checkpoint prima delle modifiche: `5f7ef66`. Directory.Build.props imposta automaticamente `bin/<progetto>/<configurazione>/<framework>` alla radice per tutti i progetti C#, anche con compilazione diretta o da Visual Studio. Aggiornati i percorsi negli script completi/autonomi, nel caricamento del plugin da ExampleWriter e nella documentazione. Eliminate le sei precedenti cartelle bin sotto src, tests e tools dopo aver verificato i percorsi e l'assenza di file tracciati o collegamenti. Gli intermedi obj e i pacchetti artifacts mantengono la loro collocazione; le DLL dei repository GPC/TensileLib restano referenziate nei percorsi esterni esistenti.
+
 ## 0.2.0-rc.1 - 6 ottobre 2026
 
 Nuovo progetto Arachne.Arap C# netstandard2.0, indipendente da Rhino/FEM e dalle librerie native. Implementati sviluppo 2D, deformazione 3D, vincoli, perimetro, algebra sparsa, diagnostica e cancellazione; collegati i componenti Grasshopper e aggiunte uscite informative senza cambiare GUID o ingressi. Correzioni a precisione dei pin, conversione Rhino e gestione del doppio fallimento nella geodetica. Pacchetto autonomo e distribuzione Arachne senza Arachne.IGL.dll. 144 controlli superati, inclusi sei confronti con il motore nativo. Resoconto, righe e limiti: [ARAP-REWRITE.md](ARAP-REWRITE.md). Esempi invariati.

@@ -24,18 +24,18 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
     & dotnet build Arachne.sln -c $Configuration --no-restore @properties
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-    & "tests\Arachne.Core.Tests\bin\$Configuration\net48\Arachne.Core.Tests.exe"
+    & "bin\Arachne.Core.Tests\$Configuration\net48\Arachne.Core.Tests.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Core checks failed.' }
-    & "tests\Arachne.Arap.Tests\bin\$Configuration\net48\Arachne.Arap.Tests.exe"
+    & "bin\Arachne.Arap.Tests\$Configuration\net48\Arachne.Arap.Tests.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Managed ARAP checks failed.' }
     if($RhinoTests) {
         if($Configuration -ne 'Release'){throw 'The Rhino verification tool currently requires Release.'}
         $rhinoDir=if($RhinoSystemDir){$RhinoSystemDir}else{'C:\Program Files\Rhino 8\System'}
         $ghDir=if($GrasshopperDir){$GrasshopperDir}else{'C:\Program Files\Rhino 8\Plug-ins\Grasshopper'}
-        & "tools\Arachne.ExampleWriter\bin\Release\net48\Arachne.ExampleWriter.exe" $projectRoot $rhinoDir $ghDir --tests-only
+        & "bin\Arachne.ExampleWriter\Release\net48\Arachne.ExampleWriter.exe" $projectRoot $rhinoDir $ghDir --tests-only
         if($LASTEXITCODE -ne 0){throw 'Rhino/Grasshopper checks failed. Release package was not updated.'}
     }
-    $sourceDir = Join-Path $projectRoot "src\Arachne.Grasshopper\bin\$Configuration\net48"
+    $sourceDir = Join-Path $projectRoot "bin\Arachne.Grasshopper\$Configuration\net48"
     $destination = Join-Path $projectRoot "artifacts\$Configuration\Arachne"
     New-Item -ItemType Directory -Force -Path $destination | Out-Null
     $files = @('Arachne.Grasshopper.gha','Arachne.Core.dll','Arachne.Arap.dll','GPCGeometry.dll','GPCUtilities.dll','MathNet.Numerics.dll','System.Drawing.Common.dll')

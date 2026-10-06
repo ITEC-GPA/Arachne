@@ -5,6 +5,8 @@
     <Version>0.2.0-rc.1</Version>
     <Authors>GPC</Authors>
     <ArachneRoot>$(MSBuildThisFileDirectory)</ArachneRoot>
+    <!-- Keep each managed project's outputs separate inside the repository's root bin. -->
+    <BaseOutputPath Condition="'$(MSBuildProjectExtension)' == '.csproj'">$(ArachneRoot)bin\$(MSBuildProjectName)\</BaseOutputPath>
     <GpcGeometryPath Condition="'$(GpcGeometryPath)' == ''">$(ArachneRoot)..\Geometry\GPCGeometry\bin\Release\netstandard2.0\GPCGeometry.dll</GpcGeometryPath>
     <GpcUtilitiesPath Condition="'$(GpcUtilitiesPath)' == ''">$(ArachneRoot)..\Utilities\GPCUtilities\bin\Release\netstandard2.0\GPCUtilities.dll</GpcUtilitiesPath>
     <TensileLibPath Condition="'$(TensileLibPath)' == ''">$(ArachneRoot)..\tensilelib\TensileLib\bin\Release\TensileLib.dll</TensileLibPath>

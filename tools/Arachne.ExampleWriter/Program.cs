@@ -19,7 +19,7 @@ internal static class Program
     {
         if (args.Length != 3 && !(args.Length == 4 && args[3] == "--tests-only")) { Console.Error.WriteLine("Usage: ExampleWriter <Arachne root> <Rhino System> <Grasshopper dir> [--tests-only]"); return 2; }
         var root = Path.GetFullPath(args[0]);
-        var pluginDir = Path.Combine(root, "src", "Arachne.Grasshopper", "bin", "Release", "net48");
+        var pluginDir = Path.Combine(root, "bin", "Arachne.Grasshopper", "Release", "net48");
         AppDomain.CurrentDomain.AssemblyResolve += (sender, request) =>
         {
             string name = new AssemblyName(request.Name).Name;
@@ -53,7 +53,7 @@ internal static class Program
     private static int Write(string root, bool testsOnly)
     {
         VerifyNetworkGeometry();
-        string pluginPath = Path.Combine(root, "src", "Arachne.Grasshopper", "bin", "Release", "net48", "Arachne.Grasshopper.gha");
+        string pluginPath = Path.Combine(root, "bin", "Arachne.Grasshopper", "Release", "net48", "Arachne.Grasshopper.gha");
         // GH exposes this loader internally in the installed version. Only the validation tool uses reflection.
         var loader = typeof(GH_ComponentServer).GetMethod("LoadExternalFile", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
             null, new[] { typeof(GH_ExternalFile), typeof(bool) }, null);

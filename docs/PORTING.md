@@ -38,7 +38,7 @@ I componenti Arachne hanno GUID nuovi per coesistere con FeMM. Le vecchie defini
 La suite console verifica topologia, fusione dei nodi, somma dei carichi, copia dei dati, input invalidi, limite delle iterazioni, cancellazione, divisioni per zero, conversione tramite GPCUtilities e comportamento in assenza del motore. Il programma termina con codice diverso da zero se una verifica fallisce.
 
 ```powershell
-./tests/Arachne.Core.Tests/bin/Release/net48/Arachne.Core.Tests.exe
+./bin/Arachne.Core.Tests/Release/net48/Arachne.Core.Tests.exe
 ```
 
 I 17 controlli includono tre equilibri analitici con la DLL TensileLib reale. La suite non copre tutte le tipologie strutturali. I generatori geometrici derivati da FeMM richiedono ulteriori prove su perimetri e superfici rappresentativi.

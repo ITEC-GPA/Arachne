@@ -8,6 +8,8 @@ Dalla radice del repository: `./scripts/build-arap.ps1`. Richiede SDK .NET, Deve
 
 La soluzione `Arachne.Arap.sln` esclude completamente il plugin e il motore FEM. La cartella di distribuzione contiene Arachne.Arap.dll, GPCGeometry.dll e GPCUtilities.dll; copiarle insieme. `-CompareNative` e facoltativo e richiede la vecchia DLL x64 soltanto per i confronti.
 
+Gli output di compilazione sono centralizzati nella cartella `bin` alla radice del repository: `bin/Arachne.Arap/Release/netstandard2.0` per la libreria e `bin/Arachne.Arap.Tests/Release/net48` per i test. La stessa impostazione vale per Debug e per la compilazione da Visual Studio.
+
 ```csharp
 using Arachne.Arap;
 using GPC.Geometry;

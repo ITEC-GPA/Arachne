@@ -20,10 +20,10 @@ try {
     if($LASTEXITCODE -ne 0){throw 'ARAP build failed.'}
     $testArgs=@()
     if($CompareNative){$testArgs+='--native'}
-    & "tests\Arachne.Arap.Tests\bin\$Configuration\net48\Arachne.Arap.Tests.exe" @testArgs
+    & "bin\Arachne.Arap.Tests\$Configuration\net48\Arachne.Arap.Tests.exe" @testArgs
     if($LASTEXITCODE -ne 0){throw 'ARAP checks failed; package not updated.'}
     $destination=Join-Path $projectRoot "artifacts\$Configuration\Arachne.Arap"
-    $source=Join-Path $projectRoot "src\Arachne.Arap\bin\$Configuration\netstandard2.0"
+    $source=Join-Path $projectRoot "bin\Arachne.Arap\$Configuration\netstandard2.0"
     New-Item -ItemType Directory -Force -Path $destination | Out-Null
     $files=@('Arachne.Arap.dll','Arachne.Arap.xml','GPCGeometry.dll','GPCUtilities.dll')
     foreach($file in $files){Copy-Item -LiteralPath (Join-Path $source $file) -Destination $destination -Force}

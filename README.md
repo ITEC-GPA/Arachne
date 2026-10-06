@@ -18,6 +18,7 @@ tools/Arachne.ExampleWriter/ Prove dei componenti e generatore dei due esempi, m
 examples/                Ricerca di forma e sviluppo pannelli, GH e GHX
 lib/                     Eventuali DLL locali con percorsi configurati
 scripts/build.ps1         Compilazione, controlli e raccolta del plugin
+bin/                     Output centralizzati per progetto, configurazione e framework
 docs/                    Architettura e note sulle correzioni
 ```
 
@@ -68,6 +69,8 @@ Prerequisiti: Windows x64, SDK .NET 8 o successivo, .NET Framework 4.8 Developer
 ```powershell
 .\scripts\build.ps1 -RequireTensile -RhinoTests
 ```
+
+Ogni compilazione, anche da Visual Studio o direttamente tramite `dotnet build`, crea gli output in `bin/<nome progetto>/<Debug|Release>/<framework>` alla radice del repository. Per esempio il plugin e in `bin/Arachne.Grasshopper/Release/net48` e la libreria ARAP in `bin/Arachne.Arap/Release/netstandard2.0`. Le cartelle `bin` nei singoli progetti non vengono piu create. La configurazione comune e in `Directory.Build.props`; i file intermedi rimangono nelle cartelle `obj` dei progetti.
 
 Il plugin e le sue dipendenze vengono raccolti in `artifacts/Release/Arachne`. Copiare l'intera cartella nelle Libraries di Grasshopper e riavviare Rhino. Il progetto non esegue installazioni automatiche nelle cartelle di Rhino. Le DLL locali usate nella prima compilazione sono GPCGeometry 2.1.0.3 e GPCUtilities 2.0.0.8.
 

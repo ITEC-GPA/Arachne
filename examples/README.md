@@ -21,7 +21,7 @@ Per rigenerare l'esempio da sorgente, da PowerShell nella radice Arachne:
 ```powershell
 dotnet build tools/Arachne.ExampleWriter/Arachne.ExampleWriter.csproj -c Release
 $env:PATH = 'C:\Program Files\Rhino 8\System;' + $env:PATH
-& tools/Arachne.ExampleWriter/bin/Release/net48/Arachne.ExampleWriter.exe $PWD.Path 'C:\Program Files\Rhino 8\System' 'C:\Program Files\Rhino 8\Plug-ins\Grasshopper'
+& bin/Arachne.ExampleWriter/Release/net48/Arachne.ExampleWriter.exe $PWD.Path 'C:\Program Files\Rhino 8\System' 'C:\Program Files\Rhino 8\Plug-ins\Grasshopper'
 ```
 
 Il generatore richiede un'installazione Rhino utilizzabile e inizializza il runtime senza finestra. La registrazione del plugin è limitata al suo processo; non installa il plugin nelle Libraries. Utilizza il caricatore interno di Grasshopper solo per la verifica dell'archivio, quindi potrebbe richiedere adeguamenti con versioni diverse di Grasshopper.
