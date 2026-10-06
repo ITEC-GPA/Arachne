@@ -12,7 +12,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the MeshRemap class.
         /// </summary>
         public SubdivideMeshComponent()
-          : base("Subdivide Mesh", "MC", "Subdivide mesh following the ideal surface", "Arachne", "3 Patterning")
+          : base("Subdivide Mesh", "MC", "Subdivide mesh following the ideal surface", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

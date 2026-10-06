@@ -16,7 +16,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the GeodesicOffsetsComponent class.
         /// </summary>
         public GeodesicOffsetsComponent()
-          : base("Geodesic Offsets", "GO", "Generate the offsets of a geodesic line", "Arachne", "3 Patterning")
+          : base("Geodesic Offsets", "GO", "Generate the offsets of a geodesic line", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 
@@ -279,7 +279,9 @@ namespace Arachne.Grasshopper.Components.Patterning
                         var arap = ARAPHelper.Flattening(arapInput, flatBuffer, new Arachne.Arap.ArapOptions { PerimeterTolerance = tol });
                         if (!arap.Success)
                         {
-                            throw new NotSupportedException("Unable to flatten the mesh: " + arap.Message);
+                            // As in FeMM, the not converged planar flattening is kept when ARAP fails too
+                            if (flat == null)
+                                throw new NotSupportedException("Unable to flatten the mesh: " + arap.Message);
                         }
                         else
                         {

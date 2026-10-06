@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Arachne.Common.Helpers;
+using Arachne.Common.Models;
 using Rhino.Geometry;
 using TensileLib.Geometry;
 using TensileLib.FormFinding;
@@ -8,15 +10,18 @@ namespace Arachne.Grasshopper.Services
 {
     internal static class CompensationService
     {
-        public static Mesh Apply(Mesh panel, Vector3d warp_dir, double waPerc, double wePerc, IReadOnlyList<Arachne.Core.Cable> fixedBeams, int maxIterNL, double tol, int maxIterSolver, double epsS, double geometryTolerance)
+        /// <summary>
+        /// Compensates a flat panel. The mesh is returned also when the solver stops at the
+        /// iteration limit (<paramref name="code"/> tells it); solver failures throw.
+        /// </summary>
+        public static Mesh Apply(Mesh panel, Vector3d warp_dir, double waPerc, double wePerc, IReadOnlyList<BeamModel> fixedBeams, int maxIterNL, double tol, int maxIterSolver, double epsS, double geometryTolerance, out Solver.ResultCodes code)
         {
             if(panel==null || !panel.IsValid || panel.Faces.Count==0)throw new ArgumentException("A valid non-empty panel is required.");
             if(!warp_dir.IsValid || warp_dir.IsTiny())throw new ArgumentException("Warp direction must be non-zero and finite.");
-            Arachne.Core.Validation.Finite(waPerc,"Warp percent");Arachne.Core.Validation.Finite(wePerc,"Weft percent");
+            Validation.Finite(waPerc,"Warp percent");Validation.Finite(wePerc,"Weft percent");
             if(waPerc>=100 || wePerc>=100)throw new ArgumentException("Compensation must be less than 100 percent.");
-            Arachne.Core.Validation.Positive(tol,"Relative tolerance");Arachne.Core.Validation.Positive(maxIterNL,"Iterations");
-            Arachne.Core.Validation.NonNegative(maxIterSolver,"Algebraic iterations");Arachne.Core.Validation.NonNegative(epsS,"Algebraic tolerance");
-            if(maxIterSolver==0)maxIterSolver=10000;
+            Validation.Positive(tol,"Relative tolerance");Validation.Positive(maxIterNL,"Iterations");
+            Validation.NonNegative(maxIterSolver,"Algebraic iterations");Validation.NonNegative(epsS,"Algebraic tolerance");
             //This component use the flattening solver of tensile lib. The idea is to impose fixed lengths as compensated to the panel.
             panel = panel.DuplicateMesh();
             panel.Faces.ConvertQuadsToTriangles();
@@ -109,18 +114,30 @@ namespace Arachne.Grasshopper.Services
                     Point3d firstPMod = modifiedNodes[firstIndex];
                     Point3d secondPMod = modifiedNodes[secondIndex];
 
-                    // Arachne Cable Constraints replaces the legacy FEM beam attributes.
-                    foreach (var cable in fixedBeams)
+                    //serching fixed beam
+                    for (int j = 0; j < fixedBeams.Count; j++)
                     {
-
-                        if (cable == null) throw new ArgumentException("Fixed lengths expects Arachne cables from Cable Constraints.");
-                        var from = new Point3d(cable.Start.X, cable.Start.Y, cable.Start.Z);
-                        var to = new Point3d(cable.End.X, cable.End.Y, cable.End.Z);
-                        double matchTolerance = geometryTolerance;
-                        if ((from.DistanceTo(firstPOriginal) < matchTolerance && to.DistanceTo(secondPOriginal) < matchTolerance) ||
-                            (to.DistanceTo(firstPOriginal) < matchTolerance && from.DistanceTo(secondPOriginal) < matchTolerance))
+                        BeamModel beam = fixedBeams[j];
+                        if (beam.PointFrom.DistanceTo(firstPOriginal) < geometryTolerance &&
+                            beam.PointTo.DistanceTo(secondPOriginal) < geometryTolerance ||
+                            beam.PointTo.DistanceTo(firstPOriginal) < geometryTolerance &&
+                             beam.PointFrom.DistanceTo(secondPOriginal) < geometryTolerance)
                         {
-                            if (cable.FixedLength.HasValue) { fixedLength = cable.FixedLength.Value; weigth = cable.ConstraintWeight; break; }
+                            //found
+                            //searching if beam have fixed length
+                            for (int k = 0; k < beam.Loads.Count; k++)
+                            {
+                                LoadModel lm = beam.Loads[k];
+                                FixedLengthModel flm = lm as FixedLengthModel;
+                                if (flm != null)
+                                {
+                                    fixedLength = flm.Value;
+                                    weigth = flm.Weight;
+                                    break;
+                                }
+                            }
+                            if (fixedLength > 0)
+                                break;
                         }
                     }
 
@@ -138,10 +155,11 @@ namespace Arachne.Grasshopper.Services
             }
 
             var solver = new PlanarFixedLengthsSolver(model, maxIterNL, tol, epsS, maxIterSolver);
-            var code = solver.Solve(out PlanarFixedLengthsSolver.PlanarFixedLengthsResult details);
-            if(code != Solver.ResultCodes.Converged && code != Solver.ResultCodes.ConvergedUsingSlowMethodWithoutWeigths)
-                throw new InvalidOperationException("Not converged. No compensated mesh produced.");
-            // If success make a new compensated mesh
+            code = solver.Solve(out PlanarFixedLengthsSolver.PlanarFixedLengthsResult details);
+            if(code != Solver.ResultCodes.Converged && code != Solver.ResultCodes.ConvergedUsingSlowMethodWithoutWeigths &&
+               code != Solver.ResultCodes.NotconvergedAtMaxIterationNumber)
+                throw new NotSupportedException("Unexpected solver result: " + code);
+            // Make a new compensated mesh
             Mesh compensated = new Mesh();
             for (int i = 0; i < model.Nodes.Count; i++)
             {

@@ -14,7 +14,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the UnwrapComponent class.
         /// </summary>
         public DeformArapComponent()
-          : base("Deform ARAP", "DA", "Modify a mesh minimizing deformation", "Arachne", "3 Patterning")
+          : base("Deform ARAP", "DA", "Modify a mesh minimizing deformation", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 
@@ -39,10 +39,6 @@ namespace Arachne.Grasshopper.Components.Patterning
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
             pManager.AddMeshParameter("Deformed", "D", "The deformed mesh", GH_ParamAccess.item);
-            pManager.AddTextParameter("Status", "S", "ARAP outcome; only Converged publishes a mesh", GH_ParamAccess.item);
-            pManager.AddTextParameter("Report", "R", "Solver message and convergence diagnostics", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Energy", "E", "Normalized energy per iteration; perimeter updates change the constraints between passes", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Edge distortion", "ED", "Maximum absolute fractional edge-length change; 0.02 means 2%", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -117,7 +113,6 @@ namespace Arachne.Grasshopper.Components.Patterning
             try
             {
                 var result = ARAPHelper.Deform(mesh3D, deformed, pins, points, isUnwrap, new ArapOptions { MaxIterations = max_iter });
-                ARAPHelper.SetDiagnostics(DA, result, false);
                 if (!result.Success)
                 {
                     AddRuntimeMessage(ARAPHelper.FailureLevel(result), result.Message);
@@ -148,6 +143,6 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.
         /// </summary>
-        public override Guid ComponentGuid => new Guid("e56e8131-f146-50bd-b8a8-e083e2c93558");
+        public override Guid ComponentGuid => new Guid("e0346aed-16ed-4ebb-8b59-a1cf04ddad67");
     }
 }

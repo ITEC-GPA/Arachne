@@ -11,8 +11,8 @@ namespace Arachne.Grasshopper.Geometry
 	{
         private static void ValidateInputs(List<Curve> fixedEdges, List<Curve> freeEdges, List<Curve> perimeter, double tolerance, double matching)
         {
-            Arachne.Core.Validation.Positive(tolerance, "Tolerance");
-            Arachne.Core.Validation.NonNegative(matching, "Matching tolerance");
+            Arachne.Common.Helpers.Validation.Positive(tolerance, "Tolerance");
+            Arachne.Common.Helpers.Validation.NonNegative(matching, "Matching tolerance");
             if (fixedEdges == null || freeEdges == null || perimeter == null || perimeter.Count == 0)
                 throw new ArgumentException("A closed perimeter is required.");
             if (fixedEdges.Count + freeEdges.Count == 0) throw new ArgumentException("Boundary curves are required.");
@@ -746,7 +746,7 @@ namespace Arachne.Grasshopper.Geometry
 			out List<Point3d> restrain, out List<Point3d> notRestrain, out List<Point3d> internalPoint, double tolerance, double matchingTol)
 		{
             ValidateInputs(fixBorders, freeCables, perimeter, tolerance, matchingTol);
-            Arachne.Core.Validation.Positive(warpStep, "Warp step"); Arachne.Core.Validation.Positive(weftStep, "Weft step");
+            Arachne.Common.Helpers.Validation.Positive(warpStep, "Warp step"); Arachne.Common.Helpers.Validation.Positive(weftStep, "Weft step");
             if (!refPlane.IsValid) throw new ArgumentException("Invalid plane.");
             fixBorders = fixBorders.ConvertAll(c => c.DuplicateCurve()); freeCables = freeCables.ConvertAll(c => c.DuplicateCurve());
 			if (matchingTol > 0)
@@ -1483,7 +1483,7 @@ namespace Arachne.Grasshopper.Geometry
 		{
 			ValidateInputs(fixBorders, freeBorders, perimeter, tolerance, matchingTol);
 			if (radialSubd < 3) throw new ArgumentException("Radial divisions must be at least 3.");
-			Arachne.Core.Validation.Positive(radialStep, "Radial step");
+			Arachne.Common.Helpers.Validation.Positive(radialStep, "Radial step");
 			if (!refPlane.IsValid) throw new ArgumentException("Invalid plane.");
 			fixBorders = fixBorders.ConvertAll(c => c.DuplicateCurve());
 			freeBorders = freeBorders.ConvertAll(c => c.DuplicateCurve());

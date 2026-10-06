@@ -16,7 +16,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the MeshDivideComponent class.
         /// </summary>
         public MeshDivideComponent()
-          : base("Mesh Divide", "MD", "Divide a mesh generating geodesics curve", "Arachne", "3 Patterning")
+          : base("Mesh Divide", "MD", "Divide a mesh generating geodesics curve", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

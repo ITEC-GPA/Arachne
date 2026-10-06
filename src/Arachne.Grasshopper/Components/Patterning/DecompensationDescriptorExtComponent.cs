@@ -19,7 +19,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the CompensationComponent class.
         /// </summary>
         public DecompensationDescriptorExtComponent()
-          : base("DecompensationDescriptorExt", "DDE", "Create a descriptor for decompensation", "Arachne", "3 Patterning")
+          : base("DecompensationDescriptorExt", "DDE", "Create a descriptor for decompensation", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

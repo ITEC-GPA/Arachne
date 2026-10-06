@@ -35,16 +35,6 @@ namespace Arachne.Grasshopper.Helpers
             var mesh = ToArap(input);
             return Apply(output, unwrap ? ArapSolver.Unwrap(mesh, pins, options) : ArapSolver.Deform(mesh, pins, options));
         }
-        internal static void SetDiagnostics(IGH_DataAccess data, ArapResult result, bool perimeter)
-        {
-            data.SetData(1, result.Status.ToString());
-            data.SetDataList(2, new[] { result.Message, "ARAP C# iterations: " + result.History.Count,
-                "Perimeter passes: " + result.PerimeterIterations,
-                "Maximum normalized linear residual: " + (result.History.Count == 0 ? 0 : result.History.Max(h => h.LinearResidual)).ToString("G6") });
-            data.SetDataList(3, result.History.Select(h => h.Energy));
-            if (result.Success) data.SetData(4, result.MaxRelativeEdgeError);
-            if (perimeter && (result.Success || result.Status == ArapStatus.PerimeterLimit)) data.SetData(5, result.MaxPerimeterError);
-        }
         internal static GH_RuntimeMessageLevel FailureLevel(ArapResult result)
             => result.Status == ArapStatus.IterationLimit || result.Status == ArapStatus.PerimeterLimit || result.Status == ArapStatus.Cancelled
                 ? GH_RuntimeMessageLevel.Warning : GH_RuntimeMessageLevel.Error;

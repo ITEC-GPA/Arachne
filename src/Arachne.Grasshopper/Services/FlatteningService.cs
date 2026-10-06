@@ -11,9 +11,9 @@ namespace Arachne.Grasshopper.Services
         internal static void GetFlattenedMesh(Mesh mesh, double borderWeigth, int max_iter, double tol, double epsS, int maxIterSolver, out Solver.ResultCodes ret, out Mesh flat)
         {
             if(mesh==null || !mesh.IsValid || mesh.Faces.Count==0)throw new ArgumentException("A valid non-empty mesh is required.");
-            Arachne.Core.Validation.Positive(borderWeigth,"Border weight");Arachne.Core.Validation.Positive(max_iter,"Iterations");
-            Arachne.Core.Validation.Positive(tol,"Tolerance");Arachne.Core.Validation.NonNegative(maxIterSolver,"Algebraic iterations");Arachne.Core.Validation.NonNegative(epsS,"Algebraic tolerance");
-            if(maxIterSolver==0)maxIterSolver=10000;
+            Arachne.Common.Helpers.Validation.Positive(borderWeigth,"Border weight");Arachne.Common.Helpers.Validation.Positive(max_iter,"Iterations");
+            Arachne.Common.Helpers.Validation.Positive(tol,"Tolerance");Arachne.Common.Helpers.Validation.NonNegative(maxIterSolver,"Algebraic iterations");Arachne.Common.Helpers.Validation.NonNegative(epsS,"Algebraic tolerance");
+            // The input mesh is not modified
             mesh = mesh.DuplicateMesh();
             mesh.Faces.ConvertQuadsToTriangles();
 
@@ -133,11 +133,8 @@ namespace Arachne.Grasshopper.Services
             // Solve 
             PlanarFixedLengthsSolver solver = new PlanarFixedLengthsSolver(model, max_iter, tol, epsS, maxIterSolver);
             ret = solver.Solve(out PlanarFixedLengthsSolver.PlanarFixedLengthsResult planarFixedLengthsResult);
-            flat = null;
-            if (ret != Solver.ResultCodes.Converged && ret != Solver.ResultCodes.ConvergedUsingSlowMethodWithoutWeigths)
-                return;
 
-            // If success make a new flatten mesh
+            // Also at the iteration limit, as in FeMM: the component reports it with a warning
             flat = new Mesh();
 
             //Changeing coords

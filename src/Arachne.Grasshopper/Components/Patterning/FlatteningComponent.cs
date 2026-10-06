@@ -16,7 +16,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the FlatteningComponent class.
         /// </summary>
         public FlatteningComponent()
-          : base("Flattening", "F", "Cut the mesh on the geodesics lines and creates the flatten the panels", "Arachne", "3 Patterning")
+          : base("Flattening", "F", "Cut the mesh on the geodesics lines and creates the flatten the panels", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 
@@ -85,8 +85,8 @@ namespace Arachne.Grasshopper.Components.Patterning
                         }
                     case Solver.ResultCodes.NotconvergedAtMaxIterationNumber:
                         {
-                            AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged at max iteration number. No flattened mesh produced.");
-                            return;
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged at max iteration number. Test internal lengths and area.");
+                            break;
                         }
                     default:
                         throw new NotSupportedException();

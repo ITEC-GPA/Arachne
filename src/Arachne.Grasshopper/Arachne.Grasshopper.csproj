@@ -6,16 +6,18 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Arachne.Core\Arachne.Core.csproj" />
+    <ProjectReference Include="..\Arachne.Common\Arachne.Common.csproj" />
     <ProjectReference Include="..\Arachne.Arap\Arachne.Arap.csproj" />
     <Reference Include="RhinoCommon"><HintPath>$(RhinoSystemDir)\RhinoCommon.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Grasshopper"><HintPath>$(GrasshopperDir)\Grasshopper.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="GH_IO"><HintPath>$(GrasshopperDir)\GH_IO.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Eto"><HintPath>$(RhinoSystemDir)\Eto.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="GPCGeometry"><HintPath>$(GpcGeometryPath)</HintPath><Private>true</Private></Reference>
     <Reference Include="GPCUtilities"><HintPath>$(GpcUtilitiesPath)</HintPath><Private>true</Private></Reference>
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="TensileLib"><HintPath>$(TensileLibPath)</HintPath><Private>true</Private></Reference>
-    <EmbeddedResource Include="Resources\Patterning\*.png" />
+    <EmbeddedResource Include="Resources\Images\*.png" />
     <EmbeddedResource Include="Resources\Icons\*.png" />
   </ItemGroup>
   <Target Name="CheckRhino" BeforeTargets="ResolveReferences">

@@ -13,7 +13,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the FlatteningComponent class.
         /// </summary>
         public FlatteningArapComponent()
-          : base("Flattening ARAP", "FA", "Flatten a mesh in a 2D mesh", "Arachne", "3 Patterning")
+          : base("Flattening ARAP", "FA", "Flatten a mesh in a 2D mesh", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 
@@ -36,11 +36,6 @@ namespace Arachne.Grasshopper.Components.Patterning
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
             pManager.AddMeshParameter("Flatten", "F", "The flatten mesh", GH_ParamAccess.item);
-            pManager.AddTextParameter("Status", "S", "ARAP outcome; only Converged publishes a mesh", GH_ParamAccess.item);
-            pManager.AddTextParameter("Report", "R", "Solver message and convergence diagnostics", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Energy", "E", "Normalized energy per iteration; perimeter updates change the constraints between passes", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Edge distortion", "ED", "Maximum absolute fractional edge-length change; 0.02 means 2%", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Perimeter error", "PE", "Maximum side-length mismatch in mesh units after the last perimeter pass", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -84,7 +79,6 @@ namespace Arachne.Grasshopper.Components.Patterning
                 var result = ARAPHelper.Flattening(mesh3D, flat, new ArapOptions {
                     MaxIterations = max_iter, MaxPerimeterIterations = max_perimeter_iter,
                     PerimeterTolerance = perimeter_tol, CornerAngle = angle_tol, PerimeterStep = convergence_speed });
-                ARAPHelper.SetDiagnostics(DA, result, true);
                 if (!result.Success)
                 {
                     AddRuntimeMessage(ARAPHelper.FailureLevel(result), result.Message);
@@ -115,6 +109,6 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.
         /// </summary>
-        public override Guid ComponentGuid => new Guid("d0b5cbbf-f1c9-5042-9b67-8eeedebb1a69");
+        public override Guid ComponentGuid => new Guid("6923d40f-6d82-4765-bc05-7c4381bdb996");
     }
 }

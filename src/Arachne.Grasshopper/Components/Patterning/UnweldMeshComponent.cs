@@ -14,7 +14,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the MeshRemap class.
         /// </summary>
         public UnweldMeshComponent()
-          : base("Unweld Mesh", "UM", "Unweld mesh edges along curves", "Arachne", "3 Patterning")
+          : base("Unweld Mesh", "UM", "Unweld mesh edges along curves", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

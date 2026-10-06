@@ -15,7 +15,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the SplitMeshOnCurvesComponent class.
         /// </summary>
         public SplitMeshOnCurvesComponent()
-          : base("Split Mesh On Curves", "SM", "Splits a mesh on the given curves", "Arachne", "3 Patterning")
+          : base("Split Mesh On Curves", "SM", "Splits a mesh on the given curves", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

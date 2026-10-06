@@ -19,7 +19,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the CompensationComponent class.
         /// </summary>
         public OrderBordersComponent()
-          : base("OrderBorders", "OB", "Order the borders of a panel", "Arachne", "3 Patterning")
+          : base("OrderBorders", "OB", "Order the borders of a panel", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

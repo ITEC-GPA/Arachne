@@ -15,7 +15,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the BordersComponent class.
         /// </summary>
         public BordersComponent()
-          : base("Borders", "Bs", "Extract the borders of a mesh, joined with a tolerance", "Arachne", "3 Patterning")
+          : base("Borders", "Bs", "Extract the borders of a mesh, joined with a tolerance", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

@@ -14,7 +14,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the LineUp class.
         /// </summary>
         public MeshPipeComponent()
-          : base("Mesh Pipe", "MP", "Creates a mesh pipe from a line", "Arachne", "3 Patterning")
+          : base("Mesh Pipe", "MP", "Creates a mesh pipe from a line", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

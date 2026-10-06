@@ -15,7 +15,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the LineUp class.
         /// </summary>
         public LineUpComponent()
-          : base("Line-Up", "LU", "Line-Up given geometry", "Arachne", "3 Patterning")
+          : base("Line-Up", "LU", "Line-Up given geometry", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

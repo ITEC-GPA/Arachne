@@ -15,7 +15,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the MeshGeodesicComponent class.
         /// </summary>
         public MeshGeodesicComponent()
-          : base("Mesh Geodesic", "MG", "Create a geodesic line in a mesh", "Arachne", "3 Patterning")
+          : base("Mesh Geodesic", "MG", "Create a geodesic line in a mesh", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

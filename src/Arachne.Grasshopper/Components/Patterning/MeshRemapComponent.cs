@@ -13,7 +13,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the MeshRemap class.
         /// </summary>
         public MeshRemapComponent()
-          : base("Mesh Remap", "MR", "Remap points from a mesh to another", "Arachne", "3 Patterning")
+          : base("Mesh Remap", "MR", "Remap points from a mesh to another", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 

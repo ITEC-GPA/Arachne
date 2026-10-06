@@ -1,3 +1,4 @@
+using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
@@ -18,7 +19,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the CompensationComponent class.
         /// </summary>
         public CompensationComponent()
-          : base("Compensation", "C", "Compensate the flatten patches", "Arachne", "3 Patterning")
+          : base("Compensation", "C", "Compensate the flatten patches", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 
@@ -68,7 +69,7 @@ namespace Arachne.Grasshopper.Components.Patterning
             double tol = 0;
             int maxIterSolver = 0;
             double epsS = 0;
-            List<GH_ObjectWrapper> fixedBeams = new List<GH_ObjectWrapper>();
+            List<GH_Beam> fixedBeams = new List<GH_Beam>();
 
             if (!DA.GetData(0, ref panel))
                 return;
@@ -90,13 +91,17 @@ namespace Arachne.Grasshopper.Components.Patterning
 
             try
             {
-                var cables = fixedBeams.Select(w => w.Value as Arachne.Core.Cable ?? throw new ArgumentException("Expected Arachne cable constraints.")).ToArray();
                 double geometryTolerance = RhinoDoc.ActiveDoc?.ModelAbsoluteTolerance ?? 1e-6;
-                DA.SetData(0, Services.CompensationService.Apply(panel.Value, warp_dir, waPerc, wePerc, cables, maxIterNL, tol, maxIterSolver, epsS, geometryTolerance));
+                Mesh compensated = Services.CompensationService.Apply(panel.Value, warp_dir, waPerc, wePerc, fixedBeams.Where(b => b?.Value != null).Select(b => b.Value).ToList(),
+                    maxIterNL, tol, maxIterSolver, epsS, geometryTolerance, out Solver.ResultCodes ret);
+                if (ret == Solver.ResultCodes.NotconvergedAtMaxIterationNumber)
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged");
+                DA.SetData(0, compensated);
             }
             catch (Exception error)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, error.Message);
+                // A failed solution does not publish the starting panel as a result
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Fail to solve: " + error.Message);
             }
         }
 

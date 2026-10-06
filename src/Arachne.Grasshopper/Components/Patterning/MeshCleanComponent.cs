@@ -16,7 +16,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the MeshRemap class.
         /// </summary>
         public MeshCleanComponent()
-          : base("Mesh Clean", "MC", "Clean a mesh, removing small triangles", "Arachne", "3 Patterning")
+          : base("Mesh Clean", "MC", "Clean a mesh, removing small triangles", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
         {
         }
 
