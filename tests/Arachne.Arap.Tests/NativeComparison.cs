@@ -14,6 +14,7 @@ internal static class NativeComparison
         check("native comparison: planar constrained unwrap",()=>Compare(Program.Grid(5,4),false,0,2e-5,require));
         check("native comparison: nonrigid 3D panel",()=>Compare(Program.Grid(5,4),true,0.4,2e-4,require));
         check("native comparison: translated constrained unwrap",()=>Compare(Program.Grid(5,4,(x,y)=>new Point3d(x-20,y-30,-5)),false,0,2e-5,require));
+        check("native comparison: curved constrained unwrap",()=>Compare(Program.Cylinder(),false,0,2e-4,require));
     }
     private static void Compare(ArapMesh mesh,bool deform,double offset,double tolerance,Action<bool,string> require)
     {

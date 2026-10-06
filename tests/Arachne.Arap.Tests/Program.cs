@@ -66,6 +66,12 @@ internal static class Program
             var m=Grid(3,3); var pins=m.GetVertices().Select((p,i)=>new ArapPin(i,new Point3d(p.X,p.Y,p.X*0.1))).ToArray();
             Pins(Success(ArapSolver.Deform(m,pins)),pins);
         });
+        Check("pin output retains the exact supplied doubles", () =>
+        {
+            var m=Grid(2,2);var pins=m.GetVertices().Select((p,i)=>new ArapPin(i,new Point3d(p.X+0.1,p.Y+0.3,0.7))).ToArray();
+            var v=Success(ArapSolver.Deform(m,pins)).GetVertices();
+            foreach(var pin in pins)Require(v[pin.Vertex].X==pin.Position.X && v[pin.Vertex].Y==pin.Position.Y && v[pin.Vertex].Z==pin.Position.Z,"Pin rounded during denormalization");
+        });
         Check("cylindrical strip unwrap is developable", () => Isometry(Success(ArapSolver.Unwrap(Cylinder(), options:new ArapOptions{MaxIterations=4000})),2e-5));
         Check("folded disk uses positive harmonic initialization", () =>
         {
@@ -78,6 +84,16 @@ internal static class Program
             var r=Success(ArapSolver.Flatten(Fan(8,0.6),new ArapOptions{PerimeterTolerance=1e-6,MaxIterations=3000,PerimeterSolveIterations=1000}));
             Require(r.MaxRelativeEdgeError>0.01,"Missing intrinsic distortion"); Require(r.MaxPerimeterError<=1e-6,"Perimeter tolerance");
         });
+        Check("perimeter is checked after the last permitted pass", () =>
+        {
+            var m=Fan(8,0.6);
+            var before=ArapSolver.Flatten(m,new ArapOptions{MaxPerimeterIterations=0,MaxIterations=3000});
+            var first=ArapSolver.Flatten(m,new ArapOptions{MaxPerimeterIterations=1,PerimeterTolerance=0,MaxIterations=3000,PerimeterSolveIterations=1000});
+            Require(first.MaxPerimeterError<before.MaxPerimeterError,"Perimeter pass failed to improve");
+            var r=Success(ArapSolver.Flatten(m,new ArapOptions{MaxPerimeterIterations=1,PerimeterTolerance=(before.MaxPerimeterError+first.MaxPerimeterError)/2,MaxIterations=3000,PerimeterSolveIterations=1000}));
+            Require(r.PerimeterIterations==1,"Last pass was not exercised");
+        });
+        Check("unreachable perimeter tolerance publishes no mesh", () => Status(ArapSolver.Flatten(Fan(8,0.6),new ArapOptions{MaxPerimeterIterations=1,PerimeterTolerance=1e-12}),ArapStatus.PerimeterLimit));
         Check("planar annulus with hole", () => Isometry(Success(ArapSolver.Unwrap(Annulus())),1e-7));
         Check("disconnected panels auto-pin each part", () => Isometry(Success(ArapSolver.Flatten(Disconnected())),1e-7));
         Check("one unpinned component rejected", () => Status(ArapSolver.Deform(Disconnected(),new[]{new ArapPin(0,P(0,0))}),ArapStatus.InvalidInput));
@@ -129,6 +145,11 @@ internal static class Program
             Task.WaitAll(jobs); for(int i=0;i<jobs.Length;i++)Status(jobs[i].Result,i%2==0?ArapStatus.PerimeterLimit:ArapStatus.Converged);
         });
         Check("sparse 1681-vertex planar grid", () => Isometry(Success(ArapSolver.Flatten(Grid(41,41))),1e-7));
+        Check("sparse 1681-vertex nonrigid deformation", () =>
+        {
+            var m=Grid(41,41);var v=m.GetVertices();var pins=new[]{new ArapPin(0,v[0]),new ArapPin(40,v[40]),new ArapPin(1680,new Point3d(2,2,0.2))};
+            var r=Success(ArapSolver.Deform(m,pins,new ArapOptions{MaxIterations=3000}));Pins(r,pins);Monotonic(r);
+        });
         if(args.Contains("--native")) NativeComparison.Run(Check,Require);
         Console.WriteLine("ARAP checks: " + passed + " passed, " + failed + " failed."); return failed==0?0:1;
     }
