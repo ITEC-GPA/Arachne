@@ -54,7 +54,7 @@ namespace Arachne.Core
         }
 
 #if TENSILELIB
-        // Adapter for the local TensileLib 2.0.5.3 API migrated to GPC.Geometry.
+        // Adapter for TensileLib 2.1.0.0: GPC geometry, oriented pressure and iteration callbacks.
         private static void SolveAvailable(FormModel source, SolverSettings settings, CancellationToken cancellation, FormResult result, Action<SolverIteration> progress)
         {
             var model = new Model();

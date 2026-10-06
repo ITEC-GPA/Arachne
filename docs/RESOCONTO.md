@@ -1,3 +1,5 @@
+Aggiornamento 6 ottobre 2026: questo documento conserva lo storico della migrazione. Per gli interventi successivi, i risultati strutturati, i nuovi fix e lo stato attuale leggere [RELEASE-1.md](RELEASE-1.md).
+
 # Resoconto del trasferimento FeMM → Arachne
 
 Data: 5 ottobre 2026. Questo documento descrive lo stato finale verificato e distingue migrazione, correzioni numeriche, componenti trasferiti e lavoro futuro. Il sorgente FeMM e rimasto invariato.

@@ -41,6 +41,17 @@ internal static class ReleaseTests
             var e=EquilibriumReport.Evaluate(m,1e-7,1e-7);Check(e.Accepted,"Equilibrium force/moment check failed");
         });
         test("Plate result maps all ordered sides to solved cable force",()=>{var r=new TensileFormFindingSolver().Solve(Grid(),new SolverSettings());Check(r.Status==SolveStatus.Converged,string.Join(";",r.Messages));foreach(var p in r.Solved.Plates){Near(p.Area,1);Check(!p.HasMembraneResultants);for(int i=0;i<4;i++)Near(p.BoundaryAxialForces[i],r.Solved.Beam(p.BoundaryBeamIds[i]).AxialForce);}Check(r.Solved.ModelId==r.Model.Id);});
+        test("Membrane target mapping preserves direction and legacy area conversion",()=>{
+            var grid=Grid();var cables=grid.Edges.Select(e=>e.Cable).ToArray();foreach(var c in cables){c.TargetKind=TargetKind.Membrane;c.Direction=c.Start.X==c.End.X?MembraneDirection.Weft:MembraneDirection.Warp;}
+            var model=ModelBuilder.Build(cables,grid.Nodes.Where(n=>n.FixZ).Select(n=>new NodeCondition{Position=n.Position,FixX=true,FixY=true,FixZ=true}),grid.Faces.Select(f=>f.Select(i=>grid.Nodes[i].Position).ToArray()));
+            var r=new TensileFormFindingSolver().Solve(model,new SolverSettings());Check(r.Status==SolveStatus.Converged,string.Join(";",r.Messages));
+            // 8 boundary edges contribute A/2 and 4 interior edges A: mean tributary area is 2/3 m2.
+            foreach(var b in r.Solved.Beams){Near(b.ForceDensity,4.0/3);Check(b.TargetKind==TargetKind.Membrane&&b.Direction!=MembraneDirection.Undefined);}Check(EquilibriumReport.Evaluate(r.Solved).Accepted);
+        });
+        test("Nonlinear pressure run reports physically balanced nodal forces",()=>{
+            var r=new TensileFormFindingSolver().Solve(Grid(),new SolverSettings{Kind=SolverKind.NonLinear,Pressure=0.1,MaxIterations=100,Tolerance=1e-10,AlgebraicToleranceA=1e-12});
+            Check(r.Status==SolveStatus.Converged,string.Join(";",r.Messages));Check(EquilibriumReport.Evaluate(r.Solved,1e-6,1e-6).Accepted);Near(r.Solved.Nodes.Sum(n=>n.PressureForce.Z),0.4,1e-6);
+        });
         test("Canonical results independent of legacy mutable output lists",()=>{var r=new TensileFormFindingSolver().Solve(Grid(),new SolverSettings());double x=r.Solved.Node(1).Position.X;r.Positions[0].X=999;r.Solved.Node(1).Position.X=99;r.AxialForces.Clear();Near(r.Solved.Node(1).Position.X,x);Check(r.Solved.Beams.Count==12);});
         test("Actual internal history has ordered steps",()=>{var r=new TensileFormFindingSolver().Solve(Grid(),new SolverSettings{Pressure=8,Tolerance=1e-9});Check(r.History.Count>0);Check(r.History.Select(h=>h.Inner).SequenceEqual(Enumerable.Range(1,r.History.Count)));Check(r.History.All(h=>h.Outer==1&&h.Metric.Contains("displacement")));});
         test("Cancellation during inner iteration keeps history and suppresses results",()=>{using(var c=new CancellationTokenSource()){var r=new TensileFormFindingSolver().Solve(Grid(),new SolverSettings{Pressure=8,Tolerance=1e-12},c.Token,step=>c.Cancel());Check(r.Status==SolveStatus.Cancelled&&r.History.Count==1&&r.Solved==null&&r.Positions.Count==0);}});

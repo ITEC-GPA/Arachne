@@ -2,7 +2,7 @@
 
 Primo progetto Grasshopper dedicato alla ricerca di forma di reti di cavi e membrane, estratto dal percorso di form finding di FeMM. Il modello usa **metri, newton, chilogrammi e secondi**. SAP, Straus, ETABS e il modello FEM generale di FeMM non sono dipendenze di Arachne.
 
-**Stato:** Arachne compila con TensileLib GPC e le DLL locali. Contiene 30 componenti, inclusi tutti i 22 della cartella Patterning di FeMM. Sono disponibili due schemi Grasshopper verificati: ricerca di forma e sviluppo pannelli. Vedere [resoconto dettagliato](docs/RESOCONTO.md) e [registro modifiche](docs/CHANGELOG.md).
+**Stato:** release candidata 0.1.0-rc.1, 43 componenti e TensileLib GPC 2.1.0.0. Include tutti i 22 componenti della cartella Patterning di FeMM e 13 nuovi componenti per risultati e diagnostica. Vedere [resoconto della prima release](docs/RELEASE-1.md), [guida ai risultati](docs/RESULTS.md) e [storico della migrazione](docs/RESOCONTO.md). Gli esempi esistenti sono invariati; i nuovi esempi saranno preparati dall'utente.
 
 ## Struttura
 
@@ -47,9 +47,11 @@ Il plugin completo richiede TensileLib e la DLL nativa ARAP alla compilazione. I
 | Gruppo | Componenti |
 |---|---|
 | 0 Geometry | Demo Saddle Net, Cable Net, Radial Cable Net, Compound Net |
-| 1 Model | Cable, Cable Constraints, Cable Load, Node Conditions, Model |
-| 2 Form Finding | Solver Settings, Form Find |
-| 3 Patterning | Borders, OrderBorders, Compensation, Decompensation, DecompensationDescriptor, DecompensationDescriptorExt, Flattening, Flattening ARAP, Deform ARAP, Geodesic Offsets, Mesh Divide, Mesh Geodesic, Mesh Clean, Mesh Pipe, Mesh Remap, Split Mesh On Curves, Subdivide Mesh, Unweld Mesh, Line-Up |
+| 1 Model | Cable, Cable Constraints, Cable Load, Node Conditions, Model, Check Model, Deconstruct Model, Unit Settings, Convert Units |
+| 2 Form Finding | Solver Settings, Form Find (anche in background) |
+| 3 Patterning | Borders, OrderBorders, Compensation, Decompensation, DecompensationDescriptor, DecompensationDescriptorExt, Flattening, Flattening ARAP, Deform ARAP, Geodesic Offsets, Mesh Divide, Mesh Geodesic, Mesh Clean, Mesh Pipe, Mesh Remap, Split Mesh On Curves, Subdivide Mesh, Unweld Mesh, Line-Up, Panel Distortion |
+| 4 Results | Deconstruct Result, Node Results, Beam Results, Plate Results, Equilibrium Report, Solver History, Result Preview |
+| 0 Utilities | Dependency Check |
 
 Cable espone densità di forza, forza nel cavo, membrana e curvatura; distingue trama e ordito e consente pesi non lineari. Cable Constraints gestisce lunghezza, forza assiale e compensazione percentuale. Cable Load applica una forza concentrata in una frazione della lunghezza: per carichi distribuiti serve fornire la risultante e la posizione corretta. Node Conditions unisce vincoli, forze nodali e pesi per mantenere la posizione. Per caricare un nodo libero disattivare i tre vincoli.
 
@@ -62,7 +64,7 @@ Per una rete ottenuta con i generatori FeMM, unire le linee di trama, ordito e b
 Prerequisiti: Windows x64, SDK .NET 8 o successivo, .NET Framework 4.8 Developer Pack, Rhino 8 installato e utilizzabile, DLL GPC, TensileLib Release e DLL nativa ARAP locali. Il plugin usa `net48`; i test sono eseguiti in Rhino in-process con .NET Framework, non in tutte le modalita runtime di Rhino.
 
 ```powershell
-.\scripts\build.ps1
+.\scripts\build.ps1 -RequireTensile -RhinoTests
 ```
 
 Il plugin e le sue dipendenze vengono raccolti in `artifacts/Release/Arachne`. Copiare l'intera cartella nelle Libraries di Grasshopper e riavviare Rhino. Il progetto non esegue installazioni automatiche nelle cartelle di Rhino. Le DLL locali usate nella prima compilazione sono GPCGeometry 2.1.0.3 e GPCUtilities 2.0.0.8.
@@ -74,7 +76,7 @@ I percorsi predefiniti, modificabili tramite proprietà MSBuild o parametri dell
 | GpcGeometryPath | `../Geometry/GPCGeometry/bin/Release/netstandard2.0/GPCGeometry.dll` |
 | GpcUtilitiesPath | `../Utilities/GPCUtilities/bin/Release/netstandard2.0/GPCUtilities.dll` |
 | TensileLibPath | `../tensilelib/TensileLib/bin/Release/TensileLib.dll` |
-| NativeIglPath | `../maffeisigl/x64/Release/MaffeisIGL.dll`, distribuita come `Arachne.IGL.dll` |
+| NativeIglPath | `artifacts/native/Release/Arachne.IGL.dll`, compilata con build-native.ps1 |
 | RhinoSystemDir | `C:/Program Files/Rhino 8/System` |
 | GrasshopperDir | `C:/Program Files/Rhino 8/Plug-ins/Grasshopper` |
 
@@ -82,8 +84,23 @@ I percorsi predefiniti, modificabili tramite proprietà MSBuild o parametri dell
 
 Compilare prima `../tensilelib/TensileLib.sln` in Release, poi eseguire `./scripts/build.ps1 -RequireTensile`. I percorsi possono essere cambiati con i parametri dello script. Core e test usano net48, coerente con il motore net472 e il plugin Grasshopper.
 
-Il pacchetto include TensileLib, alglibnet2, GPCGeometry, GPCUtilities, MathNet.Numerics, System.Drawing.Common e Arachne.IGL. ARAP usa la libreria nativa 0.9.0 presente localmente; nessun assembly gestito della vecchia geometria e richiesto. La tolleranza algebrica B deve essere 0; A=0 e AI=0 scelgono i default del motore (1e-5 e 10000). Create mesh disattivato sopprime l'output mesh, ma il motore puo generare facce interne.
+Il pacchetto include TensileLib, alglibnet2, GPCGeometry, GPCUtilities, MathNet.Numerics, System.Drawing.Common e Arachne.IGL. ARAP usa la libreria nativa 0.9.0 ricompilata dai sorgenti locali; nessun assembly gestito della vecchia geometria e richiesto. La tolleranza algebrica B deve essere 0; A=0 e AI=0 scelgono i default del motore (1e-5 e 10000). Create mesh disattivato sopprime l'output mesh, ma il motore puo generare facce interne e queste rimangono interrogabili.
 
-Il riferimento teorico indicato e Shell Structures for Architecture: Form Finding and Optimization (Routledge, 2014), capitoli 6 e 12. I casi con membrane, pressioni, peso proprio e vincoli combinati richiedono ulteriori confronti dedicati.
+Il riferimento teorico indicato e Shell Structures for Architecture: Form Finding and Optimization (Routledge, 2014), capitoli 6 e 12. Sono verificati pressione, peso proprio, carichi concentrati e trasferimento degli obiettivi di membrana su casi analitici. Il confronto teorico completo e i casi di produzione restano da eseguire. I tiri di bordo delle piastre sono forze delle aste in N: non sono disponibili Nx/Ny/Nxy della membrana.
 
 Vedere [architettura](docs/ARCHITECTURE.md), [porting](docs/PORTING.md) e [registro modifiche](docs/CHANGELOG.md).
+
+## Build nativa e uso dei risultati
+
+La prima compilazione richiede Visual Studio C++ x64 (v143 e Windows SDK). Fornire il percorso dei sorgenti ARAP e degli include libigl/Eigen locali:
+
+```powershell
+.\scripts\build-native.ps1 -ArapSourceDir '<cartella contenente mm_arap.cpp>' -IglIncludeDir '<cartella contenente igl ed Eigen>'
+.\scripts\build.ps1 -RequireTensile -RhinoTests
+```
+
+In alternativa impostare NativeIglPath a una DLL compatibile gia compilata. La modalita di verifica --tests-only non scrive gli esempi. Il pacchetto contiene i manifest di build e delle DLL.
+
+Collegare Result o Solved model di Form Find a Node Results, Beam Results e Plate Results. Deconstruct Model legge il modello iniziale; Deconstruct Result separa lo stato iniziale dalla configurazione risolta. Per equilibrio, unita, segni, tiri di bordo e conservazione in memoria leggere [RESULTS.md](docs/RESULTS.md).
+
+La pressione segue ora l'orientamento delle facce e include i carichi sui nodi di bordo. Per calcoli lunghi attivare Background; Cancel interrompe ai punti di controllo interni, mentre Run=False annulla e svuota. Patterning e ARAP rimangono sincroni.

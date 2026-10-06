@@ -6,7 +6,8 @@ param(
     [string]$NativeIglPath,
     [string]$RhinoSystemDir,
     [string]$GrasshopperDir,
-    [switch]$RequireTensile
+    [switch]$RequireTensile,
+    [switch]$RhinoTests
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -25,6 +26,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
     & "tests\Arachne.Core.Tests\bin\$Configuration\net48\Arachne.Core.Tests.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Core checks failed.' }
+    if($RhinoTests) {
+        if($Configuration -ne 'Release'){throw 'The Rhino verification tool currently requires Release.'}
+        $rhinoDir=if($RhinoSystemDir){$RhinoSystemDir}else{'C:\Program Files\Rhino 8\System'}
+        $ghDir=if($GrasshopperDir){$GrasshopperDir}else{'C:\Program Files\Rhino 8\Plug-ins\Grasshopper'}
+        & "tools\Arachne.ExampleWriter\bin\Release\net48\Arachne.ExampleWriter.exe" $projectRoot $rhinoDir $ghDir --tests-only
+        if($LASTEXITCODE -ne 0){throw 'Rhino/Grasshopper checks failed. Release package was not updated.'}
+    }
     $sourceDir = Join-Path $projectRoot "src\Arachne.Grasshopper\bin\$Configuration\net48"
     $destination = Join-Path $projectRoot "artifacts\$Configuration\Arachne"
     New-Item -ItemType Directory -Force -Path $destination | Out-Null
@@ -43,6 +51,17 @@ try {
         }
     }
     $manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'DEPENDENCIES.json') -Encoding utf8
+    $nativeProvenance=Join-Path $projectRoot 'artifacts\native\Release\NATIVE-BUILD.json'
+    if(Test-Path -LiteralPath $nativeProvenance){
+        $nativeInfo=Get-Content -LiteralPath $nativeProvenance -Raw | ConvertFrom-Json
+        if($nativeInfo.BinarySHA256 -eq (Get-FileHash -LiteralPath (Join-Path $destination 'Arachne.IGL.dll')).Hash){Copy-Item -LiteralPath $nativeProvenance -Destination $destination -Force}
+    }
+    foreach($doc in @('RELEASE-1.md','RESULTS.md')){
+        $docPath=Join-Path $projectRoot "docs\$doc"
+        if(Test-Path -LiteralPath $docPath){Copy-Item -LiteralPath $docPath -Destination $destination -Force}
+    }
+    $revision=& git rev-parse HEAD
+    [pscustomobject]@{ArachneCommit=$revision;RhinoChecksPerformed=[bool]$RhinoTests;BuiltUtc=[DateTime]::UtcNow.ToString('o');Framework='net48';Platform='Windows x64'} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'BUILD.json') -Encoding utf8
     # A previous complete build must not leave a stale solver in a skeleton package.
     foreach ($name in @('TensileLib.dll','alglibnet2.dll')) {
         $packagedTensile = Join-Path $destination $name
