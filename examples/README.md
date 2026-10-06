@@ -4,9 +4,9 @@ Ogni esempio è disponibile in formato binario (`.gh`) e XML (`.ghx`). Installar
 
 | File | Contenuto |
 | --- | --- |
-| [01_SaddleNet.gh](01_SaddleNet.gh) | Sella 10 x 10 m con 4 x 4 campi e bordo vincolato, quote ±2 m agli angoli. Comprende:<br>• Beam con Beam Property (Cable, sezione piena D 10 mm, acciaio) e Force Density 1 N/m nel caso di carico FF;<br>• Node con Restraints;<br>• Build Model in SI e Form Find lineare. |
+| [01_SaddleNet.gh](01_SaddleNet.gh) | Sella 10 x 10 m con 4 x 4 campi e bordo vincolato, quote ±2 m agli angoli, coordinate in mm. Comprende:<br>• Beam con Beam Property (Cable, sezione piena D 10 mm, acciaio) e Force Density 1 N/mm nel caso di carico FF;<br>• Node con Restraints;<br>• Build Model in N/mm, Check Model e Form Find lineare;<br>• Beam Forces (tiri in N) e Support Reactions. |
 | [02_Patterning.gh](02_Patterning.gh) | Pannello inclinato: Flattening e, in alternativa, Flattening ARAP; Compensation 2% / 1%, Borders, OrderBorders, descrittori neutri, Decompensation e Line-Up. |
-| [03_CableNet.gh](03_CableNet.gh) | Cable Net su un perimetro a sella 12 x 8 m, maglia 1 x 1 m. Ordito con q = 2 N/m, trama con q = 1 N/m, linee di bordo vincolate; Form Find lineare con mesh. |
+| [03_CableNet.gh](03_CableNet.gh) | Cable Net su un perimetro a sella 12 x 8 m, maglia 1 x 1 m, coordinate in mm. Ordito con q = 2 N/mm, trama con q = 1 N/mm, linee di bordo vincolate; Form Find lineare con mesh. |
 
 Negli esempi 01 e 03 Form Find ha **Auto Run** collegato a un interruttore attivo: il calcolo parte all'apertura. Disattivarlo per lavorare con il pulsante Run.
 

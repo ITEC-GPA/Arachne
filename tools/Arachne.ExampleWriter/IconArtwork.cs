@@ -98,6 +98,8 @@ namespace Arachne.Examples
             {L(x,y,xx,yy,Warp);Circle(x,y,1.8f,Ink,true);Circle(xx,yy,1.8f,Ink,true);}
             private void Section(Color fill,params float[] xy)
             {Fill(fill,xy);Path(Ink,xy);}
+            private void Funnel()
+            {Fill(Shade,3,3,21,3,14,11,14,19,10,21,10,11);Path(Ink,3,3,21,3,14,11,14,19,10,21,10,11,3,3);}
             private void Swatch(Color top,Color side,string label)
             {
                 Fill(top,3,8,12,4,21,8,12,12);Fill(side,3,8,12,12,12,21,3,17);Fill(Color.FromArgb(150,side),12,12,21,8,21,17,12,21);
@@ -113,8 +115,6 @@ namespace Arachne.Examples
                         Circle(12,12,8);Circle(12,12,4,Weft);Circle(12,12,1.8f,Warp,true);break;
 
                     // 01-Parameters
-                    case "LoadCombinationsParam":
-                        Path(Ink,2,4,12,4,12,12,2,12,2,4);Text("LC",7,8,6,Warp);Path(Ink,12,12,22,12,22,20,12,20,12,12);Text("LC",17,16,6,Weft);L(5,17,9,17,Blue);L(7,15,7,19,Blue);break;
                     case "CoordinateSystemParam":
                         Arrow(5,19,21,19,Warp);Arrow(5,19,5,3,Weft);Arrow(5,19,15,9,Blue);Circle(5,19,1.8f,Ink,true);break;
 
@@ -140,8 +140,6 @@ namespace Arachne.Examples
                     case "BeamSectionSolidCircleComponent": Circle(12,12,8.5f,Warp,true);Circle(12,12,8.5f);break;
                     case "BeamSectionSolidRectComponent": Section(Color.FromArgb(200,0,137,153),5,3,19,3,19,21,5,21,5,3);break;
                     case "BeamSectionTComponent": Section(Shade,3,4,21,4,21,8,14,8,14,21,10,21,10,8,3,8,3,4);break;
-                    case "SectionGeometricComponent":
-                        Section(Shade,5,3,17,3,17,6,12.5f,6,12.5f,15,17,15,17,18,5,18,5,15,9.5f,15,9.5f,6,5,6,5,3);Arrow(11,21.5f,20,21.5f,Weft);Arrow(11,21.5f,2,21.5f,Weft);break;
                     case "SectionGeometricPropertyComponent":
                         Section(Shade,6,4,18,4,18,7,13.5f,7,13.5f,17,18,17,18,20,6,20,6,17,10.5f,17,10.5f,7,6,7,6,4);L(2,12,22,12,Weft);L(12,2,12,22,Blue);Circle(12,12,1.8f,Ink,true);break;
 
@@ -165,6 +163,8 @@ namespace Arachne.Examples
                     case "DecomposeModelComponent":
                         Path(Warp,2,6,10,3,11,11,3,13,2,6);Circle(2,6,1.5f,Ink,true);Circle(10,3,1.5f,Ink,true);
                         L(13,12,21,9,Ink);Circle(13,12,1.5f,Ink,true);Circle(21,9,1.5f,Ink,true);Circle(9,19,2.2f,Weft,true);Arrow(16,15,20,20,Blue);break;
+                    case "CheckModelComponent":
+                        Mesh();Circle(17,17,6,Color.White,true);Circle(17,17,6,Warp);P.Width=2.2f;Path(Warp,14,17,16.5f,19.5f,20.5f,14.5f);P.Width=1.55f;break;
 
                     // 07-Attributes
                     case "ForceDensityComponent": Bar(3,7,21,7);Text("q",8,16,11,Weft);Text("F/L",17,17,6.5f,Blue);break;
@@ -180,6 +180,8 @@ namespace Arachne.Examples
                         Circle(12,12,6.5f,Ink);Circle(12,12,2.6f,Warp,true);L(12,1.5f,12,6,Weft);L(12,18,12,22.5f,Weft);L(1.5f,12,6,12,Weft);L(18,12,22.5f,12,Weft);break;
                     case "NodeRestraintsComponent":
                         Circle(12,7,3,Warp,true);Path(Ink,12,10,5.5f,18,18.5f,18,12,10);L(3,21,21,21);L(6,21,4,23.5f);L(11,21,9,23.5f);L(16,21,14,23.5f);L(21,21,19,23.5f);break;
+                    case "ElementIdComponent":
+                        Fill(Shade,3,7,15,7,22,12,15,17,3,17);Path(Ink,3,7,15,7,22,12,15,17,3,17,3,7);Circle(17,12,1.5f,Ink,true);Text("ID",9,12.3f,7.5f,Weft);break;
 
                     // 08-Loads
                     case "NodeLoadComponent": Circle(12,18,3,Warp,true);Arrow(12,2,12,13.5f,Weft);Arrow(3,18,8,18,Blue);break;
@@ -213,16 +215,28 @@ namespace Arachne.Examples
                     case "SubdivideMeshComponent": Mesh(true);break;
                     case "UnweldMeshComponent": Path(Warp,2,7,15,3,5,20,2,7);Path(Weft,19,5,23,19,9,22,19,5);break;
                     case "LineUpComponent": Path(Warp,2,6,7,6,7,18,2,18,2,6);Path(Weft,10,9,15,9,15,18,10,18,10,9);Path(Blue,18,4,23,4,23,18,18,18,18,4);L(1,21,23,21);break;
+                    case "PanelDistortionComponent":
+                        Fill(Shade,3,4,16,3,17,16,4,17);Path(Ink,3,4,16,3,17,16,4,17,3,4);P.Width=2.2f;L(3,4,17,16,Weft);L(16,3,4,17,Blue);P.Width=1.55f;Badge("%",Ink);break;
                     case "RemeshComponent":
                         Path(Ink,3,4,21,4,21,20,3,20,3,4);L(3,12,21,12,Warp);L(9,4,9,20,Warp);L(15,4,15,20,Warp);L(3,4,9,12,Weft);L(9,12,15,20,Weft);L(15,4,21,12,Weft);L(9,4,3,12,Weft);L(21,12,15,20,Weft);break;
 
                     // 12-Analysis
                     case "FormFindComponent": Mesh();Arrow(5,2,12,2,Weft);Arrow(22,6,22,13,Weft);Badge("F",Warp);break;
+                    case "BeamForcesComponent":
+                        P.Width=3.4f;L(3,19,12,12,Weft);P.Width=2.3f;L(12,12,21,5,Warp);P.Width=1.2f;L(12,12,21,19,Blue);P.Width=1.55f;
+                        Circle(12,12,1.8f,Ink,true);Circle(3,19,1.8f,Ink,true);Circle(21,5,1.8f,Ink,true);Circle(21,19,1.8f,Ink,true);Text("N",6,6,8.5f,Ink);break;
+                    case "SupportReactionsComponent":
+                        Path(Ink,12,13,6,20,18,20,12,13);L(3,22.5f,21,22.5f);Circle(12,12,2,Warp,true);Arrow(12,10,12,2,Weft);Arrow(12,10,20,5,Blue);break;
 
                     // 14-Tools
                     case "CurveToMeshComponent":
                         Path(Warp,2,4,5,9,4,15);Path(Warp,6,3,9,9,8,16);Arrow(10,10,14,10,Weft);
                         Fill(Shade,15,4,22,5,21,16,14,15);Path(Ink,15,4,22,5,21,16,14,15,15,4);L(15,4,21,16,Warp);break;
+                    case "NodeFilterComponent": Funnel();Circle(19.5f,18.5f,3,Weft,true);break;
+                    case "BeamFilterComponent":
+                        Funnel();P.Width=2.4f;L(16,22,22.5f,15,Weft);P.Width=1.55f;Circle(16,22,1.5f,Ink,true);Circle(22.5f,15,1.5f,Ink,true);break;
+                    case "PlateFilterComponent":
+                        Funnel();Fill(Color.FromArgb(150,224,131,40),16,15,22.5f,14,22.5f,22,15.5f,22);Path(Ink,16,15,22.5f,14,22.5f,22,15.5f,22,16,15);break;
 
                     default: throw new ArgumentException("Missing Arachne icon: " + name, nameof(name));
                 }

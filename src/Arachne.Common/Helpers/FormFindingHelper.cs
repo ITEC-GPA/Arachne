@@ -83,6 +83,17 @@ namespace Arachne.Common.Helpers
 
             List<Curve> lineCurves = new List<Curve>(modelModel.Beams.Count);
             Dictionary<(int, int), Beam> nodesBeamsAss = new Dictionary<(int, int), Beam>();
+            // The beam loads become forces on the end nodes, shared with the lever rule on the
+            // input geometry. TensileLib shares them again at every iteration dividing the
+            // input distance by the current length, so a beam that changes length moved its load.
+            Dictionary<Node, Vector3d> beamLoadForces = new Dictionary<Node, Vector3d>();
+            void AddBeamLoad(Node from, Node to, Vector3d force, double ratio)
+            {
+                beamLoadForces.TryGetValue(from, out Vector3d f1);
+                beamLoadForces[from] = f1 + force * (1 - ratio);
+                beamLoadForces.TryGetValue(to, out Vector3d f2);
+                beamLoadForces[to] = f2 + force * ratio;
+            }
             for (int j = 0; j < modelModel.Beams.Count; j++)
             {
                 BeamModel beam = modelModel.Beams[j];
@@ -128,34 +139,21 @@ namespace Arachne.Common.Helpers
                     //double fd = gh_beam.Value.ForceDensities.Sum(i => i.Value);
                     //double fd = gh_beam.Value.Loads.Where(l => l.GetType() == typeof(ForceDensityModel)).Sum(i => i.Value);
 
-                    // Loads: each load is applied as its resultant force on the beam
+                    // Loads: each load is applied as its resultant force on the beam. The load
+                    // components create only forces, uniform or keystone, in a global coordinate system.
                     for (int i = 0; i < beam.Loads.Count; i++)
                     {
                         LoadModel load = beam.Loads[i];
                         Vector3d v = beam.PointTo - beam.PointFrom;
-                        if (load is BeamPointLoadModel pl)
+                        if (v.Length == 0)
+                            continue;
+                        if (load is BeamPointLoadModel pl && pl.PointLoadType == BeamPointLoadModel.LoadType.Force)
                         {
-                            double d = v.Length * pl.Value.A;
-                            if (pl.PointLoadType == BeamPointLoadModel.LoadType.Force)
-                            {
-                                if (pl.Value.CoordinateSystem == null)
-                                    AddLogOnce(log, "Beam loads in the local axes are applied as global X, Y, Z components.");
-                                Vector3d p = ToGlobal(pl.Value.CoordinateSystem, pl.Value.P);
-                                ff_beam.AddLoad(p.X, p.Y, p.Z, d);
-                            }
-                            else
-                            {
-                                AddLogOnce(log, "Beam point moments are ignored by the form finding.");
-                            }
+                            Vector3d p = ToGlobal(pl.Value.CoordinateSystem, pl.Value.P);
+                            AddBeamLoad(node1, node2, p, pl.Value.A);
                         }
-                        else if (load is BeamDistributedLoadModel dl)
+                        else if (load is BeamDistributedLoadModel dl && dl.DistributedLoadType == BeamDistributedLoadModel.LoadType.Force)
                         {
-                            if (dl.DistributedLoadType != BeamDistributedLoadModel.LoadType.Force)
-                            {
-                                AddLogOnce(log, "Beam distributed moments are ignored by the form finding.");
-                                continue;
-                            }
-
                             double d = 0;
                             double q = 0;
                             double l = v.Length - v.Length * dl.Value.A - v.Length * dl.Value.B;
@@ -172,14 +170,7 @@ namespace Arachne.Common.Helpers
                                 q = sum * l / 2;
                             }
                             else
-                            {
-                                AddLogOnce(log, $"Beam distributed loads of type {dl.Value.LoadSchema} are not supported by the form finding and are ignored.");
                                 continue;
-                            }
-
-                            if (dl.Value.CoordinateSystem == null)
-                                AddLogOnce(log, "Beam loads in the local axes are applied as global X, Y, Z components.");
-
                             Vector3d direction = Vector3d.Zero;
                             bool projected = false;
                             switch (dl.Value.LoadDirection)
@@ -212,14 +203,13 @@ namespace Arachne.Common.Helpers
 
                             // A projected load is given per unit length measured on the plane
                             // normal to the load direction.
-                            if (projected && v.Length > 0)
+                            if (projected)
                             {
                                 double cos = (v / v.Length) * direction;
                                 q *= Math.Sqrt(Math.Max(0, 1 - cos * cos));
                             }
 
-                            Vector3d p = direction * q;
-                            ff_beam.AddLoad(p.X, p.Y, p.Z, d);
+                            AddBeamLoad(node1, node2, direction * q, d / v.Length);
                         }
                     }
 
@@ -293,6 +283,12 @@ namespace Arachne.Common.Helpers
                 {
 
                 }
+            }
+
+            foreach (KeyValuePair<Node, Vector3d> share in beamLoadForces)
+            {
+                GPC.Geometry.Vector3d force = share.Key.NodeForce;
+                share.Key.SetForce(force.X + share.Value.X, force.Y + share.Value.Y, force.Z + share.Value.Z);
             }
 
             if (createMesh)
@@ -397,86 +393,192 @@ namespace Arachne.Common.Helpers
             ff_model.Gravity = gravity;
             ff_model.Plane = mmPlane;
             // TensileLib 2.1 has no CreateMesh switch: without plates the solver always
-            // generates them from the beams, here done for every disconnected part.
+            // generates them from the beams, here done for every part of the net.
             if (ff_model.Plates.Count == 0)
+            {
                 GeneratePlatesForConnectedParts(ff_model);
+                OrientPlates(ff_model, plane == Plane.Unset ? Vector3d.ZAxis : plane.Normal);
+            }
             return ff_model;
         }
 
         /// <summary>
-        /// TensileLib generates the plates walking from the first beam only, so the plates of
-        /// a model made of disconnected nets are generated one part at a time.
+        /// TensileLib pushes the pressure along the winding of the plates, and the winding of the
+        /// generated plates depends on the first beam of the walk. The plates of every part are
+        /// turned so that a positive pressure acts along the normal of the generation plane.
+        /// </summary>
+        private static void OrientPlates(Model model, Vector3d normal)
+        {
+            List<Plate> plates = model.Plates.ToList();
+            if (plates.Count == 0)
+                return;
+
+            // Parts: plates sharing a node
+            Dictionary<int, int> parent = new Dictionary<int, int>();
+            int Root(int id)
+            {
+                if (!parent.ContainsKey(id))
+                    parent.Add(id, id);
+                while (parent[id] != id)
+                {
+                    parent[id] = parent[parent[id]];
+                    id = parent[id];
+                }
+                return id;
+            }
+            foreach (Plate plate in plates)
+            {
+                Node[] nodes = PlateNodes(plate);
+                for (int i = 1; i < nodes.Length; i++)
+                {
+                    int a = Root(nodes[0].Id);
+                    int b = Root(nodes[i].Id);
+                    if (a != b)
+                        parent[a] = b;
+                }
+            }
+
+            Dictionary<int, double> flux = new Dictionary<int, double>();
+            foreach (Plate plate in plates)
+            {
+                int root = Root(plate.Node1.Id);
+                flux.TryGetValue(root, out double value);
+                flux[root] = value + AreaVector(plate) * normal;
+            }
+
+            List<Plate> oriented = new List<Plate>(plates.Count);
+            foreach (Plate plate in plates)
+            {
+                if (flux[Root(plate.Node1.Id)] >= 0)
+                {
+                    oriented.Add(plate);
+                    continue;
+                }
+                // The first node is kept, so a quad is still split on the same diagonal
+                Node[] nodes = PlateNodes(plate);
+                Node[] reversed = new[] { nodes[0] }.Concat(nodes.Skip(1).Reverse()).ToArray();
+                Beam[] beams = plate.Beams.Reverse().ToArray();
+                oriented.Add(new Plate(reversed, beams, model.Plane) { Id = plate.Id });
+            }
+            model.Plates.Clear();
+            model.Plates.AddRange(oriented);
+        }
+
+        private static Node[] PlateNodes(Plate plate)
+        {
+            return plate.PlateType == Plate.PlateTypes.Quad4
+                ? new[] { plate.Node1, plate.Node2, plate.Node3, plate.Node4 }
+                : new[] { plate.Node1, plate.Node2, plate.Node3 };
+        }
+
+        // Twice the area vector, with the split on the Node1-Node3 diagonal used for the pressure
+        private static Vector3d AreaVector(Plate plate)
+        {
+            Point3d p1 = new Point3d(plate.Node1.X, plate.Node1.Y, plate.Node1.Z);
+            Point3d p2 = new Point3d(plate.Node2.X, plate.Node2.Y, plate.Node2.Z);
+            Point3d p3 = new Point3d(plate.Node3.X, plate.Node3.Y, plate.Node3.Z);
+            Vector3d area = Vector3d.CrossProduct(p2 - p1, p3 - p1);
+            if (plate.PlateType == Plate.PlateTypes.Quad4)
+            {
+                Point3d p4 = new Point3d(plate.Node4.X, plate.Node4.Y, plate.Node4.Z);
+                area += Vector3d.CrossProduct(p3 - p1, p4 - p1);
+            }
+            return area;
+        }
+
+        /// <summary>
+        /// TensileLib walks the faces from the first beam only: no plate is generated for the
+        /// other disconnected nets, nor at all when the first beam is on no closed mesh (a mast,
+        /// a backstay). The beams on no cycle are left out and every remaining part of the net
+        /// is generated on its own.
         /// </summary>
         private static void GeneratePlatesForConnectedParts(Model model)
         {
-            Dictionary<int, List<int>> adjacency = new Dictionary<int, List<int>>();
-            Dictionary<(int, int), Beam> beamsByNodes = new Dictionary<(int, int), Beam>();
-            foreach (Beam beam in model.Beams)
-            {
-                int a = beam.Node1.Id;
-                int b = beam.Node2.Id;
-                if (!adjacency.ContainsKey(a)) adjacency.Add(a, new List<int>());
-                if (!adjacency.ContainsKey(b)) adjacency.Add(b, new List<int>());
-                adjacency[a].Add(b);
-                adjacency[b].Add(a);
-                if (!beamsByNodes.ContainsKey((a, b))) beamsByNodes.Add((a, b), beam);
-                if (!beamsByNodes.ContainsKey((b, a))) beamsByNodes.Add((b, a), beam);
-            }
+            List<Node> nodes = model.Nodes.ToList();
+            List<Beam> beams = model.Beams.Where(b => b.Node1.Id != b.Node2.Id).ToList();
+            Dictionary<int, int> index = new Dictionary<int, int>(nodes.Count);
+            for (int i = 0; i < nodes.Count; i++)
+                index.Add(nodes[i].Id, i);
+            List<(int a, int b)> edges = beams.Select(b => (index[b.Node1.Id], index[b.Node2.Id])).ToList();
+            HashSet<int> bridges = Bridges(nodes.Count, edges);
 
-            List<List<int>> parts = new List<List<int>>();
-            HashSet<int> visited = new HashSet<int>();
-            foreach (int start in adjacency.Keys)
+            // Parts of the net once the bridges are removed
+            List<int>[] adjacency = new List<int>[nodes.Count];
+            for (int i = 0; i < nodes.Count; i++)
+                adjacency[i] = new List<int>();
+            for (int e = 0; e < edges.Count; e++)
             {
-                if (!visited.Add(start))
+                if (bridges.Contains(e))
                     continue;
-                List<int> part = new List<int>();
+                adjacency[edges[e].a].Add(e);
+                adjacency[edges[e].b].Add(e);
+            }
+            int[] part = Enumerable.Repeat(-1, nodes.Count).ToArray();
+            int parts = 0;
+            for (int start = 0; start < nodes.Count; start++)
+            {
+                if (part[start] >= 0 || adjacency[start].Count == 0)
+                    continue;
                 Queue<int> queue = new Queue<int>();
                 queue.Enqueue(start);
+                part[start] = parts;
                 while (queue.Count > 0)
                 {
-                    int id = queue.Dequeue();
-                    part.Add(id);
-                    foreach (int next in adjacency[id])
-                        if (visited.Add(next))
+                    int n = queue.Dequeue();
+                    foreach (int e in adjacency[n])
+                    {
+                        int next = edges[e].a == n ? edges[e].b : edges[e].a;
+                        if (part[next] < 0)
+                        {
+                            part[next] = parts;
                             queue.Enqueue(next);
+                        }
+                    }
                 }
-                parts.Add(part);
+                parts++;
             }
 
-            if (parts.Count <= 1)
+            if (parts == 1 && bridges.Count == 0)
             {
                 model.GeneratePlatesFromBeams();
                 return;
             }
 
-            foreach (List<int> part in parts)
+            Dictionary<(int, int), Beam> beamsByNodes = new Dictionary<(int, int), Beam>();
+            for (int e = 0; e < edges.Count; e++)
+            {
+                if (!beamsByNodes.ContainsKey((edges[e].a, edges[e].b))) beamsByNodes.Add((edges[e].a, edges[e].b), beams[e]);
+                if (!beamsByNodes.ContainsKey((edges[e].b, edges[e].a))) beamsByNodes.Add((edges[e].b, edges[e].a), beams[e]);
+            }
+            for (int p = 0; p < parts; p++)
             {
                 Model local = new Model { Plane = model.Plane };
                 Dictionary<int, int> localIds = new Dictionary<int, int>();
-                Dictionary<int, int> globalIds = new Dictionary<int, int>();
-                foreach (int id in part)
+                Dictionary<int, int> globalIndexes = new Dictionary<int, int>();
+                for (int i = 0; i < nodes.Count; i++)
                 {
-                    Node node = model.Nodes[id];
-                    int localId = local.AddNewNode(node.X, node.Y, node.Z);
-                    localIds.Add(id, localId);
-                    globalIds.Add(localId, id);
+                    if (part[i] != p)
+                        continue;
+                    int localId = local.AddNewNode(nodes[i].X, nodes[i].Y, nodes[i].Z);
+                    localIds.Add(i, localId);
+                    globalIndexes.Add(localId, i);
                 }
-                foreach (Beam beam in model.Beams)
-                    if (localIds.ContainsKey(beam.Node1.Id))
-                        local.AddNewBeam(localIds[beam.Node1.Id], localIds[beam.Node2.Id], model.Plane);
+                for (int e = 0; e < edges.Count; e++)
+                    if (!bridges.Contains(e) && part[edges[e].a] == p)
+                        local.AddNewBeam(localIds[edges[e].a], localIds[edges[e].b], model.Plane);
+                if (local.Beams.Count < 3)
+                    continue;
 
                 local.GeneratePlatesFromBeams();
 
                 foreach (Plate plate in local.Plates)
                 {
-                    List<int> ids = new List<int> { globalIds[plate.Node1.Id], globalIds[plate.Node2.Id], globalIds[plate.Node3.Id] };
-                    if (plate.PlateType == Plate.PlateTypes.Quad4)
-                        ids.Add(globalIds[plate.Node4.Id]);
+                    List<int> ids = PlateNodes(plate).Select(n => globalIndexes[n.Id]).ToList();
                     List<Beam> boundary = new List<Beam>();
                     for (int i = 0; i < ids.Count; i++)
                         if (beamsByNodes.TryGetValue((ids[i], ids[(i + 1) % ids.Count]), out Beam beam))
                             boundary.Add(beam);
-                    model.Plates.Add(new Plate(ids.Select(i => model.Nodes[i]).ToArray(), boundary.ToArray(), model.Plane)
+                    model.Plates.Add(new Plate(ids.Select(i => nodes[i]).ToArray(), boundary.ToArray(), model.Plane)
                     {
                         Id = model.Plates.Count + 1,
                     });
@@ -485,8 +587,153 @@ namespace Arachne.Common.Helpers
         }
 
         /// <summary>
+        /// The edges on no cycle (Tarjan), as indexes of <paramref name="edges"/>.
+        /// </summary>
+        private static HashSet<int> Bridges(int count, List<(int a, int b)> edges)
+        {
+            List<(int to, int edge)>[] adjacency = new List<(int, int)>[count];
+            for (int i = 0; i < count; i++)
+                adjacency[i] = new List<(int, int)>();
+            for (int e = 0; e < edges.Count; e++)
+            {
+                adjacency[edges[e].a].Add((edges[e].b, e));
+                adjacency[edges[e].b].Add((edges[e].a, e));
+            }
+
+            HashSet<int> bridges = new HashSet<int>();
+            int[] discovery = new int[count];
+            int[] low = new int[count];
+            int time = 0;
+            // Iterative depth first search: node, edge from the parent, next adjacency to visit
+            Stack<(int node, int parentEdge, int next)> stack = new Stack<(int, int, int)>();
+            for (int start = 0; start < count; start++)
+            {
+                if (discovery[start] != 0)
+                    continue;
+                discovery[start] = low[start] = ++time;
+                stack.Push((start, -1, 0));
+                while (stack.Count > 0)
+                {
+                    (int node, int parentEdge, int next) = stack.Pop();
+                    if (next < adjacency[node].Count)
+                    {
+                        stack.Push((node, parentEdge, next + 1));
+                        (int to, int edge) = adjacency[node][next];
+                        if (edge == parentEdge)
+                            continue;
+                        if (discovery[to] == 0)
+                        {
+                            discovery[to] = low[to] = ++time;
+                            stack.Push((to, edge, 0));
+                        }
+                        else
+                            low[node] = Math.Min(low[node], discovery[to]);
+                    }
+                    else if (parentEdge >= 0)
+                    {
+                        int parentNode = edges[parentEdge].a == node ? edges[parentEdge].b : edges[parentEdge].a;
+                        low[parentNode] = Math.Min(low[parentNode], low[node]);
+                        if (low[node] > discovery[parentNode])
+                            bridges.Add(parentEdge);
+                    }
+                }
+            }
+            return bridges;
+        }
+
+        /// <summary>
+        /// TensileLib measures the convergence relative to the norm of the node coordinates, so
+        /// far from the origin (site coordinates in mm) the iterations stop too early. The model
+        /// is solved with the centre of its bounding box on the origin and then moved back.
+        /// </summary>
+        public sealed class OriginShift
+        {
+            private readonly List<(Node node, Point3d input)> _input;
+            private readonly Vector3d _offset;
+
+            /// <summary>
+            /// Moves the model to the origin.
+            /// </summary>
+            public OriginShift(Model model)
+            {
+                _input = model.Nodes.Select(n => (n, new Point3d(n.X, n.Y, n.Z))).ToList();
+                _offset = _input.Count > 0 ? new Vector3d(new BoundingBox(_input.Select(i => i.input)).Center) : Vector3d.Zero;
+                foreach ((Node node, Point3d input) in _input)
+                    node.Position = new GPC.Geometry.Point3d(input.X - _offset.X, input.Y - _offset.Y, input.Z - _offset.Z);
+            }
+
+            /// <summary>
+            /// Moves the solved model back. The restrained coordinates get exactly their input value.
+            /// </summary>
+            public void Restore()
+            {
+                foreach ((Node node, Point3d input) in _input)
+                    node.Position = new GPC.Geometry.Point3d(
+                        node.Tx ? input.X : node.X + _offset.X,
+                        node.Ty ? input.Y : node.Y + _offset.Y,
+                        node.Tz ? input.Z : node.Z + _offset.Z);
+            }
+        }
+
+        /// <summary>
+        /// The case of the results computed by the form finding.
+        /// </summary>
+        public static LoadCaseModel FormFindingCase()
+        {
+            return new LoadCaseModel("FF", "Form Finding");
+        }
+
+        /// <summary>
+        /// The forces that the supports exert on a solved model, in the order of
+        /// <see cref="Model.Nodes"/>. At a restrained node the reaction balances the beam
+        /// forces and the loads the solver applied to the node: node forces, beam self-weight,
+        /// beam loads and pressure. Only the restrained directions are kept; the nodes
+        /// without translational restraints get null.
+        /// </summary>
+        public static Vector3d?[] ComputeReactions(Model ff_model)
+        {
+            List<Node> nodes = ff_model.Nodes.ToList();
+            Dictionary<int, int> indexes = new Dictionary<int, int>(nodes.Count);
+            Vector3d[] sums = new Vector3d[nodes.Count];
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                Node node = nodes[i];
+                indexes.Add(node.Id, i);
+                sums[i] = ToRhino(node.NodeForce) + ToRhino(node.BeamSelfWeightForce) +
+                    ToRhino(node.BeamLoadForce) + ToRhino(node.PressureForce);
+            }
+
+            foreach (Beam beam in ff_model.Beams)
+            {
+                Vector3d axis = new Vector3d(beam.Node2.X - beam.Node1.X, beam.Node2.Y - beam.Node1.Y, beam.Node2.Z - beam.Node1.Z);
+                double length = axis.Length;
+                if (length == 0)
+                    continue;
+                // A tension pulls each end towards the other one
+                Vector3d pull = axis * (beam.AxialForce / length);
+                sums[indexes[beam.Node1.Id]] += pull;
+                sums[indexes[beam.Node2.Id]] -= pull;
+            }
+
+            Vector3d?[] reactions = new Vector3d?[nodes.Count];
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                Node node = nodes[i];
+                if (!node.Tx && !node.Ty && !node.Tz)
+                    continue;
+                reactions[i] = new Vector3d(node.Tx ? -sums[i].X : 0, node.Ty ? -sums[i].Y : 0, node.Tz ? -sums[i].Z : 0);
+            }
+            return reactions;
+        }
+
+        private static Vector3d ToRhino(GPC.Geometry.Vector3d v)
+        {
+            return new Vector3d(v.X, v.Y, v.Z);
+        }
+
+        /// <summary>
         /// Converts a vector given in <paramref name="cs"/> into global coordinates.
-        /// A null coordinate system (beam local axes) is returned unchanged.
+        /// A null coordinate system is the global one.
         /// </summary>
         private static Vector3d ToGlobal(CoordinateSystemModel cs, Vector3d v)
         {
@@ -498,12 +745,6 @@ namespace Arachne.Common.Helpers
             if (!e1.Unitize() || !e2.Unitize() || !e3.Unitize())
                 return v;
             return e1 * v.X + e2 * v.Y + e3 * v.Z;
-        }
-
-        private static void AddLogOnce(List<string> log, string message)
-        {
-            if (!log.Contains(message))
-                log.Add(message);
         }
 
         public static Model AssemblyModel(List<Curve> curves, double tol, out List<string> log)

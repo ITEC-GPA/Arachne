@@ -32,8 +32,7 @@ namespace Arachne.Grasshopper.DataTypes
             _guids = new Dictionary<ElementModel, Guid>();
         }
 
-        public GH_Model(ModelModel.ModelUnits units, IEnumerable<IGH_GeometricGoo> elements, IEnumerable<GH_LoadCombination> combinations,
-            IEnumerable<GH_NamedSets> namedSets, IEnumerable<GH_StagedConstruction> stages)
+        public GH_Model(ModelModel.ModelUnits units, IEnumerable<IGH_GeometricGoo> elements)
             : this()
         {
             Helpers.ModelHelper.ParseElements(elements, out List<GH_Node> nodes, out List<GH_Beam> beams, out List<GH_Plate> plates);
@@ -69,12 +68,6 @@ namespace Arachne.Grasshopper.DataTypes
             _guids = new Dictionary<ElementModel, Guid>(bufferGuidDict);
 
             Value.AddElements(elementsBag);
-
-            Value.AddLoadCombinations(combinations.Select(c => c.Value));
-
-            Value.AddNamedSets(namedSets.Select(c => c.Value));
-
-            Value.AddStagedConstructions(stages.Select(s => s.Value));
         }
 
         public GH_Model(GH_Model model)

@@ -60,7 +60,7 @@ internal static class FormFindingExample
     private static void SaddleNet(Canvas c)
     {
         var chain = FormFindingChecks.Start(c);
-        var (lines, border) = FormFindingChecks.SaddleGrid(4, 10, 2);
+        var (lines, border) = FormFindingChecks.SaddleGrid(4, 10000, 2000);
         var lineParam = c.Add(new Param_Curve { NickName = "Cavi" }, 60, 120);
         lineParam.SetPersistentData(lines.Select(l => new GH_Curve(new LineCurve(l))));
         var borderParam = c.Add(new Param_Point { NickName = "Vincoli" }, 60, 420);
@@ -72,27 +72,31 @@ internal static class FormFindingExample
         var restraints = c.Add(new NodeRestraintsComponent(), 520, 420); Canvas.Link(restraints, 0, node);
         Canvas.Set<IGH_Goo>(restraints, 1, new GH_Boolean(true), new GH_Boolean(true), new GH_Boolean(true));
         var build = FormFindingChecks.Build(chain, fd, restraints);
+        var check = c.Add(new CheckModelComponent(), 1000, 480); Canvas.Link(check, 0, build);
         var ff = c.Add(new FormFindComponent()); Canvas.Link(ff, 0, build);
-        AutoRun(c, ff, 980, 520);
+        AutoRun(c, ff, 980, 640);
+        var forces = c.Add(new BeamForcesComponent(), 1260, 200); Canvas.Link(forces, 0, ff);
+        var reactions = c.Add(new SupportReactionsComponent(), 1260, 400); Canvas.Link(reactions, 0, ff);
 
         Place(c, chain.LoadCase, 60, 260); Place(c, chain.Property, 60, 600);
         Arrange(c, 760);
         Place(c, fd, 520, 140); Place(c, build, 760, 260); Place(c, ff, 1000, 260);
-        Note(c, "ARACHNE | 01 Sella\nRete 10 x 10 m, 4 x 4 campi, bordo vincolato con quote +/-2 m agli angoli.\n" +
-                "Beam (proprieta Cable, sezione piena D 10 mm, acciaio) + Force Density 1 N/m, caso di carico FF.\n" +
-                "Build Model in unita SI -> Form Find lineare. Auto Run attivo: disattivarlo e usare il pulsante Run.", 60, 860, 640, 110);
+        Note(c, "ARACHNE | 01 Sella (N, mm)\nRete 10 x 10 m, 4 x 4 campi, bordo vincolato con quote +/-2 m agli angoli.\n" +
+                "Beam (proprieta Cable, sezione piena D 10 mm, acciaio) + Force Density 1 N/mm, caso di carico FF.\n" +
+                "Build Model in N/mm -> Check Model -> Form Find lineare -> Beam Forces (tiri, N) e Support Reactions (N).\n" +
+                "Auto Run attivo: disattivarlo e usare il pulsante Run.", 60, 860, 680, 120);
     }
 
     // Cable Net on a saddle perimeter: warp and weft cables, restrained border.
     private static void CableNet(Canvas c)
     {
         var chain = FormFindingChecks.Start(c);
-        var perimeter = new PolylineCurve(new[] { new Point3d(0, 0, 1.5), new Point3d(12, 0, -1.5), new Point3d(12, 8, 1.5), new Point3d(0, 8, -1.5), new Point3d(0, 0, 1.5) });
+        var perimeter = new PolylineCurve(new[] { new Point3d(0, 0, 1500), new Point3d(12000, 0, -1500), new Point3d(12000, 8000, 1500), new Point3d(0, 8000, -1500), new Point3d(0, 0, 1500) });
         var border = c.Add(new Param_Curve { NickName = "Perimetro" }, 60, 160);
         border.SetPersistentData(perimeter.DuplicateSegments().Select(s => new GH_Curve(s)));
         var net = c.Add(new CableNetComponent(), 300, 200);
         net.Params.Input[0].AddSource(border); net.Params.Input[2].AddSource(border);
-        Canvas.Set(net, 3, new GH_Number(1)); Canvas.Set(net, 4, new GH_Number(1));
+        Canvas.Set(net, 3, new GH_Number(1000)); Canvas.Set(net, 4, new GH_Number(1000));
 
         var warp = c.Add(new BeamComponent(), 560, 80); Canvas.Link(warp, 0, net, 2); Canvas.Link(warp, 1, chain.Property);
         var weft = c.Add(new BeamComponent(), 560, 260); Canvas.Link(weft, 0, net, 3); Canvas.Link(weft, 1, chain.Property);
@@ -109,9 +113,9 @@ internal static class FormFindingExample
         AutoRun(c, ff, 1280, 560);
         Place(c, chain.LoadCase, 300, 520); Place(c, chain.Property, 300, 680);
         Arrange(c, 820);
-        Note(c, "ARACHNE | 03 Cable Net\nPerimetro a sella 12 x 8 m, maglia 1 x 1 m. Ordito q = 2 N/m, trama q = 1 N/m, bordo vincolato.\n" +
+        Note(c, "ARACHNE | 03 Cable Net (N, mm)\nPerimetro a sella 12 x 8 m, maglia 1 x 1 m. Ordito q = 2 N/mm, trama q = 1 N/mm, bordo vincolato.\n" +
                 "Le linee di bordo vincolate (Restraint edges) entrano come Beam per chiudere le maglie della mesh.\n" +
-                "Build Model in unita SI -> Form Find lineare con mesh.", 60, 900, 660, 100);
+                "Build Model in N/mm -> Form Find lineare con mesh.", 60, 900, 660, 100);
     }
 
     private static void Save(string root, string name, Action<Canvas> build, int nodes, int beams)

@@ -2,10 +2,14 @@
 
 Sorgente di riferimento: `../FeMM 30-5-2024/Test1/FeMM` (non modificato).
 
-Tutti i componenti di Arachne sono quelli di FeMM, con **gli stessi ingressi e le stesse uscite**: nomi, nickname, tipi e accesso dei parametri. Il banco di prova lo controlla automaticamente leggendo i sorgenti FeMM (`tools/Arachne.ExampleWriter/InventoryChecks.cs`). Le differenze rispetto a FeMM sono solo:
+I componenti di Arachne sono quelli di FeMM, con **gli stessi ingressi e le stesse uscite**: nomi, nickname, tipi e accesso dei parametri. Il banco di prova lo controlla automaticamente leggendo i sorgenti FeMM (`tools/Arachne.ExampleWriter/InventoryChecks.cs`). Le differenze rispetto a FeMM sono solo:
 
 - le correzioni dei bug elencate più sotto;
-- gli adattamenti alla TensileLib 2.1 (repository `../tensilelib`), al motore ARAP C# e all'assenza del plug-in Rhino di FeMM.
+- gli ingressi tolti di proposito (definizioni SAP e carichi non gestiti dal form finding, vedi Adattamenti), elencati anche nel banco di prova;
+- gli adattamenti alla TensileLib 2.1 (repository `../tensilelib`), al motore ARAP C# e all'assenza del plug-in Rhino di FeMM;
+- quattro componenti nuovi di Arachne, elencati a parte.
+
+Si lavora in N e mm: Build Model ha come predefinito Nmm (come FeMM), le sezioni sono nelle unità del modello e la gravità del Form Find, in N/mm, vale 9806.65 mm/s².
 
 I GUID sono nuovi, così FeMM e Arachne possono essere caricati insieme. Le definizioni FeMM non vengono convertite automaticamente. Le icone sono quelle nuove di Arachne (`tools/Arachne.ExampleWriter/IconArtwork.cs`).
 
@@ -18,18 +22,17 @@ I GUID sono nuovi, così FeMM e Arachne possono essere caricati insieme. Le defi
 | MaffeisIGL (ARAP nativo, libigl) | `src/Arachne.Arap`, motore C# riscritto |
 | TensileLib 2.0.6 (NuGet, non più disponibile) | TensileLib 2.1.0.0 da `../tensilelib` |
 
-Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino, plug-in FeMM.Rhino e risultati delle analisi FEM. Di conseguenza:
+Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino, plug-in FeMM.Rhino e risultati delle analisi FEM (resta solo il modello delle reazioni, `NodeReactResultModel`, usato dal form finding). Di conseguenza:
 
 - il bake di nodi, aste, piastre e modelli produce geometria Rhino semplice (punti, linee, mesh) al posto degli oggetti del plug-in FeMM;
 - la tolleranza di fusione dei nodi di Build Model, che FeMM leggeva dalle opzioni del plug-in Rhino, è nelle impostazioni Grasshopper di Arachne con lo stesso valore predefinito (0.001, unità del modello);
-- Build Model mantiene gli ingressi Load Combinations, Named sets e Staged constructions, ma i componenti SAP che producono gli ultimi due non sono presenti.
+- combinazioni di carico, named sets, costruzioni per fasi, funzioni e superelementi sono stati tolti dal modello, insieme al parametro Load Combinations e al componente Section Geometry.
 
 ## Componenti
 
 | Pannello | Componente | Sorgente FeMM | GUID FeMM | GUID Arachne |
 | --- | --- | --- | --- | --- |
 | 01-Parameters | CoordinateSystem (CS) | `Components/Parameters/CoordinateSystemParam.cs` | 6a7ad660-29b0-4cbb-af29-7f5ce72f1cf3 | c1a59f62-2d20-4f66-aeb0-38999eb77b7a |
-| 01-Parameters | Load Combinations (LCS) | `Components/Parameters/LoadCombinationsParam.cs` | 0be68174-01fc-4ea5-b9d9-7839a7f2c64b | 12666a01-d9d7-4ed6-ac5a-010e24c7fe34 |
 | 02-Materials | Aluminium (AM) | `Components/Materials/MaterialAluminiumComponent.cs` | ababcb15-84b5-499d-9803-871ee43d0bd7 | 9baa5979-36ea-4247-baff-7d9b4e8a832d |
 | 02-Materials | Concrete (CM) | `Components/Materials/MaterialConcreteComponent.cs` | 9d2f4b12-e3f3-4cbd-af84-1b67fb3157b9 | 76802e52-c065-47ff-9c04-97094ab9edc8 |
 | 02-Materials | Custom Material (CM) | `Components/Materials/MaterialCustomComponent.cs` | 262c4c26-81bf-4cfc-9ff9-28cb6db0c7bd | 7d402b00-2590-463f-950a-acf6d0e970f4 |
@@ -43,7 +46,6 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 | 03-Sections | Hollow Rect (HR) | `Components/Sections/BeamSectionHollowRectComponent.cs` | 80ed3751-0e95-4f75-8a66-b27c94d781f4 | c37923d7-be85-4846-92f3-79ae601f4f52 |
 | 03-Sections | I Section (I) | `Components/Sections/BeamSectionIComponent.cs` | 625ad93f-4c24-4b5b-85e5-746b83c8e9bd | 79118195-ca0f-409f-ac01-55b72161131a |
 | 03-Sections | Section Geometric Property (BGP) | `Components/Sections/SectionGeometricPropertyComponent.cs` | 13915ea9-7393-4a2e-9724-90c0df6530e2 | 1da0a1a0-214f-4a76-9f34-b50fadca708d |
-| 03-Sections | Section Geometry (SG) | `Components/Sections/SectionGeometricComponent.cs` | 22a94621-76c8-4e04-a6aa-f454e9aec86e | 9bc5f380-7ef0-40b5-86e7-bed43439766c |
 | 03-Sections | Solid Circle (SC) | `Components/Sections/BeamSectionSolidCircleComponent.cs` | a5965076-70d7-4ce1-bbb6-966dadf0d9b6 | 3562882c-f91f-445b-be98-2494b937fd07 |
 | 03-Sections | Solid Rect (SR) | `Components/Sections/BeamSectionSolidRectComponent.cs` | c68750fa-b296-4dab-ab51-8e9ff9ea2b27 | 31479893-1941-41e3-99d8-238efc1bcff6 |
 | 03-Sections | T Section (T) | `Components/Sections/BeamSectionTComponent.cs` | 2a2a2c2f-c079-4ad1-b298-5ba8a53e0003 | 4573bce8-dc25-4b73-a0d5-cdce1f86846f |
@@ -56,6 +58,7 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 | 06-Model | Decompose Model (DM) | `Components/Models/DecomposeModelComponent.cs` | 700a15f9-cf8d-4062-9c99-32628b99cda8 | c4146124-3da2-491d-96e4-7e0f565ece4b |
 | 06-Model | Node (N) | `Components/Models/NodeComponent.cs` | 768f9c12-8a9f-4525-8d3a-f33a77793444 | 2d7a3c66-282f-4bbf-a11e-db55827e3224 |
 | 06-Model | Plate (PL) | `Components/Models/PlateComponent.cs` | 2e9fcc4d-5f9b-403c-be31-40804205df1a | ad3fea4a-1c4b-4923-bb06-3e58ae1f3247 |
+| 07-Attributes | Element Id (EI) | `Components/Attributes/ElementIdComponent.cs` | b21816ea-0ef6-4feb-a522-f9371f28faf6 | 92cb7203-eb55-4cc4-a322-8e4ccd2bed08 |
 | 07-Attributes | Fixed Axial Force (FAF) | `Components/Attributes/FixedAxialForceComponent.cs` | a88a3d74-f64d-4062-8e6b-4d5d50657b5b | b0574cd0-d4c8-44b1-a85c-1658dd4fbfae |
 | 07-Attributes | Fixed compensation (FC) | `Components/Attributes/FixedCompensationComponent.cs` | 7608ac1c-9e5a-4dbb-8806-dd6791a6aa35 | 2a20c8a1-9837-4b21-a0ec-70d22e92bb6e |
 | 07-Attributes | Fixed curvature cable (FC) | `Components/Attributes/ForceDensityCableComponent.cs` | 6ce47bc0-97a4-4f66-8358-a692c761e56e | 92d964b3-ad4d-4c30-a1c6-8e37ac0a7b85 |
@@ -91,9 +94,23 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 | 09-Patterning | Subdivide Mesh (MC) | `Components/Patterning/SubdivideMeshComponent.cs` | 8dcc7742-7a42-40bb-a94f-27b77c085f24 | a9271e1c-81d2-58d2-843c-bee8a3e0aa8d |
 | 09-Patterning | Unweld Mesh (UM) | `Components/Patterning/UnweldMeshComponent.cs` | 0c4b1071-f64a-4a93-981e-6b9de5b1b7ba | 23032209-c252-5a53-a96d-3a958c387f15 |
 | 12-Analysis | Form Find (FF) | `Components/Analysis/FormFindComponent.cs` | 83be34af-f862-457b-8c03-109fadcd679e | cb0c82d4-0d41-49c5-8f14-7897700e20be |
+| 14-Tools | Beam Filter (BF) | `Components/Tools/BeamFilterComponent.cs` | f19ab6c2-3624-48ad-9d49-a1e74dae489b | 8d3cb7f2-7de6-4594-a437-9756dc36b47c |
 | 14-Tools | Curve2Mesh (C2M) | `Components/Tools/CurveToMeshComponent.cs` | 2bfbb9cf-09b0-4ce6-be33-31bdaafffe92 | 923d40fe-63a7-4d04-84f3-6b8f825cabb9 |
+| 14-Tools | Node Filter (NF) | `Components/Tools/NodeFilterComponent.cs` | ee66aa2b-1b65-44ee-a638-248871d92b64 | f322b12d-ddb7-4287-aaa6-67813e6cc864 |
+| 14-Tools | Plate Filter (PF) | `Components/Tools/PlateFilterComponent.cs` | 7bcdad25-17a2-4303-9ba6-3a5edc029a94 | 087ad97f-842c-41f7-826b-1a96656ffe77 |
 
 I componenti Patterning della prima versione di Arachne mantengono i GUID già assegnati, tranne Flattening ARAP e Deform ARAP. Questi due hanno di nuovo le sole uscite FeMM e quindi un GUID nuovo.
+
+## Componenti nuovi di Arachne
+
+Non esistono in FeMM. Leggono il modello prodotto dal Form Find o le mesh del patterning, senza cambiare i componenti FeMM.
+
+| Pannello | Componente | Cosa fa | GUID |
+| --- | --- | --- | --- |
+| 06-Model | Check Model (CkM) | Controlla il modello prima del form finding: vincoli per ogni parte e direzione, nodi senza aste con forza, aste senza densità di forza, lunghezze nulle, aste doppie, valori non validi di lunghezza o forza fissa. Uscite: Valid, Errors, Warnings, Parts. | 6b9c4718-1b7d-485e-9293-31637d077e35 |
+| 09-Patterning | Panel Distortion (PD) | Confronta un pannello 3D con il suo sviluppo (stessi vertici): allungamento di ogni lato in %, massimo e variazione d'area. | 44d42704-4c53-4dbc-a113-c2f9a3b6388d |
+| 12-Analysis | Beam Forces (BF) | Linee, forze assiali (dal pre-carico salvato dal Form Find), densità di forza N/L, lunghezze e ID delle aste. | 5f9a26f9-c55b-496a-8153-459d8e9a56db |
+| 12-Analysis | Support Reactions (SR) | Punti, reazioni dei vincoli (solo nelle direzioni vincolate), ID e risultante. Le reazioni sono calcolate dal Form Find. | 2df8465b-e430-4c4c-b077-6f64ee5150e9 |
 
 ## Bug corretti rispetto a FeMM
 
@@ -102,7 +119,7 @@ Form finding:
 1. Linear step by step: il contatore delle iterazioni esterne non veniva mai incrementato. Senza convergenza il calcolo non terminava; ora si ferma al limite Max Iter con l'errore previsto da FeMM.
 2. Uscite anticipate (limite di iterazioni dello step by step, tipo di solutore sconosciuto): il pulsante Run restava attivo e il componente continuava a ricalcolare.
 3. Eccezione del solutore: veniva pubblicata la geometria iniziale come se fosse il risultato. Ora c'è un errore e nessuna uscita.
-4. Aste senza Force Density: `First()` faceva fallire l'aggiornamento del pre-carico.
+4. Aste senza Force Density: `First()` faceva fallire l'aggiornamento del pre-carico. Ora il pre-carico (forza assiale trovata) è salvato anche sulle aste governate solo da Fixed Axial Force o Fixed Length, nel loro caso di carico.
 5. Divisioni per zero nello step by step: lunghezza fissa nulla, forza assiale fissa nulla, asta senza forza. Ora danno un errore chiaro.
 6. Messaggi della preparazione del modello, prima ignorati: sono mostrati come Remark.
 7. Più modelli in ingresso: tutte le iterazioni mostravano l'ultimo risultato. Ora ognuna mostra il proprio.
@@ -111,36 +128,44 @@ Form finding:
 10. Avviso di forza assiale fissa duplicata calcolato sull'elenco delle lunghezze fisse.
 11. Carichi distribuiti trapezi: la risultante era applicata a metà campata invece che nel baricentro.
 12. Carichi "Projected": erano trattati come non proiettati. Le componenti in un sistema di riferimento diverso da Global erano lette come globali.
-13. Schemi di carico distribuito non gestiti, momenti e assi locali: erano ignorati in silenzio. Ora sono segnalati nel log.
+13. Schemi di carico distribuito non gestiti, momenti e assi locali: erano ignorati in silenzio. Ora i componenti di carico creano solo i carichi che il form finding gestisce (vedi Adattamenti).
+14. Carichi sulle aste: la TensileLib li ripartisce sui nodi a ogni iterazione dividendo la distanza misurata sulla geometria iniziale per la lunghezza corrente; un'asta che si allunga spostava il carico (su un caso di prova il nodo riceveva quasi tre volte il carico). Ora i carichi diventano forze sui nodi, ripartite con la regola della leva sulla geometria di ingresso.
+15. Pressione: la TensileLib la applica secondo il verso di percorrenza delle piastre generate, che dipende dall'ordine delle aste. Invertendo l'ordine la pressione cambiava verso. Ora le piastre di ogni parte sono orientate in modo che una pressione positiva agisca secondo la normale del piano Plane del Form Find (+Z con il piano predefinito).
+16. Convergenza: la TensileLib misura l'errore rispetto alla norma delle coordinate, quindi lontano dall'origine (coordinate di cantiere in mm) le iterazioni si fermavano troppo presto. Ora il modello è risolto centrato nell'origine e poi riportato al suo posto; i nodi vincolati tornano esattamente alle coordinate di ingresso.
+17. Generazione delle piastre: se la prima asta non stava su una maglia chiusa (uno strallo, un'antenna, un cavo che collega due reti) la TensileLib non generava nessuna piastra, quindi né mesh né pressione. Ora queste aste sono escluse dalla generazione e ogni parte della rete è generata per conto suo.
 
 Modello:
 
-14. Fixed Length, Fixed Axial Force, Fixed compensation e Keep Position creavano una copia dell'elemento con un GUID nuovo. Build Model, che unisce i rami paralleli tramite GUID, scartava una delle copie con i suoi attributi.
-15. Build Model scartava in silenzio un nodo definito due volte nello stesso punto, insieme a vincoli e carichi. Ora li unisce.
-16. Restraints: un valore booleano delle rotazioni veniva riletto come spostamento imposto, con errore.
-17. Plate: errore o arresto con mesh di meno di tre vertici o senza bordo libero.
-18. `IsValidWhyNot` di Beam e Plate restituiva i messaggi invertiti.
-19. Serializzazione: il modello veniva scritto in JSON e riletto in binario, e `Read` di nodi, aste e costruzioni per fasi restituiva comunque errore. Erano inoltre difettosi:
+18. Fixed Length, Fixed Axial Force, Fixed compensation e Keep Position creavano una copia dell'elemento con un GUID nuovo. Build Model, che unisce i rami paralleli tramite GUID, scartava una delle copie con i suoi attributi.
+19. Build Model scartava in silenzio un nodo definito due volte nello stesso punto, insieme a vincoli e carichi. Ora li unisce.
+20. Restraints: un valore booleano delle rotazioni veniva riletto come spostamento imposto, con errore.
+21. Plate: errore o arresto con mesh di meno di tre vertici o senza bordo libero.
+22. `IsValidWhyNot` di Beam e Plate restituiva i messaggi invertiti.
+23. Serializzazione: il modello veniva scritto in JSON e riletto in binario, e `Read` di nodi, aste e costruzioni per fasi restituiva comunque errore. Erano inoltre difettosi:
     - `BeamPropertyModel` aggiungeva due volte le stesse chiavi;
     - `SectionModel` e `FunctionModel` non erano serializzabili;
     - `ForceDensityModel` scriveva `MembraneTypes` e leggeva `MembraneType`.
 
     I dati interni dei parametri ora si salvano e si rileggono.
-20. Duplicate di un modello letto da file: generava un'eccezione per l'associazione dei GUID mancante.
+24. Duplicate di un modello letto da file: generava un'eccezione per l'associazione dei GUID mancante.
 
 Patterning e strumenti:
 
-21. Compensation e Flattening modificavano la mesh in ingresso (la triangolavano).
-22. Compensation: dopo un'eccezione del solutore veniva pubblicato il pannello iniziale.
-23. Decompensation: interpolava sul parametro della polilinea invece che sulla lunghezza e modificava i descrittori condivisi.
-24. Remesh: il bordo semplificato perdeva un angolo quando questo era il primo vertice della polilinea; un pannello rettangolare diventava un triangolo. Inoltre il componente non si poteva creare senza un documento Rhino aperto.
-25. Mesh Remap, DecompensationDescriptorExt, Deform ARAP, Cable Net, Radial Cable Net e Compound Net: con dati incompatibili proseguivano e fallivano più avanti. Erano già stati corretti nella prima versione di Arachne; le correzioni sono mantenute.
+25. Compensation e Flattening modificavano la mesh in ingresso (la triangolavano).
+26. Compensation: dopo un'eccezione del solutore veniva pubblicato il pannello iniziale.
+27. Decompensation: interpolava sul parametro della polilinea invece che sulla lunghezza e modificava i descrittori condivisi.
+28. Remesh: il bordo semplificato perdeva un angolo quando questo era il primo vertice della polilinea; un pannello rettangolare diventava un triangolo. Inoltre il componente non si poteva creare senza un documento Rhino aperto.
+29. Mesh Remap, DecompensationDescriptorExt, Deform ARAP, Cable Net, Radial Cable Net e Compound Net: con dati incompatibili proseguivano e fallivano più avanti. Erano già stati corretti nella prima versione di Arachne; le correzioni sono mantenute.
+30. Flattening: con Tolerance,s = 0, il valore predefinito di FeMM, il solutore ai minimi quadrati può fermarsi solo per errori di arrotondamento, che la TensileLib tratta come mancata convergenza: ogni pannello curvo finiva con "Solver not converged". Ora 0 vuol dire tolleranza automatica (1e-6).
+31. Node Filter e Plate Filter: l'ingresso Units non aveva un valore predefinito (Beam Filter sì, 2), quindi il filtro non faceva nulla finché Units non veniva collegato. Ora il predefinito è 2 (Nmm). L'ingresso resta per compatibilità: la tolleranza viene dalle impostazioni di Arachne.
 
-Comportamento invariato rispetto a FeMM: Form Find (Linear e Non-Linear), Flattening e Compensation pubblicano il risultato anche quando raggiungono il limite di iterazioni, con un avviso. Linear step by step, invece, termina con errore e senza risultato.
+Comportamento invariato rispetto a FeMM: Form Find (Linear e Non-Linear), Flattening e Compensation pubblicano il risultato anche quando raggiungono il limite di iterazioni, con un avviso. Linear step by step, invece, termina con errore e senza risultato. Node, Beam e Plate Filter cercano per ID solo gli identificativi assegnati con Element Id, non la numerazione automatica.
 
 ## Adattamenti
 
+- Ingressi tolti di proposito: Build Model non ha più Load Combinations, Named sets e Staged constructions; Beam Distributed Load non ha più P1 e P2. Beam Distributed Load accetta solo i carichi uniformi e trapezi; senza Coordinate System il carico è globale (in FeMM era nel sistema locale dell'asta, che il form finding non gestisce). Lo stesso vale per Beam Point Load.
 - TensileLib 2.1: i solutori accettano una sola tolleranza algebrica. L'ingresso ToleranceB,s resta, ma viene ignorato con un avviso. Non esiste più l'opzione CreateMesh del motore.
-- Senza piastre in ingresso, le piastre vengono generate dalle aste per ogni parte connessa: il motore partiva solo dalla prima asta e trascurava le reti scollegate.
+- Senza piastre in ingresso, le piastre vengono generate dalle aste per ogni parte della rete (bug 15 e 17).
+- Il Form Find salva nel modello le reazioni dei vincoli (`NodeReactResultModel` di FeMM, caso "Form Finding"), calcolate dall'equilibrio dei nodi vincolati con le forze delle aste e i carichi applicati dal solutore (carichi nodali e delle aste, peso proprio, pressione). Sono salvate solo se il calcolo converge e sono sostituite a ogni nuovo form finding. Le legge Support Reactions.
 - Flattening ARAP e Deform ARAP usano il motore C# di `Arachne.Arap`. Quando non converge, il motore non restituisce la mesh (FeMM la pubblicava con un avviso); il componente mostra il motivo.
 - Remesh compare nel pannello 09-Patterning, come in FeMM, anche se il sorgente era nella cartella Tools.

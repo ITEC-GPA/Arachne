@@ -37,10 +37,11 @@ internal static class FormFindingChecks
         public GH_Component LoadCase, Property;
     }
 
-    internal static Chain Start(Canvas c, string loadCase = "FF")
+    // Arachne works in N and mm: the section diameter is in model units (10 mm by default)
+    internal static Chain Start(Canvas c, string loadCase = "FF", double diameter = 10)
     {
         var lc = c.Add(new LoadCaseComponent()); Canvas.Set(lc, 0, new GH_String(loadCase));
-        var section = c.Add(new BeamSectionSolidCircleComponent()); Canvas.Set(section, 0, new GH_Number(0.01));
+        var section = c.Add(new BeamSectionSolidCircleComponent()); Canvas.Set(section, 0, new GH_Number(diameter));
         var material = c.Add(new MaterialSteelComponent()); Canvas.Set(material, 0, new GH_String("Steel")); Canvas.Set(material, 1, new GH_Integer(0));
         var property = c.Add(new BeamPropertyComponent()); Canvas.Set(property, 0, new GH_String("Cable")); Canvas.Set(property, 1, new GH_Integer(1));
         Canvas.Link(property, 2, section); Canvas.Link(property, 3, material);
@@ -85,25 +86,38 @@ internal static class FormFindingChecks
         return load;
     }
 
-    internal static GH_Component Build(Chain chain, params GH_Component[] elements)
+    internal static GH_Component Build(Chain chain, params GH_Component[] elements) => Build(chain, ModelModel.ModelUnits.Nmm, elements);
+
+    internal static GH_Component Build(Chain chain, ModelModel.ModelUnits units, params GH_Component[] elements)
     {
         var build = chain.Canvas.Add(new BuildModelComponent());
         foreach (var element in elements) Canvas.Link(build, 0, element);
         build.Params.Input[0].DataMapping = GH_DataMapping.Flatten; // one model from data coming with different paths
-        Canvas.Set(build, 2, new GH_Integer((int)ModelModel.ModelUnits.SI));
+        Canvas.Set(build, 2, new GH_Integer((int)units));
         return build;
     }
 
-    internal static GH_Component FormFind(Chain chain, GH_Component build, int solverType, int maxIterations = 20, double tolerance = 1e-4)
+    internal static GH_Component FormFind(Chain chain, GH_Component build, int solverType, int maxIterations = 20, double tolerance = 1e-4, double gravity = 0)
     {
         var ff = chain.Canvas.Add(new FormFindComponent());
         Canvas.Link(ff, 0, build);
+        Canvas.Set(ff, 1, new GH_Number(gravity));
         Canvas.Set(ff, 4, new GH_Integer(solverType));
         Canvas.Set(ff, 5, new GH_Integer(maxIterations));
         Canvas.Set(ff, 6, new GH_Number(tolerance));
         Canvas.Set(ff, 13, new GH_Boolean(true));
         return ff;
     }
+
+    internal static GH_Component Analysis(Chain chain, GH_Component component, GH_Component ff)
+    {
+        chain.Canvas.Add(component);
+        Canvas.Link(component, 0, ff);
+        return component;
+    }
+
+    private static List<T> Values<T>(GH_Component component, int output) where T : struct
+        => Canvas.Out(component, output).Select(goo => goo.ScriptVariable()).Cast<T>().ToList();
 
     internal static (List<Line> lines, List<Point3d> border) SaddleGrid(int n, double span, double rise, double dx = 0)
     {
@@ -295,19 +309,98 @@ internal static class FormFindingChecks
                 var keystone = c.Add(new BeamDistributedLoadComponent());
                 Canvas.Link(keystone, 0, flat); Canvas.Link(keystone, 1, chain.LoadCase); Canvas.Set(keystone, 2, new GH_Integer(1));
                 Canvas.Set(keystone, 3, new GH_CoordinateSystem(CoordinateSystemModel.Global)); Canvas.Set(keystone, 4, new GH_Integer(6));
-                Canvas.Set(keystone, 6, new GH_Number(1)); Canvas.Set(keystone, 7, new GH_Number(3));
+                Canvas.Set(keystone, 5, new GH_Number(1)); Canvas.Set(keystone, 6, new GH_Number(3));
+                // Without coordinate system the load is global
                 var projected = c.Add(new BeamDistributedLoadComponent());
                 Canvas.Link(projected, 0, inclined); Canvas.Link(projected, 1, chain.LoadCase); Canvas.Set(projected, 2, new GH_Integer(0));
-                Canvas.Set(projected, 3, new GH_CoordinateSystem(CoordinateSystemModel.Global)); Canvas.Set(projected, 4, new GH_Integer(7));
-                Canvas.Set(projected, 6, new GH_Number(1));
+                Canvas.Set(projected, 4, new GH_Integer(7));
+                Canvas.Set(projected, 5, new GH_Number(1));
                 var build = Build(chain, keystone, projected);
                 c.Solve();
                 Check(!Canvas.HasErrors(keystone) && !Canvas.HasErrors(projected), Canvas.Messages(keystone) + Canvas.Messages(projected));
                 var ff = FormFindingHelper.AssemblyModel(Canvas.Single<GH_Model>(build).Value, Plane.WorldXY, 0, 0, 0, true, out _);
-                var k = ff.Beams.Single(x => Math.Abs(x.Length - 1) < 1e-9);
-                var p = ff.Beams.Single(x => Math.Abs(x.Length - Math.Sqrt(2)) < 1e-9);
-                Check(Math.Abs(k.Load.Z + 2) < 1e-9 && Math.Abs(k.LoadPos - 7.0 / 12) < 1e-9, $"Keystone {k.Load.Z} at {k.LoadPos}");
-                Check(Math.Abs(p.Load.Z + 1) < 1e-9 && Math.Abs(p.LoadPos - Math.Sqrt(2) / 2) < 1e-9, $"Projected {p.Load.Z} at {p.LoadPos}");
+                double Fz(Point3d point) => ff.Nodes.Single(n => new Point3d(n.X, n.Y, n.Z).DistanceTo(point) < 1e-9).NodeForce.Z;
+                // Keystone 1 -> 3 on 1 mm: resultant 2 at 7/12 of the span, shared with the lever rule
+                Check(Math.Abs(Fz(a) + 2 * 5.0 / 12) < 1e-9 && Math.Abs(Fz(m) + 2 * 7.0 / 12) < 1e-9, $"Keystone shares {Fz(a)}, {Fz(m)}");
+                // Uniform 1 on the horizontal projection of a beam at 45 degrees: resultant 1 at the middle
+                Check(Math.Abs(Fz(b2) + 0.5) < 1e-9 && Math.Abs(Fz(new Point3d(3, 0, 1)) + 0.5) < 1e-9, $"Projected shares {Fz(b2)}, {Fz(new Point3d(3, 0, 1))}");
+            }
+        });
+
+        Test("Beam point load: lever rule on the input geometry also when the beam stretches (z = -2.5)", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                var loaded = Beams(chain, new[] { new Line(a, m) });
+                var point = c.Add(new BeamPointLoadComponent());
+                Canvas.Link(point, 0, loaded); Canvas.Link(point, 1, chain.LoadCase); Canvas.Set(point, 5, new GH_Number(-1)); Canvas.Set(point, 6, new GH_Number(0.5));
+                var cables = ForceDensity(chain, point, 0.1);
+                var other = ForceDensity(chain, Beams(chain, new[] { new Line(m, b2) }), 0.1);
+                var ff = FormFind(chain, Build(chain, cables, other, Supports(chain, new[] { a, b2 })), 0, 100, 1e-10);
+                var reactions = Analysis(chain, new SupportReactionsComponent(), ff);
+                c.Solve();
+                Check(!Canvas.HasErrors(point), Canvas.Messages(point));
+                var node = Solved(ff).Nodes.Single(n => !n.HasAttribute(typeof(NodeRestraintAttributeModel)));
+                // Half of the load on the free node: 2 q z = -0.5, whatever the beam length becomes
+                Check(Math.Abs(node.Position.Z + 2.5) < 1e-6, "Loaded node at " + node.Position);
+                Check(Math.Abs(Canvas.Single<GH_Vector>(reactions, 3).Value.Z - 1) < 1e-9, "Vertical reaction " + Canvas.Single<GH_Vector>(reactions, 3).Value);
+            }
+        });
+
+        Test("Pressure acts along the plane normal whatever the order of the beams", () =>
+        {
+            double Lift(bool reversed)
+            {
+                using (var c = new Canvas())
+                {
+                    var chain = Start(c); var (lines, border) = SaddleGrid(4, 10000, 2000);
+                    if (reversed) { lines.Reverse(); lines = lines.Select(l => new Line(l.To, l.From)).ToList(); }
+                    var wind = c.Add(new LoadCaseComponent()); Canvas.Set(wind, 0, new GH_String("Wind"));
+                    var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border)), 0, 100, 1e-8);
+                    Canvas.Set(ff, 2, new GH_Number(1e-4)); Canvas.Link(ff, 3, wind);
+                    c.Solve();
+                    var model = Solved(ff);
+                    Check(Canvas.Single<GH_Mesh>(ff, 1).Value.Faces.Count == 16, "Mesh faces");
+                    return model.Nodes.SelectMany(n => n.Loads.OfType<NodeForceLoadModel>()).Sum(l => l.Value.Z);
+                }
+            }
+            double straight = Lift(false), reversed = Lift(true);
+            Check(straight > 0 && Math.Abs(straight - reversed) < 1e-6 * straight, $"Pressure resultant {straight} N, with the beams reversed {reversed} N");
+        });
+
+        Test("Same shape far from the origin (site coordinates in mm)", () =>
+        {
+            List<Point3d> Shape(double offset)
+            {
+                using (var c = new Canvas())
+                {
+                    var chain = Start(c); var (lines, border) = SaddleGrid(4, 10000, 2000, offset);
+                    var wind = c.Add(new LoadCaseComponent()); Canvas.Set(wind, 0, new GH_String("Wind"));
+                    var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border)), 0);
+                    Canvas.Set(ff, 2, new GH_Number(1e-4)); Canvas.Link(ff, 3, wind);
+                    c.Solve();
+                    return Solved(ff).Nodes.Select(n => n.Position - new Vector3d(offset, 0, 0)).ToList();
+                }
+            }
+            var near = Shape(0); var far = Shape(1e6);
+            double gap = near.Zip(far, (p, q) => p.DistanceTo(q)).Max();
+            Check(near.Count == far.Count && gap < 1e-3, "Largest difference " + gap + " mm");
+        });
+
+        Test("Plates also when the first beam is a backstay, and for every net", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c); var g1 = SaddleGrid(2, 4000, 1000); var g2 = SaddleGrid(2, 4000, 1000, 10000);
+                // A backstay from a corner first, then a cable joining the two nets
+                var lines = new List<Line> { new Line(new Point3d(0, 0, 1000), new Point3d(-3000, 0, 0)), new Line(new Point3d(4000, 2000, 0), new Point3d(10000, 2000, 0)) };
+                lines.AddRange(g1.lines); lines.AddRange(g2.lines);
+                var supports = g1.border.Concat(g2.border).Concat(new[] { new Point3d(-3000, 0, 0) });
+                var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, supports)), 0);
+                c.Solve();
+                Solved(ff);
+                Check(Canvas.Single<GH_Mesh>(ff, 1).Value.Faces.Count == 8, "Mesh faces " + Canvas.Single<GH_Mesh>(ff, 1).Value.Faces.Count);
             }
         });
 
@@ -387,6 +480,187 @@ internal static class FormFindingChecks
                 c.Solve();
                 Check(!Canvas.HasErrors(c2m), Canvas.Messages(c2m));
                 Check(Canvas.Single<GH_Mesh>(c2m).Value.Faces.Count == 9, "Faces " + Canvas.Single<GH_Mesh>(c2m).Value.Faces.Count);
+            }
+        });
+
+        Test("Support reactions balance the node loads and the pressure (saddle in mm)", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c); var (lines, border) = SaddleGrid(4, 10000, 2000);
+                var wind = c.Add(new LoadCaseComponent()); Canvas.Set(wind, 0, new GH_String("Wind"));
+                var top = NodeLoad(chain, Nodes(chain, new[] { new Point3d(5000, 5000, 0) }), new Vector3d(100, 0, -1000));
+                var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border), top), 0, 100, 1e-10);
+                Canvas.Set(ff, 2, new GH_Number(1e-4)); Canvas.Link(ff, 3, wind);
+                var reactions = Analysis(chain, new SupportReactionsComponent(), ff);
+                c.Solve();
+                var model = Solved(ff);
+                Check(Values<Vector3d>(reactions, 1).Count == border.Count && Canvas.Out(reactions, 2).Count == border.Count, "Reactions " + Canvas.Out(reactions, 1).Count);
+                var loads = Vector3d.Zero;
+                foreach (var node in model.Nodes)
+                    foreach (var load in node.Loads.OfType<NodeForceLoadModel>())
+                        loads += load.Value;
+                var total = Canvas.Single<GH_Vector>(reactions, 3).Value;
+                Check(loads.Length > 1000 && (total + loads).Length < 1e-6 * loads.Length, $"Reactions {total} do not balance the loads {loads}");
+            }
+        });
+
+        Test("Self-weight: same sag and reactions in N/mm and in SI", () =>
+        {
+            // A 10 mm steel cable on two 1 m spans, q = 0.1 N/mm = 100 N/m
+            (double sag, Vector3d total, double weight) Run(ModelModel.ModelUnits units, double metres)
+            {
+                using (var c = new Canvas())
+                {
+                    var chain = Start(c, "FF", 10 * metres);
+                    var p0 = new Point3d(0, 0, 0); var p1 = new Point3d(1000 * metres, 0, 0); var p2 = new Point3d(2000 * metres, 0, 0);
+                    var beams = ForceDensity(chain, Beams(chain, new[] { new Line(p0, p1), new Line(p1, p2) }), 0.1 / metres);
+                    double gravity = ModelModel.GRAVITY_mmSuS2 * metres;
+                    var ff = FormFind(chain, Build(chain, units, beams, Supports(chain, new[] { p0, p2 })), 0, 100, 1e-12, gravity);
+                    var reactions = Analysis(chain, new SupportReactionsComponent(), ff);
+                    c.Solve();
+                    var model = Solved(ff);
+                    double length = model.Beams.Sum(beam => beam.PointFrom.DistanceTo(beam.PointTo)) / metres;
+                    var property = model.Beams[0].BeamProperty;
+                    // Weight per mm: area in mm2, density in t/mm3 (Arachne default units), g in mm/s2
+                    double weight = property.SectionArea / (metres * metres) * 7.849E-9 * ModelModel.GRAVITY_mmSuS2 * length;
+                    double sag = model.Nodes.Single(n => !n.HasAttribute(typeof(NodeRestraintAttributeModel))).Position.Z / metres;
+                    return (sag, Canvas.Single<GH_Vector>(reactions, 3).Value, weight);
+                }
+            }
+            var nmm = Run(ModelModel.ModelUnits.Nmm, 1);
+            var si = Run(ModelModel.ModelUnits.SI, 0.001);
+            Check(nmm.sag < -25 && nmm.sag > -35, "Sag " + nmm.sag + " mm");
+            Check(Math.Abs(nmm.sag - si.sag) < 1e-6 * Math.Abs(nmm.sag), $"Sag {nmm.sag} mm in N/mm, {si.sag} mm in SI");
+            Check(Math.Abs(nmm.total.Z - nmm.weight) < 1e-6 * nmm.weight, $"Vertical reaction {nmm.total.Z} N, weight {nmm.weight} N");
+            Check((nmm.total - si.total).Length < 1e-6 * nmm.weight, $"Reactions {nmm.total} N in N/mm, {si.total} N in SI");
+        });
+
+        Test("Beam Forces: axial forces, force densities and lengths of the solved model", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c); var (lines, border) = SaddleGrid(4, 10000, 2000);
+                var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 2), Supports(chain, border)), 0);
+                var forces = Analysis(chain, new BeamForcesComponent(), ff);
+                c.Solve();
+                Solved(ff);
+                var n = Values<double>(forces, 1); var q = Values<double>(forces, 2); var l = Values<double>(forces, 3);
+                Check(Canvas.Out(forces, 0).Count == 40 && n.Count == 40 && q.Count == 40 && l.Count == 40 && Canvas.Out(forces, 4).Count == 40, "Output counts");
+                Check(q.All(v => Math.Abs(v - 2) < 1e-9), "Force densities " + string.Join(", ", q.Take(3)));
+                Check(n.Zip(l, (force, length) => Math.Abs(force - 2 * length) < 1e-6).All(ok => ok), "N differs from q L");
+            }
+        });
+
+        Test("Beam Forces and Support Reactions warn on a model not form found", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                var build = Build(chain, ForceDensity(chain, Beams(chain, new[] { new Line(a, m), new Line(m, b2) }), 1), Supports(chain, new[] { a, b2 }));
+                var forces = Analysis(chain, new BeamForcesComponent(), build);
+                var reactions = Analysis(chain, new SupportReactionsComponent(), build);
+                c.Solve();
+                Check(forces.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count > 0 && Canvas.Out(forces, 1).Count == 0, "Beam Forces without warning");
+                Check(reactions.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count > 0 && Canvas.Out(reactions, 1).Count == 0, "Support Reactions without warning");
+            }
+        });
+
+        Test("Pre-load also on the beams with a fixed axial force only, in its load case", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                var cables = c.Add(new LoadCaseComponent()); Canvas.Set(cables, 0, new GH_String("Cables"));
+                var axial = c.Add(new FixedAxialForceComponent());
+                Canvas.Link(axial, 0, Beams(chain, new[] { new Line(a, m), new Line(m, b2) })); Canvas.Link(axial, 1, cables); Canvas.Set(axial, 2, new GH_Number(4));
+                var ff = FormFind(chain, Build(chain, axial, Supports(chain, new[] { a, b2 }), NodeLoad(chain, Nodes(chain, new[] { m }), new Vector3d(0, 0, -4))), 2, 200, 1e-8);
+                c.Solve();
+                var model = Solved(ff);
+                Check(model.Beams.All(beam => beam.Loads.OfType<BeamPreLoadModel>().Count() == 1 && beam.Loads.OfType<BeamPreLoadModel>().Single().LoadCase.Name == "Cables"),
+                    "Pre-load missing or in another load case");
+                Check(model.Beams.All(beam => Math.Abs(PreLoad(beam) - 4) < 1e-2), "Axial forces " + string.Join(", ", model.Beams.Select(PreLoad)));
+            }
+        });
+
+        Test("A second form finding replaces the reactions of the first one", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                var first = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, new[] { new Line(a, m), new Line(m, b2) }), 2), Supports(chain, new[] { a, b2 }),
+                    NodeLoad(chain, Nodes(chain, new[] { m }), new Vector3d(0, 0, -4))), 0);
+                var second = chain.Canvas.Add(new FormFindComponent());
+                Canvas.Link(second, 0, first); Canvas.Set(second, 13, new GH_Boolean(true));
+                c.Solve();
+                var model = Solved(second);
+                Check(model.Nodes.All(n => n.Results.OfType<NodeReactResultModel>().Count() == (n.HasAttribute(typeof(NodeRestraintAttributeModel)) ? 1 : 0)), "Stale reactions");
+                Check(model.Beams.All(beam => beam.Loads.OfType<BeamPreLoadModel>().Count() == 1), "Stale pre-loads");
+            }
+        });
+
+        Test("Check Model: valid saddle, missing supports, unsupported part, beams without force", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c); var (lines, border) = SaddleGrid(2, 4000, 1000); var other = SaddleGrid(2, 4000, 1000, 10000);
+                GH_Component CheckOf(params GH_Component[] elements) => Analysis(chain, new CheckModelComponent(), Build(chain, elements));
+                var valid = CheckOf(ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border));
+                var noSupports = CheckOf(ForceDensity(chain, Beams(chain, lines), 1));
+                var freePart = CheckOf(ForceDensity(chain, Beams(chain, lines.Concat(other.lines)), 1), Supports(chain, border));
+                var noForce = CheckOf(ForceDensity(chain, Beams(chain, lines), 1), Beams(chain, new[] { new Line(new Point3d(0, 0, 5000), new Point3d(1000, 0, 5000)) }), Supports(chain, border));
+                c.Solve();
+                bool Valid(GH_Component check) => Canvas.Single<GH_Boolean>(check, 0).Value;
+                int Parts(GH_Component check) => Canvas.Single<GH_Integer>(check, 3).Value;
+                List<string> Texts(GH_Component check, int output) => Canvas.Out(check, output).Select(text => text.ToString()).ToList();
+                string All(GH_Component check) => string.Join(" | ", Texts(check, 1).Concat(Texts(check, 2)));
+                Check(Valid(valid) && Texts(valid, 1).Count == 0 && Texts(valid, 2).Count == 0 && Parts(valid) == 1, "Valid model: " + All(valid));
+                Check(!Valid(noSupports) && Texts(noSupports, 1).Any(e => e.StartsWith("No node is restrained")), "No supports: " + All(noSupports));
+                Check(!Valid(freePart) && Texts(freePart, 1).Any(e => e.EndsWith("has no restraint along X, Y, Z.")) && Parts(freePart) == 2, "Unsupported part: " + All(freePart));
+                Check(!Valid(noForce) && Texts(noForce, 1).Any(e => e.StartsWith("2 nodes have no beam that carries a force")) &&
+                    Texts(noForce, 2).Any(w => w.StartsWith("1 beams have no force density")), "Beam without force: " + All(noForce));
+            }
+        });
+
+        Test("Element ID names the elements; Node and Beam Filter find them by ID and position", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                var named = c.Add(new ElementIdComponent()); Canvas.Link(named, 0, Nodes(chain, new[] { m })); Canvas.Set(named, 1, new GH_String("Top"));
+                var edge = c.Add(new ElementIdComponent()); Canvas.Link(edge, 0, Beams(chain, new[] { new Line(a, m) })); Canvas.Set(edge, 1, new GH_String("Edge"));
+                var build = Build(chain, ForceDensity(chain, edge, 1), ForceDensity(chain, Beams(chain, new[] { new Line(m, b2) }), 1), named, Supports(chain, new[] { a, b2 }));
+                var decompose = c.Add(new DecomposeModelComponent()); Canvas.Link(decompose, 0, build);
+                var byId = c.Add(new NodeFilterComponent()); Canvas.Link(byId, 0, decompose, 0); Canvas.Set(byId, 1, new GH_String("Top"));
+                var byPosition = c.Add(new NodeFilterComponent()); Canvas.Link(byPosition, 0, decompose, 0); Canvas.Set(byPosition, 2, new GH_Point(a));
+                // The filters search the IDs given with Element ID, not the automatic numbers (FeMM)
+                var beamById = c.Add(new BeamFilterComponent()); Canvas.Link(beamById, 0, decompose, 1); Canvas.Set(beamById, 1, new GH_String("Edge"));
+                c.Solve();
+                Check(Canvas.Single<GH_Model>(build).Value.Nodes.Any(n => n.NodeId == "Top" && n.Position == m), "Node ID not assigned");
+                Check(Canvas.Single<GH_Model>(build).Value.Beams.Any(b => b.BeamId == "Edge"), "Beam ID not assigned");
+                Check(Canvas.Out(byId, 0).Count == 1 && Canvas.Out(byId, 1).Count == 2, "Node Filter by ID: " + Canvas.Messages(byId));
+                Check(Canvas.Out(byPosition, 0).Count == 1 && ((GH_Node)Canvas.Out(byPosition, 0)[0]).Value.Position == a, "Node Filter by position: " + Canvas.Messages(byPosition));
+                Check(Canvas.Out(beamById, 0).Count == 1 && Canvas.Out(beamById, 1).Count == 1, "Beam Filter by ID: " + Canvas.Messages(beamById));
+            }
+        });
+
+        Test("Form Find keeps one result per model and warns on ToleranceB,s", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                var low = Build(chain, ForceDensity(chain, Beams(chain, new[] { new Line(a, m), new Line(m, b2) }), 1), Supports(chain, new[] { a, b2 }),
+                    NodeLoad(chain, Nodes(chain, new[] { m }), new Vector3d(0, 0, -1)));
+                var high = Build(chain, ForceDensity(chain, Beams(chain, new[] { new Line(a, m), new Line(m, b2) }), 1), Supports(chain, new[] { a, b2 }),
+                    NodeLoad(chain, Nodes(chain, new[] { m }), new Vector3d(0, 0, -2)));
+                var ff = FormFind(chain, low, 0);
+                Canvas.Link(ff, 0, high); Canvas.Set(ff, 9, new GH_Number(0.1));
+                c.Solve();
+                var models = Canvas.Out(ff, 0).Cast<GH_Model>().ToList();
+                Check(models.Count == 2 && Canvas.Out(ff, 1).Count == 2, "Results " + models.Count);
+                double Sag(GH_Model model) => model.Value.Nodes.Single(n => !n.HasAttribute(typeof(NodeRestraintAttributeModel))).Position.Z;
+                Check(Math.Abs(Sag(models[0]) + 0.5) < 1e-6 && Math.Abs(Sag(models[1]) + 1) < 1e-6, $"Sags {Sag(models[0])}, {Sag(models[1])}");
+                Check(ff.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Any(w => w.Contains("ToleranceB")), "Missing ToleranceB warning");
             }
         });
 

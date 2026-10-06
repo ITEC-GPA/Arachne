@@ -31,7 +31,6 @@ namespace Arachne.Common.Models
         protected Vector3d _v;
         protected Vector3d _w;
         protected Point3d _origin;
-        protected List<Stage> _stages;
 
         public string Id
         {
@@ -99,27 +98,19 @@ namespace Arachne.Common.Models
             set => _origin = value;
         }
 
-        public List<Stage> Stages
-        {
-            get => _stages;
-            set => _stages = value;
-        }
-
         public readonly static LoadCaseModel Dead = new LoadCaseModel("1", "Dead")
         {
             GlobalInertiaLoad = GlobalInertiaLoads.Gravity,
             GravityDirection = GravityDirections.Z,
             GravityValue = -ModelModel.GRAVITY_mmSuS2,
             StructuralMassAcceleration = true,
-            NonStructuralMassAcceleration = false,
-            Stages = null
+            NonStructuralMassAcceleration = false
         };
 
         public LoadCaseModel(string id, string name = "")
             : base(name)
         {
             _id = id;
-            _stages = new List<Stage>();
         }
 
         public LoadCaseModel()
@@ -142,24 +133,13 @@ namespace Arachne.Common.Models
             _v = loadCase._v;
             _w = loadCase._w;
             _origin = loadCase._origin;
-            if (loadCase.Stages == null)
-            {
-                _stages = null;
-            }
-            else
-            {
-                _stages = new List<Stage>();
-                foreach (Stage s in loadCase.Stages)
-                {
-                    _stages.Add(new Stage(s));
-                }
-            }
         }
 
         #region Serialization
 
         private string SERIALIZATION_RELEASE_NAME = "LoadCaseModel_SERIALIZATION_RELEASE"; //do not modify the name!
-        private int SERIALIZATION_RELEASE = 2;
+        // Release 3: the SAP construction stages are no longer stored
+        private int SERIALIZATION_RELEASE = 3;
 
         protected LoadCaseModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
@@ -184,21 +164,6 @@ namespace Arachne.Common.Models
             _v = (Vector3d)info.GetValue("V", typeof(Vector3d));
             _w = (Vector3d)info.GetValue("W", typeof(Vector3d));
             _origin = (Point3d)info.GetValue("Origin", typeof(Point3d));
-            if (savedRelease >= 2)
-            {
-                if (info.GetBoolean("HasStages"))
-                {
-                    _stages = (List<Stage>)info.GetValue("Stages", typeof(List<Stage>));
-                }
-                else
-                {
-                    _stages = null;
-                }
-            }
-            else
-            {
-                _stages = null;
-            }
         }
 
         [SecurityPermission(SecurityAction.LinkDemand, SerializationFormatter = true)]
@@ -217,11 +182,6 @@ namespace Arachne.Common.Models
             info.AddValue("V", _v, typeof(Vector3d));
             info.AddValue("W", _w, typeof(Vector3d));
             info.AddValue("Origin", _origin, typeof(Point3d));
-            info.AddValue("HasStages", _stages != null);
-            if (_stages != null)
-            {
-                info.AddValue("Stages", _stages, typeof(List<Stage>));
-            }
         }
 
         #endregion
@@ -269,7 +229,7 @@ namespace Arachne.Common.Models
                 _nonStructuralMassAcceleration == other._nonStructuralMassAcceleration &&
                 _globalInertiaLoad == other._globalInertiaLoad && _gravityDirection == other._gravityDirection &&
                 _gravityValue == other._gravityValue && _a == other._a && _v == other._v && _w == other._w &&
-                _origin == other._origin && _stages == other._stages;
+                _origin == other._origin;
         }
 
         public override bool Equals(object obj)
@@ -282,8 +242,8 @@ namespace Arachne.Common.Models
         public override int GetHashCode()
         {
             var hashCode = -23;
-            hashCode = hashCode * -17 + _id.GetHashCode();
-            hashCode = hashCode * -17 + _name.GetHashCode();
+            hashCode = hashCode * -17 + (_id?.GetHashCode() ?? 0);
+            hashCode = hashCode * -17 + (_name?.GetHashCode() ?? 0);
             hashCode = hashCode * -17 + _temperature.GetHashCode();
             hashCode = hashCode * -17 + _structuralMassAcceleration.GetHashCode();
             hashCode = hashCode * -17 + _nonStructuralMassAcceleration.GetHashCode();
@@ -294,238 +254,12 @@ namespace Arachne.Common.Models
             hashCode = hashCode * -17 + _v.GetHashCode();
             hashCode = hashCode * -17 + _w.GetHashCode();
             hashCode = hashCode * -17 + _origin.GetHashCode();
-            if (_stages != null)
-                hashCode = hashCode * -17 + _stages.GetHashCode();
             return hashCode;
         }
 
-        #region Stage
-
-        [Serializable]
-        public class Stage : ISerializable, IEquatable<Stage>
-        {
-            public enum BridgePhases
-            {
-                Unassigned,
-                OnlySteel,
-                NInfinite,
-                NInstant,
-                StrainInfinite,
-                StrainInstant,
-            }
-
-            private string _name;
-            private BridgePhases _bridgePhases;
-            private List<Operation> _operations;
-
-            public string Name => _name;
-
-            public BridgePhases BridgePhase { get => _bridgePhases; set => _bridgePhases = value; }
-
-            public List<Operation> Operations => _operations;
-
-            public Stage(string name)
-            {
-                _name = name;
-                _operations = new List<Operation>();
-                _bridgePhases = BridgePhases.Unassigned;
-            }
-
-            public Stage(Stage stage) 
-                : this(stage.Name)
-            {
-                foreach (Operation o in stage.Operations)
-                {
-                    _operations.Add(new Operation(o));
-                }
-                _bridgePhases = stage.BridgePhase;
-            }
-
-            #region Serialization
-
-            private string SERIALIZATION_RELEASE_NAME = "LoadCaseModel_Stage_SERIALIZATION_RELEASE"; //do not modify the name!
-            private int SERIALIZATION_RELEASE = 1;
-
-            protected Stage(SerializationInfo info, StreamingContext context)
-            {
-                int savedRelease;
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-                _name = info.GetString("Name");
-                _operations = (List<Operation>)info.GetValue("Operations", typeof(List<Operation>));
-                _bridgePhases = (BridgePhases)info.GetValue("BridgePhase", typeof(BridgePhases));
-            }
-
-            [SecurityPermission(SecurityAction.LinkDemand, SerializationFormatter = true)]
-            public void GetObjectData(SerializationInfo info, StreamingContext context)
-            {
-                info.AddValue(SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
-                info.AddValue("Name", _name);
-                info.AddValue("Operations", _operations, typeof(List<Operation>));
-                info.AddValue("BridgePhase", _bridgePhases, typeof(BridgePhases));
-            }
-
-            #endregion
-
-            public override bool Equals(object obj)
-            {
-                return Equals(obj as Stage);
-            }
-
-            public bool Equals(Stage other)
-            {
-                return other != null && _name == other._name &&
-                    EqualityComparer<List<Operation>>.Default.Equals(_operations, other._operations);
-            }
-
-            public override int GetHashCode()
-            {
-                var hashCode = -528097243;
-                hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(_name);
-                hashCode = hashCode * -1521134295 + EqualityComparer<List<Operation>>.Default.GetHashCode(_operations);
-                return hashCode;
-            }
-
-            #region Operation
-
-            [Serializable]
-            public class Operation : ISerializable, IEquatable<Operation>
-            {
-                public enum Codes
-                {
-                    [Description("Add structure")] AddStructure = 0,
-                    [Description("Remove structure")] RemoveStructure = 1,
-                    [Description("Load objects if new")] LoadObjectsIfNew = 2,
-                    [Description("Load objects")] LoadObjects = 3,
-                    [Description("Change section properties")] ChangeSectionProperties = 4,
-                    [Description("Change section property modifiers")] ChangeSectionPropertyModifiers = 5,
-                    [Description("Change releases")] ChangeReleases = 6,
-                    [Description("Change section properties and age")] ChangeSectionPropertiesAndAge = 7
-                }
-
-                public enum ObjectTypes
-                {
-                    [Description("Group")] Group = 0,
-                    [Description("Frame")] Frame = 1,
-                    [Description("Cable")] Cable = 2,
-                    [Description("Tendon")] Tendon = 3,
-                    [Description("Area")] Area = 4,
-                    [Description("Solid")] Solid = 5,
-                    [Description("Link")] Link = 6,
-                    [Description("Point")] Point = 7
-                }
-
-                public enum TypeCodes
-                {
-                    [Description("Load case")] LoadCase = 0,
-                    [Description("Acceleration")] Acceleration = 1,
-                    [Description("Frame")] Frame = 2,
-                    [Description("Cable")] Cable = 3,
-                    [Description("Tendon")] Tendon = 4,
-                    [Description("Area")] Area = 5,
-                    [Description("Solid")] Solid = 6,
-                    [Description("Link")] Link = 7,
-                }
-
-                private Codes _code;
-                private ObjectTypes _objectType;
-                private string _objectName;
-                private double _age;
-                private TypeCodes _typeCode;
-                private string _name;
-                private double _scaleFactor;
-
-                public Codes Code => _code;
-                public ObjectTypes ObjectType => _objectType;
-                public string ObjectName => _objectName;
-                public double Age => _age;
-                public TypeCodes TypeCode => _typeCode;
-                public string Name => _name;
-                public double ScaleFactor => _scaleFactor;
-
-                public Operation(Codes code, ObjectTypes objectType, string objectName, double age, TypeCodes typeCode,
-                    string name, double scaleFactor)
-                {
-                    _code = code;
-                    _objectType = objectType;
-                    _objectName = objectName;
-                    _age = age;
-                    _typeCode = typeCode;
-                    _name = name;
-                    _scaleFactor = scaleFactor;
-                }
-
-                public Operation(Operation o)
-                    : this(o.Code, o.ObjectType, o.ObjectName, o.Age, o.TypeCode, o.Name, o.ScaleFactor)
-                {
-                }
-
-                #region Serialization
-
-                private string SERIALIZATION_RELEASE_NAME = "LoadCaseModel_Stage_Operation_SERIALIZATION_RELEASE"; //do not modify the name!
-                private int SERIALIZATION_RELEASE = 1;
-
-                protected Operation(SerializationInfo info, StreamingContext context)
-                {
-                    int savedRelease;
-                    savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-                    _code = (Codes)info.GetValue("Code", typeof(Codes));
-                    _objectType = (ObjectTypes)info.GetValue("ObjectType", typeof(ObjectTypes));
-                    _objectName = info.GetString("ObjectName");
-                    _age = info.GetDouble("Age");
-                    _typeCode = (TypeCodes)info.GetValue("TypeCode", typeof(TypeCodes));
-                    _name = info.GetString("Name");
-                    _scaleFactor = info.GetDouble("ScaleFactor");
-                }
-
-                [SecurityPermission(SecurityAction.LinkDemand, SerializationFormatter = true)]
-                public void GetObjectData(SerializationInfo info, StreamingContext context)
-                {
-                    info.AddValue(SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
-                    info.AddValue("Code", _code, typeof(Codes));
-                    info.AddValue("ObjectType", _objectType, typeof(ObjectTypes));
-                    info.AddValue("ObjectName", _objectName);
-                    info.AddValue("Age", _age);
-                    info.AddValue("TypeCode", _typeCode, typeof(TypeCodes));
-                    info.AddValue("Name", _name);
-                    info.AddValue("ScaleFactor", _scaleFactor);
-                }
-
-                #endregion
-
-                public override bool Equals(object obj)
-                {
-                    return Equals(obj as Operation);
-                }
-
-                public bool Equals(Operation other)
-                {
-                    return other != null && _code == other._code && _objectType == other._objectType &&
-                        _objectName == other._objectName && _age == other._age && _typeCode == other._typeCode &&
-                        _name == other._name && _scaleFactor == other._scaleFactor;
-                }
-
-                public override int GetHashCode()
-                {
-                    var hashCode = -1692659674;
-                    hashCode = hashCode * -1521134295 + _code.GetHashCode();
-                    hashCode = hashCode * -1521134295 + _objectType.GetHashCode();
-                    hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(_objectName);
-                    hashCode = hashCode * -1521134295 + _age.GetHashCode();
-                    hashCode = hashCode * -1521134295 + _typeCode.GetHashCode();
-                    hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(_name);
-                    hashCode = hashCode * -1521134295 + _scaleFactor.GetHashCode();
-                    return hashCode;
-                }
-            }
-
-            #endregion
-        }
-
-        #endregion
-
         public override string ToString()
         {
-            return $"FeMM LoadCase: {Name}";
+            return $"LoadCase: {Name}";
         }
     }
 }

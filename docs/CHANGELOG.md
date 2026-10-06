@@ -1,5 +1,29 @@
 # Registro delle modifiche
 
+## 0.3.0-rc.2 - 6 ottobre 2026: N/mm, snellimento, risultati
+
+Dettagli e GUID in [PORTING.md](PORTING.md).
+
+- Unità: si lavora in N e mm. Test ed esempi sono in N/mm; un controllo verifica che SI e Nmm diano la stessa freccia per peso proprio e le stesse reazioni.
+- Tolto quello che il form finding non usa:
+  - dal modello: combinazioni di carico, named sets, costruzioni per fasi, funzioni, superelementi;
+  - da Build Model: gli ingressi Load Combinations, Named sets e Staged constructions;
+  - da Beam Distributed Load: P1 e P2 e gli schemi diversi da uniforme e trapezio; senza Coordinate System i carichi sono globali;
+  - il parametro Load Combinations e il componente Section Geometry.
+- Portati da FeMM: Element Id, Node Filter, Beam Filter, Plate Filter.
+- Nuovi componenti Arachne: Check Model, Beam Forces, Support Reactions, Panel Distortion.
+- Form Find:
+  - salva le reazioni dei vincoli quando converge;
+  - salva il pre-carico anche sulle aste con sola forza assiale o lunghezza fissa.
+- Correzioni lato Arachne di difetti della TensileLib:
+  - carichi sulle aste ripartiti sulla lunghezza sbagliata;
+  - verso della pressione dipendente dall'ordine delle aste;
+  - convergenza dipendente dalla distanza dall'origine;
+  - nessuna piastra quando la prima asta è uno strallo.
+- Flattening: con la tolleranza del solutore predefinita (0) falliva su ogni pannello curvo. Ora 0 vuol dire automatica.
+- Node e Plate Filter: Units ha il predefinito 2, come Beam Filter.
+- Banco di prova: 140 controlli in Rhino/Grasshopper e 54 del motore ARAP. Il confronto con FeMM elenca gli ingressi tolti di proposito.
+
 ## 0.3.0-rc.1 - 6 ottobre 2026: componenti originali FeMM
 
 Sostituiti i componenti introdotti nel primo trasferimento con quelli di FeMM. I componenti rimossi sono:

@@ -220,6 +220,29 @@ internal static class PatterningChecks
         Test("Unweld shared edge",()=>{
             var c=new UnweldMeshComponent();Set(c,0,new GH_Mesh(Panel(false)));Set(c,1,new GH_Curve(new LineCurve(new Point3d(1,1,0),new Point3d(3,3,0))));Solve(c);Check(c.Params.Output[0].VolatileDataCount>0,"No unweld output");
         });
+        Test("Panel Distortion: no change on a moved panel, 1% on a scaled one",()=>{
+            var panel=Panel();var moved=panel.DuplicateMesh();moved.Translate(new Vector3d(10,0,0));
+            var same=new PanelDistortionComponent();Set(same,0,new GH_Mesh(panel));Set(same,1,new GH_Mesh(moved));Solve(same);
+            Check(same.Params.Output[0].VolatileDataCount==4 && same.Params.Output[1].VolatileDataCount==4,"Edges "+same.Params.Output[0].VolatileDataCount);
+            Check(Output<GH_Number>(same,2).Value<1e-9 && Math.Abs(Output<GH_Number>(same,3).Value)<1e-9,"Distortion of a moved panel");
+            var scaled=panel.DuplicateMesh();scaled.Transform(Transform.Scale(Point3d.Origin,1.01));
+            var larger=new PanelDistortionComponent();Set(larger,0,new GH_Mesh(panel));Set(larger,1,new GH_Mesh(scaled));Solve(larger);
+            Check(Math.Abs(Output<GH_Number>(larger,2).Value-1)<1e-9 && Math.Abs(Output<GH_Number>(larger,3).Value-2.01)<1e-9,
+                "Scaled panel: "+Output<GH_Number>(larger,2).Value+"%, area "+Output<GH_Number>(larger,3).Value+"%");
+        });
+        Test("Panel Distortion of a curved panel and of its flattening",()=>{
+            var curved=new Mesh();
+            for(int y=0;y<=4;y++)for(int x=0;x<=4;x++)curved.Vertices.Add(x,y,0.05*(x-2)*(x-2)-0.05*(y-2)*(y-2));
+            for(int y=0;y<4;y++)for(int x=0;x<4;x++)curved.Faces.AddFace(y*5+x,y*5+x+1,(y+1)*5+x+1,(y+1)*5+x);
+            curved.Normals.ComputeNormals();
+            // Default inputs: with the FeMM solver tolerance 0 a curved panel failed with "Solver not converged"
+            var flat=new FlatteningComponent();Set(flat,0,new GH_Mesh(curved));Solve(flat);
+            Check(flat.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count==0,"Flattening: "+string.Join("; ",flat.RuntimeMessages(GH_RuntimeMessageLevel.Warning)));
+            var distortion=new PanelDistortionComponent();Set(distortion,0,new GH_Mesh(curved));Set(distortion,1,Output<GH_Mesh>(flat));Solve(distortion);
+            double max=Output<GH_Number>(distortion,2).Value;
+            Check(distortion.Params.Output[1].VolatileDataCount==curved.TopologyEdges.Count && max>0 && max<5,"Max strain "+max+"%");
+            var other=new PanelDistortionComponent();Set(other,0,new GH_Mesh(curved));Set(other,1,new GH_Mesh(Panel()));Solve(other,true);
+        });
         Console.WriteLine("Patterning checks: "+passed+" passed, "+failed+" failed.");
         foreach(var document in documents) document.Dispose();
         return failed;

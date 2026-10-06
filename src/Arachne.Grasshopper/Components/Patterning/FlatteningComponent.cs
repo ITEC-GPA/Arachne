@@ -32,7 +32,7 @@ namespace Arachne.Grasshopper.Components.Patterning
             pManager.AddIntegerParameter("Max Iter NL", "MI,NL", "Max number of iterations in non linear solution (used in non linear solver or updating pressures direction)", GH_ParamAccess.item, 20);//reduced at default
             pManager.AddNumberParameter("Tolerance NL", "T NL", "Tolerance on relative error durign non linear solution (used in non linear solver or updating pressures direction)", GH_ParamAccess.item, 0.01);
             pManager.AddIntegerParameter("Max Iter,s", "MI,s", "Max number of iterations for the solver", GH_ParamAccess.item, 10000);
-            pManager.AddNumberParameter("Tolerance,s", "T,s", "Tolerance for the solver", GH_ParamAccess.item, 0);
+            pManager.AddNumberParameter("Tolerance,s", "T,s", "Tolerance for the solver (0 = automatic, 1e-6)", GH_ParamAccess.item, 0);
         }
 
         /// <summary>

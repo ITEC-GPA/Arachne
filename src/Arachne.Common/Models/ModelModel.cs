@@ -34,13 +34,9 @@ namespace Arachne.Common.Models
 		protected List<BeamModel> _beams;
 		protected List<PlateModel> _plates;
 		protected List<LoadCaseModel> _loadCases;
-		protected List<LoadCombinationModel> _loadCombinations;
 		protected Dictionary<string, int> _nodesIndexes;
 		protected Dictionary<string, int> _beamsIndexes;
 		protected Dictionary<string, int> _platesIndexes;
-		protected List<NamedSetsModel> _namedSetsModels;
-		protected List<StagedConstructionModel> _stagedConstruction;
-		protected List<FunctionModel> _functionModels;
 
 		public string Name
 		{
@@ -60,14 +56,6 @@ namespace Arachne.Common.Models
 
 		public List<LoadCaseModel> LoadCases => _loadCases;
 
-		public List<LoadCombinationModel> LoadCombinations => _loadCombinations;
-
-		public List<NamedSetsModel> NamedSetsModels => _namedSetsModels;
-
-		public List<StagedConstructionModel> StagedConstruction => _stagedConstruction;
-
-		public List<FunctionModel> FunctionModels => _functionModels;
-
 		public ModelModel(ModelUnits units)
 		{
 			_name = "";
@@ -77,13 +65,9 @@ namespace Arachne.Common.Models
 			_beams = new List<BeamModel>();
 			_plates = new List<PlateModel>();
 			_loadCases = new List<LoadCaseModel>();
-			_loadCombinations = new List<LoadCombinationModel>();
 			_nodesIndexes = new Dictionary<string, int>();
 			_beamsIndexes = new Dictionary<string, int>();
 			_platesIndexes = new Dictionary<string, int>();
-			_namedSetsModels = new List<NamedSetsModel>();
-			_stagedConstruction = new List<StagedConstructionModel>();
-			_functionModels = new List<FunctionModel>();
 		}
 
 		public ModelModel(ModelModel model)
@@ -95,13 +79,9 @@ namespace Arachne.Common.Models
 			_beams = new List<BeamModel>();
 			_plates = new List<PlateModel>();
 			_loadCases = new List<LoadCaseModel>();
-			_loadCombinations = new List<LoadCombinationModel>();
 			_nodesIndexes = new Dictionary<string, int>();
 			_beamsIndexes = new Dictionary<string, int>();
 			_platesIndexes = new Dictionary<string, int>();
-			_namedSetsModels = new List<NamedSetsModel>();
-			_stagedConstruction = new List<StagedConstructionModel>();
-			_functionModels = new List<FunctionModel>();
 
 			for (int i = 0; i < model._elements.Count; i++)
 			{
@@ -124,36 +104,13 @@ namespace Arachne.Common.Models
 				LoadCaseModel lc = model._loadCases[i];
 				_loadCases.Add(new LoadCaseModel(lc));
 			}
-
-			for (int i = 0; i < model._loadCombinations.Count; i++)
-			{
-				LoadCombinationModel combo = model._loadCombinations[i];
-				_loadCombinations.Add(new LoadCombinationModel(combo));
-			}
-
-			for (int i = 0; i < model._namedSetsModels.Count; i++)
-			{
-				NamedSetsModel nsm = model._namedSetsModels[i];
-				_namedSetsModels.Add(nsm.Clone());
-			}
-
-			for (int i = 0; i < model._stagedConstruction.Count; i++)
-			{
-				StagedConstructionModel scm = model._stagedConstruction[i];
-				_stagedConstruction.Add(new StagedConstructionModel(scm));
-			}
-
-			for (int i = 0; i < model._functionModels.Count; i++)
-			{
-				FunctionModel scm = model._functionModels[i];
-				_functionModels.Add(new FunctionModel(scm));
-			}
 		}
 
 		#region Serialization
 
 		private string SERIALIZATION_RELEASE_NAME = "ModelModel_SERIALIZATION_RELEASE"; //do not modify the name!
-		private int SERIALIZATION_RELEASE = 4;
+		// Release 5: load combinations, named sets, staged constructions and functions removed (FEM analysis only)
+		private int SERIALIZATION_RELEASE = 5;
 
 		protected ModelModel(SerializationInfo info, StreamingContext context)
 		{
@@ -170,7 +127,6 @@ namespace Arachne.Common.Models
 			_units = (ModelUnits)info.GetValue("Units", typeof(ModelUnits));
 			_elements = (List<ElementModel>)info.GetValue("Elements", typeof(List<ElementModel>));
 			_loadCases = (List<LoadCaseModel>)info.GetValue("LoadCases", typeof(List<LoadCaseModel>));
-			_loadCombinations = (List<LoadCombinationModel>)info.GetValue("LoadCombinations", typeof(List<LoadCombinationModel>));
 			_nodes = new List<NodeModel>();
 			_beams = new List<BeamModel>();
 			_plates = new List<PlateModel>();
@@ -178,18 +134,6 @@ namespace Arachne.Common.Models
 			_nodesIndexes = new Dictionary<string, int>();
 			_beamsIndexes = new Dictionary<string, int>();
 			_platesIndexes = new Dictionary<string, int>();
-			if (savedRelease >= 2)
-				_namedSetsModels = (List<NamedSetsModel>)info.GetValue("NamedSetsModels", typeof(List<NamedSetsModel>));
-			else
-				_namedSetsModels = new List<NamedSetsModel>();
-			if (savedRelease >= 3)
-				_stagedConstruction = (List<StagedConstructionModel>)info.GetValue("StagedConstruction", typeof(List<StagedConstructionModel>));
-			else
-				_stagedConstruction = new List<StagedConstructionModel>();
-			if (savedRelease >= 4)
-				_functionModels = (List<FunctionModel>)info.GetValue("FunctionModel", typeof(List<FunctionModel>));
-			else
-				_functionModels = new List<FunctionModel>();
 			//Sync(0);//here cannot be done this because _elements is full of nulls! 
 		}
 
@@ -203,10 +147,6 @@ namespace Arachne.Common.Models
 			info.AddValue("Units", _units, typeof(ModelUnits));
 			info.AddValue("Elements", _elements, typeof(List<ElementModel>));
 			info.AddValue("LoadCases", _loadCases, typeof(List<LoadCaseModel>));
-			info.AddValue("LoadCombinations", _loadCombinations, typeof(List<LoadCombinationModel>));
-			info.AddValue("NamedSetsModels", _namedSetsModels, typeof(List<NamedSetsModel>));
-			info.AddValue("StagedConstruction", _stagedConstruction, typeof(List<StagedConstructionModel>));
-			info.AddValue("FunctionModel", _functionModels, typeof(List<FunctionModel>));
 		}
 
 		#endregion
@@ -222,28 +162,6 @@ namespace Arachne.Common.Models
 		{
 			_loadCases.AddRange(loadCases);
 		}
-
-		public void AddLoadCombinations(IEnumerable<LoadCombinationModel> combinations)
-		{
-			_loadCombinations.AddRange(combinations);
-		}
-
-		public void AddNamedSets(IEnumerable<NamedSetsModel> namedSets)
-		{
-			_namedSetsModels.AddRange(namedSets);
-		}
-
-		public void AddStagedConstructions(IEnumerable<StagedConstructionModel> stagedConstructions)
-		{
-			_stagedConstruction.AddRange(stagedConstructions);
-		}
-
-		public void AddFunctionModels(IEnumerable<FunctionModel> functionModels)
-		{
-			_functionModels.AddRange(functionModels);
-		}
-
-
 		public NodeModel GetNode(string id)
 		{
 			if (_nodesIndexes.TryGetValue(id, out int index))
@@ -394,12 +312,9 @@ namespace Arachne.Common.Models
 
 		public override string ToString()
 		{
-			string text = $"FeMM Model {_name}";
+			string text = $"Model {_name}";
 			text += "\nMeasure units: " + _units.GetDescription();
-			text += string.Format("\n{0} Elements", _elements.Count);
-			text += string.Format("\n{0} Cases", _loadCases.Count);
-			text += string.Format("\n{0} Combinations", _loadCombinations.Count);
-			text += string.Format("\n{0} NamedSets", _namedSetsModels.Count);
+			text += string.Format("\n{0} Nodes, {1} Beams, {2} Plates", _nodes.Count, _beams.Count, _plates.Count);
 			return text;
 		}
 	}

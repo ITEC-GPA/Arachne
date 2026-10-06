@@ -83,12 +83,25 @@ internal static class InventoryChecks
         public override string ToString() => $"{Kind} '{Name}' ({NickName}, {Access})";
     }
 
+    // FeMM inputs removed on purpose: the SAP model definitions (load combinations, named sets,
+    // staged constructions) and the distributed loads that the form finding does not handle.
+    private static readonly Dictionary<string, string[]> RemovedInputs = new Dictionary<string, string[]>
+    {
+        { "BuildModelComponent", new[] { "Load Combinations", "Named sets", "Staged constructions" } },
+        { "BeamDistributedLoadComponent", new[] { "P1", "P2" } },
+    };
+
     private static void CompareParameters(GH_Component component, string source)
     {
         source = Regex.Replace(source, @"/\*.*?\*/", "", RegexOptions.Singleline);
         source = Regex.Replace(source, @"//[^\r\n]*", "");
         var inputs = Parse(Body(source, "RegisterInputParams"));
         var outputs = Parse(Body(source, "RegisterOutputParams"));
+        if (RemovedInputs.TryGetValue(component.GetType().Name, out string[] removed))
+        {
+            Check(removed.All(name => inputs.Any(d => d.Name == name)), "A removed input is not in the FeMM source");
+            inputs = inputs.Where(d => !removed.Contains(d.Name)).ToList();
+        }
         Compare("input", inputs, component.Params.Input);
         Compare("output", outputs, component.Params.Output);
     }

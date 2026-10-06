@@ -21,9 +21,7 @@ namespace Arachne.Grasshopper.Components.Loads
 
         public override void CreateAttributes()
         {
-            ComponentAttributes.ComponentWithImageAttributes attr = new ComponentAttributes.ComponentWithImageAttributes(this, ComponentImages.Get("BeamPointLoadImage"));
-            attr.AddOverlappedBitmap(new System.Drawing.PointF(5, -65), ComponentImages.Get("LocalAxisImage"));
-            m_attributes = attr;
+            m_attributes = new ComponentAttributes.ComponentWithImageAttributes(this, ComponentImages.Get("BeamPointLoadImage"));
         }
 
         /// <summary>
@@ -35,34 +33,11 @@ namespace Arachne.Grasshopper.Components.Loads
             pManager.AddGenericParameter("LoadCase", "LC", "The load case", GH_ParamAccess.item);
             CoordinateSystemParam cs_param = new CoordinateSystemParam();
             cs_param.Optional = true;
-            cs_param.ObjectChanged += Param_CoordinateSystem_ObjectChanged;
-            pManager.AddParameter(cs_param, "Coordinate System", "CS", "The coordinate system of the load", GH_ParamAccess.item);
+            pManager.AddParameter(cs_param, "Coordinate System", "CS", "The coordinate system of the load (Global if not given)", GH_ParamAccess.item);
             pManager.AddNumberParameter("P1", "P1", "The load in the 1 axis", GH_ParamAccess.item, 0);
             pManager.AddNumberParameter("P2", "P2", "The load in the 2 axis", GH_ParamAccess.item, 0);
             pManager.AddNumberParameter("P3", "P3", "The load in the 3 axis", GH_ParamAccess.item, 0);
             pManager.AddNumberParameter("a", "a", "The distance ratio (0-1) from the starting node", GH_ParamAccess.item);
-        }
-
-        private void Param_CoordinateSystem_ObjectChanged(IGH_DocumentObject sender, GH_ObjectChangedEventArgs e)
-        {
-            SetInputsName();
-        }
-
-        private void SetInputsName()
-        {
-            CoordinateSystemParam cs_param = (CoordinateSystemParam)Params.Input[2];
-            if (cs_param.PersistentData.Branches.Count == 0)
-            {
-                Params.Input[3].NickName = "P1";
-                Params.Input[4].NickName = "P2";
-                Params.Input[5].NickName = "P3";
-            }
-            else
-            {
-                Params.Input[3].NickName = "PX";
-                Params.Input[4].NickName = "PY";
-                Params.Input[5].NickName = "PZ";
-            }
         }
 
         /// <summary>
@@ -79,8 +54,6 @@ namespace Arachne.Grasshopper.Components.Loads
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            SetInputsName();
-
             GH_Beam beam = null;
             GH_LoadCase lc = null;
             GH_CoordinateSystem cs = null;
@@ -97,11 +70,13 @@ namespace Arachne.Grasshopper.Components.Loads
             bool p3_has_value = DA.GetData("P3", ref p3);
             bool a_has_value = DA.GetData("a", ref a);
 
-            Message = string.Format("Coordinate System: {0}", cs == null ? "Local" : cs.Value.Name);
+            // The form finding does not handle the beam local axes: no coordinate system means Global
+            CoordinateSystemModel coordinateSystem = cs?.Value ?? CoordinateSystemModel.Global;
+            Message = string.Format("Coordinate System: {0}", coordinateSystem.Name);
 
-            if (a >= 1)
+            if (a < 0 || a >= 1)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "The 'a' value must be lower than 1");
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "The 'a' value must be between 0 and 1");
                 return;
             }
             if (lc.Value.NonStructuralMassAcceleration)
@@ -109,7 +84,7 @@ namespace Arachne.Grasshopper.Components.Loads
 
             BeamPointLoadModel.LoadData load_value = new BeamPointLoadModel.LoadData()
             {
-                CoordinateSystem = cs?.Value,
+                CoordinateSystem = coordinateSystem,
                 P = new Vector3d(p1, p2, p3),
                 A = a
             };
@@ -117,15 +92,6 @@ namespace Arachne.Grasshopper.Components.Loads
             GH_Beam newBeam = new GH_Beam(beam);
             newBeam.Value.Loads.Add(load);
             DA.SetData(0, newBeam);
-        }
-
-        public override bool Read(GH_IReader reader)
-        {
-            bool success = base.Read(reader);
-
-            SetInputsName();
-
-            return success;
         }
 
         public override GH_Exposure Exposure => GH_Exposure.secondary;

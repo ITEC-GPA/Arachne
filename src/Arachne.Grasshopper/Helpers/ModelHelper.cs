@@ -11,27 +11,6 @@ namespace Arachne.Grasshopper.Helpers
 {
     public static class ModelHelper
     {
-        public static void GetLoadCases(List<IGH_GeometricGoo> elements, out List<LoadCaseModel> loadCases)
-        {
-            ParseElements(elements, out List<GH_Node> nodes, out List<GH_Beam> beams, out List<GH_Plate> plates);
-            loadCases = new List<LoadCaseModel>();// { LoadCaseModel.Dead };
-            loadCases.AddRange(nodes.SelectMany(n => n.Value.Loads).Select(l => l.LoadCase)
-                .Union(beams.SelectMany(b => b.Value.Loads).Select(l => l.LoadCase))
-                .Union(plates.SelectMany(p => p.Value.Loads).Select(l => l.LoadCase))
-                .Distinct(new LoadCaseModelsEqualityComparer()));
-            Common.Helpers.ModelHelper.AddDeadLoadCase(ref loadCases);
-            loadCases.Sort();
-        }
-
-        public static List<LoadCaseModel> GetLoadCases(List<ElementModel> elements)
-        {
-            var loadCases = new List<LoadCaseModel>();// { LoadCaseModel.Dead };
-            loadCases.AddRange(elements.SelectMany(n => n.Loads).Select(l => l.LoadCase).Distinct(new LoadCaseModelsEqualityComparer()));
-            Common.Helpers.ModelHelper.AddDeadLoadCase(ref loadCases);
-            loadCases.Sort();
-            return loadCases;
-        }
-
         public static bool ParseElements(IEnumerable<IGH_GeometricGoo> elements, out List<GH_Node> nodes,
             out List<GH_Beam> beams, out List<GH_Plate> plates)
         {

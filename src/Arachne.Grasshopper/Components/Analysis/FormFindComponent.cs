@@ -175,6 +175,11 @@ namespace Arachne.Grasshopper.Components.Analysis
                 foreach (string warning in warnings)
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, warning);
 
+                // Solved around the origin: TensileLib's convergence depends on the distance from it
+                var shift = new Common.Helpers.FormFindingHelper.OriginShift(ff_model);
+
+                // The reactions are stored only for an equilibrium configuration
+                bool converged = true;
                 if (solverType == 1)
                 {
                     List<Beam> fixedAxialForceBeam = ff_model.Beams.Where(j => j.HasNLFixedAxialForce).ToList();
@@ -232,7 +237,10 @@ namespace Arachne.Grasshopper.Components.Analysis
                     } while (!exit);
 
                     if (ret == Solver.ResultCodes.NotconvergedAtMaxIterationNumber)
+                    {
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged. The maximum number of iteration has been reached.");
+                        converged = false;
+                    }
                 }
                 else
                 {
@@ -245,8 +253,12 @@ namespace Arachne.Grasshopper.Components.Analysis
                     Solver.ResultCodes ret = solver.SolveForceDensity();
 
                     if (ret == Solver.ResultCodes.NotconvergedAtMaxIterationNumber)
+                    {
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged. The maximum number of iteration has been reached.");
+                        converged = false;
+                    }
                 }
+                shift.Restore();
 
                 // Create a deep copy of the model where to add the results
                 GH_Model result = (GH_Model)model.Duplicate();
@@ -271,11 +283,15 @@ namespace Arachne.Grasshopper.Components.Analysis
                     Beam ff_beam = ff_model.Beams.ElementAt(i);
                     beam.PointFrom = new Point3d(ff_beam.Node1.X, ff_beam.Node1.Y, ff_beam.Node1.Z);
                     beam.PointTo = new Point3d(ff_beam.Node2.X, ff_beam.Node2.Y, ff_beam.Node2.Z);
-                    // Beams without a force density have no load case for the pre-load
-                    ForceDensityModel fd = (ForceDensityModel)beam.Loads.FirstOrDefault(l => l.GetType() == typeof(ForceDensityModel));
-                    if (fd != null)
+                    // The pre-load uses the load case of the force density or, on the beams governed
+                    // only by a fixed axial force or a fixed length, the load case of that load.
+                    // Beams without any of them carry no force and get no pre-load.
+                    LoadModel source = beam.Loads.FirstOrDefault(l => l.GetType() == typeof(ForceDensityModel))
+                        ?? beam.Loads.FirstOrDefault(l => l.GetType() == typeof(FixedAxialForceModel))
+                        ?? beam.Loads.FirstOrDefault(l => l.GetType() == typeof(FixedLengthModel));
+                    if (source != null)
                     {
-                        LoadCaseModel lc = fd.LoadCase; // Use the same Load Case of the force density
+                        LoadCaseModel lc = source.LoadCase;
                         for (int k = 0; k < beam.Loads.Count; k++)
                         {
                             if (beam.Loads[k].GetType() == typeof(BeamPreLoadModel))
@@ -285,6 +301,25 @@ namespace Arachne.Grasshopper.Components.Analysis
                             }
                         }
                         beam.Loads.Add(new BeamPreLoadModel(lc, ff_beam.AxialForce, BeamPreLoadModel.LoadType.Tension));
+                    }
+                }
+
+                // Support reactions, read by the Support Reactions component. A previous form
+                // finding of the same model leaves reactions that are no longer valid.
+                foreach (NodeModel node in nodeArray)
+                {
+                    for (int k = node.Results.Count - 1; k >= 0; k--)
+                        if (node.Results[k] is NodeReactResultModel)
+                            node.Results.RemoveAt(k);
+                }
+                if (converged)
+                {
+                    Vector3d?[] reactions = Common.Helpers.FormFindingHelper.ComputeReactions(ff_model);
+                    LoadCaseModel reactionCase = Common.Helpers.FormFindingHelper.FormFindingCase();
+                    for (int i = 0; i < nodeArray.Length && i < reactions.Length; i++)
+                    {
+                        if (reactions[i].HasValue)
+                            nodeArray[i].Results.Add(new NodeReactResultModel(reactionCase) { Force = reactions[i].Value });
                     }
                 }
 

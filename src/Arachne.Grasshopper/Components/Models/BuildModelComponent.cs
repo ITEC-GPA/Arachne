@@ -36,15 +36,6 @@ namespace Arachne.Grasshopper.Components.Models
             int i = 0;
             foreach (ModelModel.ModelUnits name in names)
                 type_param.AddNamedValue(name.GetDescription(), i++);
-            LoadCombinationsParam combs = new LoadCombinationsParam
-            {
-                Optional = true
-            };
-            pManager.AddParameter(combs, "Load Combinations", "LCB", "The load cases combinations", GH_ParamAccess.list);
-            pManager.AddGenericParameter("Named sets", "NS", "The named sets", GH_ParamAccess.list);
-            pManager[pManager.ParamCount - 1].Optional = true;
-            pManager.AddGenericParameter("Staged constructions", "SC", "The staged contruction definitions", GH_ParamAccess.list);
-            pManager[pManager.ParamCount - 1].Optional = true;
         }
 
         /// <summary>
@@ -66,42 +57,14 @@ namespace Arachne.Grasshopper.Components.Models
                 List<IGH_GeometricGoo> elements = new List<IGH_GeometricGoo>();
                 string name = "";
                 int units = 0;
-                List<GH_LoadCombination> combinations = new List<GH_LoadCombination>();
-                List<GH_NamedSets> namedSets = new List<GH_NamedSets>();
-                List<GH_StagedConstruction> stages = new List<GH_StagedConstruction>();
-
                 if (!DA.GetDataList(0, elements))
                     return;
                 DA.GetData(1, ref name);
                 if (!DA.GetData(2, ref units))
                     return;
 
-                Helpers.ModelHelper.GetLoadCases(elements, out List<LoadCaseModel> loadCases);
-
-                if (DA.GetDataList(3, combinations))
-                {
-                    // Check the load cases names if the combinatoin is provided by a TextPanel
-                    IEnumerable<string> lcases = combinations.SelectMany(c => c.LoadCases).Select(lc => lc.Name).Distinct();
-                    foreach (string lcase in lcases)
-                    {
-                        if (loadCases.Count(lc => lc.Name == lcase) == 0)
-                        {
-                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"The load case {lcase} does not exists.");
-                            return;
-                        }
-                    }
-                }
-
-                // Connect the LoadCombinationsComponent
-                IEnumerable<IGH_Param> combinations_params = Params.Input[3].Sources.Where(s => s.GetType() == typeof(LoadCombinationsParam));
-                foreach (LoadCombinationsParam param in combinations_params)
-                    param.UpdateLoadCases(loadCases);
-
-                DA.GetDataList(4, namedSets);
-
-                DA.GetDataList(5, stages);
-
-                GH_Model model = new GH_Model((ModelModel.ModelUnits)units, elements, combinations, namedSets, stages);
+                // Load combinations, named sets and staged constructions served only the FEM programs
+                GH_Model model = new GH_Model((ModelModel.ModelUnits)units, elements);
                 model.Value.Name = name;
 
                 DA.SetData(0, model);
