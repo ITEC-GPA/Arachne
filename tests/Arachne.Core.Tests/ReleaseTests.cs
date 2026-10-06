@@ -29,6 +29,11 @@ internal static class ReleaseTests
         test("Units preserve dimensions and round trip",()=>{var u=new UnitSettings(UnitsConvert.LengthUnits.mm,UnitsConvert.ForceUnits.kN);Near(u.Convert(1000,Quantity.Length),1);Near(u.Convert(2,Quantity.ForcePerLength),2e6);Near(u.Convert(3,Quantity.Pressure),3e9);Near(u.Convert(u.Convert(45,Quantity.MassDensity),Quantity.MassDensity,false),45);});
         test("Panel distortion measures known anisotropic shrinkage",()=>{var a=new[]{new Point3d(0,0,0),new Point3d(2,0,0),new Point3d(2,2,0),new Point3d(0,2,0)};var b=a.Select(p=>new Point3d(p.X*0.9,p.Y*0.8,p.Z)).ToArray();var r=PanelDistortion.Evaluate(a,b,new[]{new[]{0,1,2,3}});Near(r.MaxEdgeChange,0.2);Near(r.AreaChanges[0],-0.28);Check(!r.Accepted);});
         if(!TensileFormFindingSolver.IsAvailable)return;
+        test("Fully restrained triangle retains pressure and reaction results",()=>{
+            var p=new[]{new Point3d(0,0,0),new Point3d(2,0,0),new Point3d(0,3,0)};
+            var m=ModelBuilder.Build(Enumerable.Range(0,3).Select(i=>new Cable{Start=p[i],End=p[(i+1)%3],Target=2}),p.Select(x=>new NodeCondition{Position=x,FixX=true,FixY=true,FixZ=true}),new[]{p});
+            var r=new TensileFormFindingSolver().Solve(m,new SolverSettings{Pressure=10});Check(r.Status==SolveStatus.Converged,string.Join(";",r.Messages));Near(r.Solved.Nodes.Sum(n=>n.Reaction.Z),-30);Check(EquilibriumReport.Evaluate(r.Solved).Accepted);
+        });
         test("Pressure grid analytical displacement, force and moment balance",()=>{
             var r=new TensileFormFindingSolver().Solve(Grid(),new SolverSettings{Pressure=8,Tolerance=1e-10,AlgebraicToleranceA=1e-12,CreateMesh=false});
             Check(r.Status==SolveStatus.Converged,string.Join(";",r.Messages));var m=r.Solved;Check(m!=null&&m.Plates.Count==4&&r.Faces.Count==4);

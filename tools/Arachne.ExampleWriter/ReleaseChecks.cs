@@ -33,6 +33,20 @@ internal static class ReleaseChecks
         Test("Unit settings and numeric conversion",()=>{var c=new UnitSettingsComponent();Set(c,0,new GH_Integer(0));Run(c,()=>Check(Math.Abs((double)Output(c,1).Single()-0.001)<1e-12));var convert=new ConvertUnitsComponent();Set(convert,0,new GH_Number(1000));Set<IGH_Goo>(convert,1,new GH_ObjectWrapper(new UnitSettings(GPC.Utilities.Units.UnitsConvert.LengthUnits.mm)));Run(convert,()=>Check((double)Output(convert,0).Single()==1));});
         Test("Panel distortion detects 10 percent scaling",()=>{var m=new Mesh();m.Vertices.Add(0,0,0);m.Vertices.Add(1,0,0);m.Vertices.Add(0,1,0);m.Faces.AddFace(0,1,2);var flat=m.DuplicateMesh();flat.Scale(0.9);var c=new PanelDistortionComponent();Set(c,0,new GH_Mesh(m));Set(c,1,new GH_Mesh(flat));Run(c,()=>Check(Math.Abs((double)Output(c,4).Single()-0.1)<1e-6));});
         Test("All local managed and native dependencies load",()=>{var c=new DependencyCheckComponent();Run(c,()=>Check((bool)Output(c,0).Single(),string.Join(";",Output(c,1))));});
+        Test("Background result completes and Run false clears all result outputs",()=>{
+            var c=new FormFindComponent();Set<IGH_Goo>(c,0,new GH_ObjectWrapper(model));Set(c,2,new GH_Boolean(true));Set(c,3,new GH_Boolean(true));
+            using(var doc=new GH_Document{Enabled=true}){
+                c.CreateAttributes();doc.AddObject(c,false);doc.NewSolution(false);var watch=System.Diagnostics.Stopwatch.StartNew();
+                while(!Output(c,9).Any()&&watch.ElapsedMilliseconds<10000){System.Threading.Thread.Sleep(10);Rhino.RhinoApp.Wait();c.ExpireSolution(false);doc.NewSolution(false);}
+                Check(Output(c,9).Single() is FormResult,"Background result missing");Set(c,2,new GH_Boolean(false));c.ExpireSolution(false);doc.NewSolution(false);Check(!Output(c,9).Any()&&!Output(c,10).Any()&&Output(c,6).Single().ToString()=="Ready");
+            }
+        });
+        Test("Plate query keeps ordered boundary IDs, forces and unavailable tensor status",()=>{
+            var pts=Enumerable.Range(0,9).Select(i=>new GPC.Geometry.Point3d(i%3,i/3,0)).ToArray();var cables=new List<Cable>();var conditions=new List<NodeCondition>();var faces=new List<GPC.Geometry.Point3d[]>();
+            for(int i=0;i<9;i++){if(i%3<2)cables.Add(new Cable{Start=pts[i],End=pts[i+1],Target=2});if(i<6)cables.Add(new Cable{Start=pts[i],End=pts[i+3],Target=2});if(i!=4)conditions.Add(new NodeCondition{Position=pts[i],FixX=true,FixY=true,FixZ=true});if(i%3<2&&i<6)faces.Add(new[]{pts[i],pts[i+1],pts[i+4],pts[i+3]});}
+            var r=new TensileFormFindingSolver().Solve(ModelBuilder.Build(cables,conditions,faces),new SolverSettings{CreateMesh=false});Check(r.Status==SolveStatus.Converged,string.Join(";",r.Messages));
+            var c=new PlateResultsComponent();Set<IGH_Goo>(c,0,new GH_ObjectWrapper(r));Set(c,1,new GH_Integer(2));Run(c,()=>{Check((int)Output(c,0).Single()==2&&Output(c,1).Single() is Mesh);Check(Output(c,3).Cast<int>().SequenceEqual(r.Solved.Plate(2).BoundaryBeamIds));Check(Output(c,4).Cast<double>().SequenceEqual(r.Solved.Plate(2).BoundaryAxialForces));Check(!(bool)Output(c,7).Single());});
+        });
         Console.WriteLine($"Release component checks: {passed} passed, {failed} failed.");if(failed>0)throw new Exception("Release component checks failed.");
     }
 }

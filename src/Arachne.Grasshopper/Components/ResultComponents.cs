@@ -19,7 +19,7 @@ namespace Arachne.Grasshopper.Components
             return (obj as SolvedModel)??(obj as FormResult)?.Solved??throw new ArgumentException("A converged Arachne result is required.");
         }
         protected static int[] Ids(IGH_DataAccess data,int count)
-        { var ids=new List<int>();data.GetDataList(1,ids);return ids.Count==0?Enumerable.Range(1,count).ToArray():ids.ToArray(); }
+        { var ids=new List<int>();data.GetDataList(1,ids);if(ids.Distinct().Count()!=ids.Count)throw new ArgumentException("Select each ID only once.");return ids.Count==0?Enumerable.Range(1,count).ToArray():ids.ToArray(); }
         protected void ResultInput(GH_InputParamManager p,bool ids=false)
         { p.AddGenericParameter("Result","R","Arachne result or solved model",GH_ParamAccess.item);if(ids){int i=p.AddIntegerParameter("IDs","ID","One-based IDs, empty selects all; order is preserved",GH_ParamAccess.list);p[i].Optional=true;} }
     }

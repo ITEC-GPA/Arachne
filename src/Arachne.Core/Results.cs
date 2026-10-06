@@ -116,9 +116,9 @@ namespace Arachne.Core
             Nodes=Array.AsReadOnly(source.Nodes.Select((n,i)=>new NodeResult(n,positions[i],weights[i],loads[i],pressures[i],internalForces[i])).ToArray());
             Plates=Array.AsReadOnly(faces.Select((f,i)=>new PlateResult(i+1,f,source,positions,Beams,edgeMap)).ToArray());
         }
-        public NodeResult Node(int id) => Nodes.SingleOrDefault(n=>n.Id==id)??throw new ArgumentException("Unknown node ID: "+id);
-        public BeamResult Beam(int id) => Beams.SingleOrDefault(n=>n.Id==id)??throw new ArgumentException("Unknown cable ID: "+id);
-        public PlateResult Plate(int id) => Plates.SingleOrDefault(n=>n.Id==id)??throw new ArgumentException("Unknown plate ID: "+id);
+        public NodeResult Node(int id) => id>0 && id<=Nodes.Count?Nodes[id-1]:throw new ArgumentException("Unknown node ID: "+id);
+        public BeamResult Beam(int id) => id>0 && id<=Beams.Count?Beams[id-1]:throw new ArgumentException("Unknown cable ID: "+id);
+        public PlateResult Plate(int id) => id>0 && id<=Plates.Count?Plates[id-1]:throw new ArgumentException("Unknown plate ID: "+id);
         public override string ToString() => $"Solved Arachne model: {Nodes.Count} nodes, {Beams.Count} cables, {Plates.Count} plates";
     }
 

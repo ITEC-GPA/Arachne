@@ -8,7 +8,7 @@
     <GpcGeometryPath Condition="'$(GpcGeometryPath)' == ''">$(ArachneRoot)..\Geometry\GPCGeometry\bin\Release\netstandard2.0\GPCGeometry.dll</GpcGeometryPath>
     <GpcUtilitiesPath Condition="'$(GpcUtilitiesPath)' == ''">$(ArachneRoot)..\Utilities\GPCUtilities\bin\Release\netstandard2.0\GPCUtilities.dll</GpcUtilitiesPath>
     <TensileLibPath Condition="'$(TensileLibPath)' == ''">$(ArachneRoot)..\tensilelib\TensileLib\bin\Release\TensileLib.dll</TensileLibPath>
-    <NativeIglPath Condition="'$(NativeIglPath)' == ''">$(ArachneRoot)..\maffeisigl\x64\Release\MaffeisIGL.dll</NativeIglPath>
+    <NativeIglPath Condition="'$(NativeIglPath)' == ''">$(ArachneRoot)artifacts\native\Release\Arachne.IGL.dll</NativeIglPath>
     <RhinoSystemDir Condition="'$(RhinoSystemDir)' == ''">C:\Program Files\Rhino 8\System</RhinoSystemDir>
     <GrasshopperDir Condition="'$(GrasshopperDir)' == ''">C:\Program Files\Rhino 8\Plug-ins\Grasshopper</GrasshopperDir>
     <NuGetAudit>false</NuGetAudit>

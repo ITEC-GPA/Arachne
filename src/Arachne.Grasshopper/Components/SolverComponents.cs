@@ -1,5 +1,8 @@
 using System;
 using System.Linq;
+using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 using Arachne.Core;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
@@ -41,6 +44,11 @@ namespace Arachne.Grasshopper.Components
 
     public sealed class FormFindComponent : ComponentBase
     {
+        private CancellationTokenSource cancellation;
+        private Task<FormResult> pending;
+        private string pendingKey;
+        private int generation;
+        private string progressText;
         public FormFindComponent() : base("Form Find","FF","Compute equilibrium with TensileLib. Outputs geometry only after convergence.","2 Form Finding") { }
         public override Guid ComponentGuid => new Guid("c78cb6a5-0d3d-41d8-b381-8a1b2b20ba08");
         protected override void RegisterInputParams(GH_InputParamManager p)
@@ -48,6 +56,8 @@ namespace Arachne.Grasshopper.Components
             p.AddGenericParameter("Model","M","Arachne model",GH_ParamAccess.item);
             int i=p.AddGenericParameter("Settings","S","Optional settings; defaults to Linear",GH_ParamAccess.item);p[i].Optional=true;
             p.AddBooleanParameter("Run","R","True runs after every input change; False clears results",GH_ParamAccess.item,false);
+            p.AddBooleanParameter("Background","BG","Run without blocking the canvas; current result is cleared when inputs change",GH_ParamAccess.item,false);
+            p.AddBooleanParameter("Cancel","C","Cancel a running background solve at the next solver checkpoint. Set Run=False to reset.",GH_ParamAccess.item,false);
         }
         protected override void RegisterOutputParams(GH_OutputParamManager p)
         {
@@ -67,12 +77,29 @@ namespace Arachne.Grasshopper.Components
         {
             var model=Read<FormModel>(data,0);if(model==null)return;
             var settings=Read<SolverSettings>(data,1)??new SolverSettings();bool run=false;data.GetData(2,ref run);
-            if(!run){Message="Ready";data.SetData(6,"Ready");return;}
-            var result=new TensileFormFindingSolver().Solve(model,settings);
+            bool background=false,cancel=false;data.GetData(3,ref background);data.GetData(4,ref cancel);
+            if(!run){ResetJob();Message="Ready";data.SetData(6,"Ready");return;}
+            FormResult result;
+            if(background)
+            {
+                if(Params.Input[0].VolatileDataCount!=1 || Params.Input[1].VolatileDataCount>1)
+                    throw new ArgumentException("Background mode requires one model and one settings item. Use synchronous mode for data trees.");
+                Validation.Settings(settings);
+                string key=model.Id+"|"+string.Join("|",new object[]{settings.Kind,settings.MaxIterations,settings.Tolerance,settings.AlgebraicMaxIterations,settings.AlgebraicToleranceA,settings.AlgebraicToleranceB,settings.Gravity,settings.Pressure,settings.CreateMesh,settings.PlaneOrigin.X,settings.PlaneOrigin.Y,settings.PlaneOrigin.Z,settings.PlaneNormal.X,settings.PlaneNormal.Y,settings.PlaneNormal.Z}.Select(v=>Convert.ToString(v,CultureInfo.InvariantCulture)));
+                if(pendingKey!=key){ResetJob();if(cancel){data.SetData(6,"Cancelled");return;}StartJob(model,settings,key);}
+                if(cancel)cancellation?.Cancel();
+                if(!pending.IsCompleted){Message=cancel?"Cancelling":progressText??"Running";data.SetData(6,Message);return;}
+                result=pending.GetAwaiter().GetResult();
+            }
+            else
+            {
+                ResetJob();if(cancel){data.SetData(6,"Cancelled");Message="Cancelled";return;}
+                result=new TensileFormFindingSolver().Solve(model,settings);
+            }
             data.SetData(9,new GH_ObjectWrapper(result));
             if(result.Solved!=null)data.SetData(10,new GH_ObjectWrapper(result.Solved));
             Message=result.Status.ToString(); data.SetData(6,Message); data.SetDataList(7,result.Messages); data.SetData(8,result.OuterIterations);
-            foreach(string message in result.Messages) AddRuntimeMessage(result.Status==SolveStatus.Converged?GH_RuntimeMessageLevel.Warning:GH_RuntimeMessageLevel.Error,message);
+            foreach(string message in result.Messages) AddRuntimeMessage(result.Status==SolveStatus.Cancelled?GH_RuntimeMessageLevel.Remark:result.Status==SolveStatus.Converged?GH_RuntimeMessageLevel.Warning:GH_RuntimeMessageLevel.Error,message);
             if(result.Status!=SolveStatus.Converged)return;
             var points=result.Positions.Select(ToRhino).ToList();
             data.SetDataList(0,points);data.SetDataList(1,model.Edges.Select(e=>new Line(points[e.Start],points[e.End])));
@@ -86,5 +113,21 @@ namespace Arachne.Grasshopper.Components
             data.SetDataList(3,result.AxialForces);data.SetDataList(4,result.ForceDensities);
             data.SetDataList(5,result.PressureForces.Select(v=>new Vector3d(v.X,v.Y,v.Z)));
         }
+        private void StartJob(FormModel model,SolverSettings settings,string key)
+        {
+            var document=OnPingDocument();int job=generation;var tokenSource=new CancellationTokenSource();cancellation=tokenSource;
+            var snapshot=model.Snapshot();var parameters=settings.Copy();pendingKey=key;progressText="Running";double lastUpdate=-1000;
+            void Update(){Rhino.RhinoApp.InvokeOnUiThread((Action)(()=>{if(generation==job && document!=null && OnPingDocument()==document)document.ScheduleSolution(10,_=>{if(generation==job)ExpireSolution(false);});}));}
+            pending=Task.Run(()=>new TensileFormFindingSolver().Solve(snapshot,parameters,tokenSource.Token,step=>{
+                if(step.ElapsedMilliseconds-lastUpdate<150)return;lastUpdate=step.ElapsedMilliseconds;progressText=$"Step {step.Outer}.{step.Inner}";Update();
+            }));
+            pending.ContinueWith(_=>Update(),TaskScheduler.Default);
+        }
+        private void ResetJob()
+        {
+            generation++;var old=cancellation;var task=pending;cancellation=null;pending=null;pendingKey=null;progressText=null;
+            if(old!=null){old.Cancel();if(task!=null&&!task.IsCompleted)task.ContinueWith(_=>old.Dispose(),TaskScheduler.Default);else old.Dispose();}
+        }
+        public override void RemovedFromDocument(GH_Document document){ResetJob();base.RemovedFromDocument(document);}
     }
 }
