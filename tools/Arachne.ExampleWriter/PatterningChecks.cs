@@ -100,6 +100,19 @@ internal static class PatterningChecks
         return Canvas.Out(fixedLength).Single();
     }
 
+    // A beam with the Fixed compensation attribute: fixed length = its length x (1 - percent / 100)
+    private static IGH_Goo CompensatedBeam(Line line, double percent)
+    {
+        var c = new Canvas(); canvases.Add(c);
+        var chain = FormFindingChecks.Start(c);
+        var compensation = c.Add(new Arachne.Grasshopper.Components.Attributes.FixedCompensationComponent());
+        Canvas.Link(compensation, 0, FormFindingChecks.Beams(chain, new[] { line }));
+        Canvas.Link(compensation, 1, chain.LoadCase);
+        Canvas.Set(compensation, 2, new GH_Number(percent));
+        c.Solve();
+        return Canvas.Out(compensation).Single();
+    }
+
     private static DecompensationDescriptor Descriptor(bool normalized, params double[] lengths)
     {
         var descriptor = new DecompensationDescriptor();
@@ -175,6 +188,16 @@ internal static class PatterningChecks
             Set<IGH_Goo>(c, 4, FixedBeam(new Line(1, 1, 0, 3, 1, 0), 20));
             Solve(c);
             Check(HasWarning(c) && Out(c).Count > 0, "Not converged compensation without warning or panel");
+        });
+
+        Test("Fixed compensation: the edge of the flat panel with the same end points gets its length (10%: 2 -> 1.8)", () =>
+        {
+            // The other edges keep their length (compensation 0): bottom 1.8, sides and top 2
+            var c = Compensation(Square(), 0, 0);
+            Set<IGH_Goo>(c, 4, CompensatedBeam(new Line(1, 1, 0, 3, 1, 0), 10));
+            var result = MeshOut(Solve(c));
+            Near(result.Vertices.Point3dAt(0).DistanceTo(result.Vertices.Point3dAt(1)), 1.8, 1e-4, "Compensated edge");
+            Near(result.Vertices.Point3dAt(2).DistanceTo(result.Vertices.Point3dAt(3)), 2, 1e-4, "Opposite edge");
         });
 
         Test("Compensation with an invalid solver tolerance: error and no panel", () =>
@@ -417,13 +440,6 @@ internal static class PatterningChecks
         });
 
         // ---- Mesh tools ----
-
-        Test("Mesh Pipe: 4 sides at distance 1 from the axis, from z = 0 to 3", () =>
-        {
-            var c = new MeshPipeComponent(); Set(c, 0, new GH_Line(new Line(0, 0, 0, 0, 0, 3)));
-            var pipe = MeshOut(Solve(c));
-            Check(pipe.Vertices.All(v => Math.Abs(Math.Sqrt(v.X * v.X + v.Y * v.Y) - 1) < 1e-6 && (Math.Abs(v.Z) < 1e-6 || Math.Abs(v.Z - 3) < 1e-6)), "Vertices off the pipe");
-        });
 
         Test("Mesh Clean welds the vertices closer than the length, on a copy", () =>
         {

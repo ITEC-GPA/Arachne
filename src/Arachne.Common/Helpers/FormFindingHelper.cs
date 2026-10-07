@@ -10,14 +10,42 @@ namespace Arachne.Common.Helpers
 {
     public static class FormFindingHelper
     {
-        public static Model AssemblyModel(ModelModel modelModel, Plane plane, int solverType, double gravity, double pressure, bool createMesh, out List<string> log)
+        public static Model AssemblyModel(ModelModel modelModel, Plane plane, int solverType, SolverOptionsModel options, out List<string> log)
         {
             log = new List<string>();
+            double gravity = options.Gravity;
+            double pressure = options.Pressure;
+            bool createMesh = options.CreateMesh;
 
             Model ff_model = new Model();
             ModelHelper.GetUtilitiesConversionParams(modelModel.Units, out UnitsConvert.LengthUnits lengthUnits,
                 out UnitsConvert.ForceUnits forceUnits, out UnitsConvert.MassUnits massUnits,
                 out UnitsConvert.PressureUnits pressureUnits, out UnitsConvert.TemperatureUnits temperatureUnits);
+
+            // Node and beam loads of the selected load cases only; all of them if none is selected
+            List<LoadCaseModel> loadCases = options.LoadCases ?? new List<LoadCaseModel>();
+            HashSet<LoadCaseModel> usedLoadCases = new HashSet<LoadCaseModel>();
+            bool Applies(LoadModel load)
+            {
+                if (loadCases.Count == 0)
+                    return true;
+                if (!loadCases.Any(lc => lc == load.LoadCase))
+                    return false;
+                usedLoadCases.Add(load.LoadCase);
+                return true;
+            }
+
+            // Weight of the plates: thickness x density; for a membrane material the weight per
+            // area of its data sheet (the thickness then cancels out)
+            void SetWeight(Plate plate, PlatePropertyModel property)
+            {
+                if (property?.Material == null || !(property.Thickness > 0))
+                    return;
+                plate.MemThick = property.Thickness;
+                plate.Density = property.Material.Kind == MaterialModel.MaterialKind.Membrane
+                    ? UnitsConvert.ConvertFromDefaultUnits(property.Material.AreaDensity, massUnits, 1, lengthUnits, -2) / property.Thickness
+                    : UnitsConvert.ConvertFromDefaultUnits(property.Material.Density, massUnits, 1, lengthUnits, -3);
+            }
 
             GPC.Geometry.Plane mmPlane;
             if (plane == Plane.Unset)
@@ -57,7 +85,7 @@ namespace Arachne.Common.Helpers
                     ff_node.Ry = restraint.Ry;
                     ff_node.Rz = restraint.Rz;
                 }
-                IEnumerable<NodeForceLoadModel> forces = node.Loads.Where(l => l.GetType() == typeof(NodeForceLoadModel)).Cast<NodeForceLoadModel>();
+                IEnumerable<NodeForceLoadModel> forces = node.Loads.Where(l => l.GetType() == typeof(NodeForceLoadModel)).Cast<NodeForceLoadModel>().Where(Applies).ToList();
 
                 if (forces.Count() > 0)
                 {
@@ -134,6 +162,8 @@ namespace Arachne.Common.Helpers
                     for (int i = 0; i < beam.Loads.Count; i++)
                     {
                         LoadModel load = beam.Loads[i];
+                        if ((load is BeamPointLoadModel || load is BeamDistributedLoadModel) && !Applies(load))
+                            continue;
                         Vector3d v = beam.PointTo - beam.PointFrom;
                         if (v.Length == 0)
                             continue;
@@ -350,6 +380,7 @@ namespace Arachne.Common.Helpers
                         {
                             Id = ff_model.Plates.Count + 1,
                         };
+                        SetWeight(plt, plate.PlateProperty);
                         ff_model.Plates.Add(plt);
                     }
 
@@ -369,6 +400,7 @@ namespace Arachne.Common.Helpers
                         {
                             Id = ff_model.Plates.Count + 1,
                         };
+                        SetWeight(plt, plate.PlateProperty);
                         ff_model.Plates.Add(plt);
                     }
                 }
@@ -379,8 +411,17 @@ namespace Arachne.Common.Helpers
             ff_model.Plane = mmPlane;
             // TensileLib 2.2 has no CreateMesh switch: without plates the solver generates them
             // from the beams, for every part of the net, oriented along the normal of the plane.
+            // They weigh as the Plate Property of the options.
             if (ff_model.Plates.Count == 0)
+            {
                 ff_model.GeneratePlatesFromBeams();
+                foreach (Plate plate in ff_model.Plates)
+                    SetWeight(plate, options.PlateProperty);
+            }
+            if (gravity == 0 && ff_model.Plates.Any(p => p.WeightMultiplier > 0))
+                log.Add("The plates have a weight but Gravity is 0: the self weight is not applied.");
+            foreach (LoadCaseModel lc in loadCases.Where(lc => !usedLoadCases.Contains(lc)))
+                log.Add($"No node or beam load in the load case {lc.Name}.");
             return ff_model;
         }
 
@@ -395,9 +436,9 @@ namespace Arachne.Common.Helpers
         /// <summary>
         /// The forces that the supports exert on a solved model, in the order of
         /// <see cref="Model.Nodes"/>. At a restrained node the reaction balances the beam
-        /// forces and the loads the solver applied to the node: node forces, beam self-weight,
-        /// beam loads and pressure. Only the restrained directions are kept; the nodes
-        /// without translational restraints get null.
+        /// forces and the loads the solver applied to the node: node forces, self-weight of
+        /// beams and plates, beam loads and pressure. Only the restrained directions are kept;
+        /// the nodes without translational restraints get null.
         /// </summary>
         public static Vector3d?[] ComputeReactions(Model ff_model)
         {
@@ -408,7 +449,7 @@ namespace Arachne.Common.Helpers
             {
                 Node node = nodes[i];
                 indexes.Add(node.Id, i);
-                sums[i] = ToRhino(node.NodeForce) + ToRhino(node.BeamSelfWeightForce) +
+                sums[i] = ToRhino(node.NodeForce) + ToRhino(node.BeamSelfWeightForce) + ToRhino(node.PlateSelfWeightForce) +
                     ToRhino(node.BeamLoadForce) + ToRhino(node.PressureForce);
             }
 

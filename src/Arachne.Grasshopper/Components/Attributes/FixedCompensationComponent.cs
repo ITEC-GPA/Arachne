@@ -13,7 +13,7 @@ namespace Arachne.Grasshopper.Components.Attributes
         /// Initializes a new instance of the FixedLengthComponent class.
         /// </summary>
         public FixedCompensationComponent()
-          : base("Fixed compensation", "FC", "The fixed compensation attribute", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_ATTRIBUTES)
+          : base("Fixed compensation", "FC", "The fixed compensation attribute: a fixed length equal to the length of the beam reduced by C%. The Compensation keeps it on the edges of the flat panel with the same end points; in the Form Find it is a fixed length", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_ATTRIBUTES)
         {
         }
 
@@ -25,7 +25,7 @@ namespace Arachne.Grasshopper.Components.Attributes
             pManager.AddGenericParameter("Beam", "B", "The beam where add the Fixed Length attribute", GH_ParamAccess.item);
             pManager.AddGenericParameter("LoadCase", "LC", "The load case", GH_ParamAccess.item);
             pManager.AddNumberParameter("Compensation(%)", "C%", "The fixed deformation value in % (greater than 0 = reduction)", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Weight", "W", "The weight of the fixed length value in the non-linear solver", GH_ParamAccess.item, 1);
+            pManager.AddNumberParameter("Weight", "W", "The weight of the compensated length in the Compensation (and in the non-linear Form Find), against the other edges (weight 1)", GH_ParamAccess.item, 1);
         }
 
         /// <summary>

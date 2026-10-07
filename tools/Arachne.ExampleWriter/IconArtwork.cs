@@ -193,7 +193,7 @@ namespace Arachne.Examples
                     case "BeamPointLoadComponent": Bar(3,18,21,18);Arrow(9,3,9,15,Weft);break;
                     case "BeamDistributedLoadComponent": Bar(3,19,21,19);L(4,4,20,4,Weft);Arrow(5,4,5,16,Weft);Arrow(12,4,12,16,Weft);Arrow(19,4,19,16,Weft);break;
 
-                    // 13-Patterning
+                    // 14-Tools: the cable nets
                     case "CableNetComponent": Net();break;
                     case "CableNetRadialComponent":
                         Circle(12,12,9,Weft);Circle(12,12,5,Weft);
@@ -201,6 +201,8 @@ namespace Arachne.Examples
                     case "CompoundNetComponent":
                         Path(Warp,2,7,10,3,10,15,2,19,2,7);Path(Weft,14,9,22,5,22,17,14,21,14,9);
                         L(2,13,10,9,Warp);L(14,15,22,11,Weft);L(6,5,6,17);L(18,7,18,19);break;
+
+                    // 13-Patterning
                     case "BordersComponent": Mesh();P.Width=2.4f;Path(Weft,3,7,17,3,21,17,7,21,3,7);break;
                     case "OrderBordersComponent": Path(Warp,4,7,4,19,19,19,19,5);Arrow(19,5,7,5,Weft);Circle(4,7,2,Ink,true);break;
                     case "CompensationComponent": Mesh();Arrow(1,12,7,12,Weft);Arrow(23,12,17,12,Weft);break;
@@ -214,7 +216,6 @@ namespace Arachne.Examples
                     case "MeshDivideComponent": Mesh();L(8,4,12,21,Weft);L(13,3,17,19,Weft);break;
                     case "MeshGeodesicComponent": Mesh();Path(Weft,4,10,10,9,15,12,20,14);Circle(4,10,1.8f,Weft,true);Circle(20,14,1.8f,Weft,true);break;
                     case "MeshCleanComponent": Mesh();Badge("+",Warp);L(19,1,19,6,Weft);L(17,3.5f,21,3.5f,Weft);break;
-                    case "MeshPipeComponent": Path(Warp,4,8,16,3,21,8,9,13,4,8);Path(Ink,4,8,4,16,9,21,21,16,21,8);L(9,13,9,21,Warp);Circle(7,15,2,Weft);break;
                     case "MeshRemapComponent": Path(Warp,2,3,10,3,10,11,2,11,2,3);Path(Blue,14,13,20,11,23,20,15,22,14,13);Arrow(4,16,12,18,Weft);L(2,3,10,11);L(14,13,23,20);break;
                     case "SplitMeshOnCurvesComponent": Mesh();P.Width=2.5f;Path(Color.White,9,3,13,11,12,22);P.Width=1.5f;Path(Weft,9,3,13,11,12,22);break;
                     case "SubdivideMeshComponent": Mesh(true);break;

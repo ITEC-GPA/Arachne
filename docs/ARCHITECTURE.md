@@ -6,7 +6,7 @@ flowchart TD
   GH --> ARAP[Arachne.Arap · motore ARAP C#]
   GH --> RHINO[RhinoCommon e Grasshopper]
   COMMON --> RHINO
-  COMMON --> TL[TensileLib 2.2 · form finding e flattening]
+  COMMON --> TL[TensileLib 2.3 · form finding e flattening]
   COMMON --> GPC[GPCGeometry e GPCUtilities]
   GH --> TL
   ARAP --> GPC
@@ -35,7 +35,7 @@ I modelli sono serializzabili in binario (.NET Framework 4.8). Lo stesso formato
 
 ## Form Find
 
-Form Find costruisce a ogni esecuzione il modello TensileLib (`FormFindingHelper.AssemblyModel`) e chiama il solutore scelto. Le opzioni (gravità, pressione, iterazioni, tolleranze, mesh) arrivano da Solver Options come `SolverOptionsModel`; senza Solver Options valgono i predefiniti del modello, gli stessi di FeMM.
+Form Find costruisce a ogni esecuzione il modello TensileLib (`FormFindingHelper.AssemblyModel`) e chiama il solutore scelto. Le opzioni (gravità, pressione, casi di carico, iterazioni, tolleranze A e B, mesh, proprietà delle piastre generate) arrivano da Solver Options come `SolverOptionsModel`; senza Solver Options valgono i predefiniti del modello. `AssemblyModel` applica i soli carichi dei casi scelti e dà a ogni piastra spessore e densità della sua Plate Property, da cui TensileLib calcola il peso proprio della membrana.
 
 - **Linear**: densità di forza lineare;
 - **Linear step by step**: ciclo esterno che corregge le densità fino a lunghezze e forze fisse;
@@ -56,7 +56,7 @@ Beam Forces e Support Reactions leggono pre-carichi e reazioni dal modello; Chec
 `tools/Arachne.ExampleWriter` avvia Rhino 8 in-process senza finestra e usa i componenti in documenti Grasshopper reali:
 
 - `InventoryChecks`: GUID, icone e confronto di ingressi e uscite con i sorgenti FeMM;
-- `FormFindingChecks`: form finding su casi analitici in N/mm, unione dei rami, carichi sulle aste, reazioni, peso proprio in N/mm e in SI, pressione, predefiniti senza Solver Options, modelli lontani dall'origine, Check Model, filtri, Membrane Material e Plate Property, anteprima delle sezioni, serializzazione;
+- `FormFindingChecks`: form finding su casi analitici in N/mm, unione dei rami, carichi sulle aste, reazioni, peso proprio in N/mm e in SI, pressione, predefiniti senza Solver Options, casi di carico, peso delle piastre bilanciato dalle reazioni, modelli lontani dall'origine, Check Model, filtri, Membrane Material e Plate Property, anteprima delle sezioni, serializzazione;
 - `PatterningChecks`: sviluppo e compensazione dei pannelli, ARAP, decompensazione, strumenti sulle mesh e Panel Distortion, con valori attesi (lati, aree, distanze); una prova unica verifica che nessun componente modifichi la mesh in ingresso;
 - `NetworkChecks`: reti di cavi rettangolari, radiali e composte, con il numero di cavi, di pezzi di perimetro e di punti interni, con e senza tolleranza di corrispondenza.
 

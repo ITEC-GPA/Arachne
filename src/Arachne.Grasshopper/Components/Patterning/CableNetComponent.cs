@@ -18,7 +18,7 @@ namespace Arachne.Grasshopper.Components.Patterning
         /// Initializes a new instance of the BeamComponent class.
         /// </summary>
         public CableNetComponent()
-          : base("Cable Net", "CN", "Create a cable net", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_PATTERNING)
+          : base("Cable Net", "CN", "Create a cable net", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_TOOLS)
         {
         }
 

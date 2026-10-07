@@ -4,7 +4,12 @@
 
 Dettagli e GUID in [PORTING.md](PORTING.md). I componenti con ingressi diversi hanno un GUID nuovo: Load Case, Plate Property e Form Find vanno ricollegati nelle definizioni esistenti.
 
-- **Pannelli:** Build Model, Decompose Model e Check Model passano da 06-Model a 09-Model, dopo attributi e carichi; il patterning passa a 13-Patterning, dopo l'analisi.
+- **Pannelli:** Build Model, Decompose Model e Check Model passano da 06-Model a 09-Model, dopo attributi e carichi; il patterning passa a 13-Patterning, dopo l'analisi; Cable Net, Radial Cable Net e Compound Net, che generano la rete, passano a 14-Tools.
+- **TensileLib 2.3:**
+  - **peso proprio delle piastre:** spessore × densità × gravità × area attuale, ricalcolato a ogni iterazione. Pesano le piastre in ingresso con la loro Plate Property e quelle generate dalle aste con il Plate Property di Solver Options. Per un Membrane Material vale il peso in g/m² della scheda. Le reazioni lo comprendono;
+  - **ToleranceA,s e ToleranceB,s**, le due tolleranze di FeMM, di nuovo distinte: A per il gradiente coniugato e per i minimi quadrati di LSQR, B per il residuo di LSQR. Predefinite 1e-6, il valore di ALGLIB (FeMM: 0).
+- **Casi di carico:** il solutore applicava tutti i carichi. Il nuovo ingresso Load Cases di Solver Options sceglie i casi dei carichi nodali e sulle aste; vuoto: tutti.
+- **Mesh Pipe:** tolto.
 - **Load Case:** tolto Gravity NSM. Dal modello sono stati tolti anche gli altri dati SAP sull'inerzia (gravità, accelerazioni, temperatura).
 - **Materiali:** tolto Table Material. Nuovo **Membrane Material**, con i valori della scheda tecnica:
   - peso in g/m² e resistenze di ordito e trama in N/5cm;
@@ -12,7 +17,8 @@ Dettagli e GUID in [PORTING.md](PORTING.md). I componenti con ingressi diversi h
   
   Si collega a Plate Property come gli altri materiali.
 - **Plate Property:** Name, Thickness, Material. Tolti il tipo SAP (Shell-Thin, Membrane, Load Patch...) e il secondo spessore.
-- **Form Find:** restano Model, Solver Type, Plane e Auto Run. Gravity, Pressure, Pressure Load Case, Max Iter, Tolerance, Max Iter,s, Tolerance,s, Create mesh e Plate Property passano al nuovo componente **Solver Options**, con gli stessi predefiniti; senza Solver Options valgono i predefiniti. ToleranceB,s non c'è più: TensileLib usa una sola tolleranza algebrica.
+- **Form Find:** restano Model, Solver Type, Plane e Auto Run. Gravity, Pressure, Pressure Load Case, Max Iter, Tolerance, Max Iter,s, ToleranceA,s, ToleranceB,s, Create mesh e Plate Property passano al nuovo componente **Solver Options** (con in più Load Cases); senza Solver Options valgono i predefiniti.
+- **Fixed compensation:** verificato che la Compensation impone la lunghezza ridotta al lato del pannello piano con gli stessi vertici; nel Form Find agisce come Fixed Length. Descrizioni del componente e del peso precisate.
 - **Sezioni:** restano tutte, perché servono anche all'anteprima delle aste.
 - **Bug di FeMM corretti** (PORTING.md, 33-36):
   - l'anteprima della sezione Generic era 1000 volte troppo sottile;
@@ -20,7 +26,7 @@ Dettagli e GUID in [PORTING.md](PORTING.md). I componenti con ingressi diversi h
   - Custom Material con Kind = Rebar terminava con un'eccezione;
   - la resistenza ultima a taglio del materiale leggeva e scriveva quella a trazione.
 - **Compilazione:** la proprietà `ArachneBin` sposta gli output fuori dal repository, per verificare una build mentre Rhino tiene aperto il plug-in in `bin`. ExampleWriter prende il plug-in compilato accanto a sé.
-- **Banco di prova:** 146 controlli in Rhino/Grasshopper (67 inventario, 30 form finding, 43 patterning, 6 reti) e 54 del motore ARAP. Nuove prove: predefiniti senza Solver Options, Membrane Material e salvataggio di Plate Property, anteprima della sezione Generic.
+- **Banco di prova:** 147 controlli in Rhino/Grasshopper (66 inventario, 32 form finding, 43 patterning, 6 reti) e 54 del motore ARAP. Nuove prove: predefiniti senza Solver Options, casi di carico, peso delle piastre (membrana e acciaio) bilanciato dalle reazioni, Membrane Material e salvataggio di Plate Property, anteprima della sezione Generic, Fixed compensation nella Compensation.
 
 ## 0.3.0-rc.4 - 7 ottobre 2026: solo bin
 

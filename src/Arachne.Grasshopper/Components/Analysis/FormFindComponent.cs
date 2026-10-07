@@ -144,7 +144,8 @@ namespace Arachne.Grasshopper.Components.Analysis
                 int maxIterNumber = options.MaxIterations;
                 double tolerance = options.Tolerance;
                 int maxIterNumberSolver = options.SolverMaxIterations;
-                double toleranceSolver = options.SolverTolerance;
+                double toleranceSolverA = options.SolverToleranceA;
+                double toleranceSolverB = options.SolverToleranceB;
                 bool makeMesh = options.CreateMesh;
 
                 if (solverType < 0 || solverType > 2)
@@ -152,7 +153,7 @@ namespace Arachne.Grasshopper.Components.Analysis
                 if (maxIterNumber < 1)
                     throw new ArgumentException("Max Iter must be at least 1");
 
-                Model ff_model = Common.Helpers.FormFindingHelper.AssemblyModel(model.Value, plane, solverType, options.Gravity, options.Pressure, makeMesh, out List<string> warnings);
+                Model ff_model = Common.Helpers.FormFindingHelper.AssemblyModel(model.Value, plane, solverType, options, out List<string> warnings);
                 foreach (string warning in warnings)
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, warning);
 
@@ -173,7 +174,7 @@ namespace Arachne.Grasshopper.Components.Analysis
                     int count = 0;
                     Solver.ResultCodes ret;
 
-                    ForceDensitySolver solver = new LinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolver, maxIterNumberSolver);
+                    ForceDensitySolver solver = new LinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolverA, toleranceSolverB, maxIterNumberSolver);
 
                     do
                     {
@@ -229,9 +230,9 @@ namespace Arachne.Grasshopper.Components.Analysis
                 {
                     ForceDensitySolver solver;
                     if (solverType == 0)
-                        solver = new LinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolver, maxIterNumberSolver);
+                        solver = new LinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolverA, toleranceSolverB, maxIterNumberSolver);
                     else
-                        solver = new NonLinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolver, maxIterNumberSolver);
+                        solver = new NonLinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolverA, toleranceSolverB, maxIterNumberSolver);
 
                     Solver.ResultCodes ret = solver.SolveForceDensity();
 

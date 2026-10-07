@@ -6,8 +6,8 @@ I componenti di Arachne sono quelli di FeMM, con **gli stessi ingressi e le stes
 
 - le correzioni dei bug elencate più sotto;
 - gli ingressi tolti di proposito (definizioni SAP e carichi non gestiti dal form finding, vedi Adattamenti), elencati anche nel banco di prova;
-- lo snellimento: Table Material tolto, Plate Property con un solo spessore e senza tipo, le opzioni del Form Find nel componente Solver Options, Build, Decompose e Check Model nel pannello 09-Model, il patterning dopo l'analisi (13-Patterning);
-- gli adattamenti alla TensileLib 2.2 (repository `../tensilelib`), al motore ARAP C# e all'assenza del plug-in Rhino di FeMM;
+- lo snellimento: Table Material e Mesh Pipe tolti, Plate Property con un solo spessore e senza tipo, le opzioni del Form Find nel componente Solver Options, Build, Decompose e Check Model nel pannello 09-Model, il patterning dopo l'analisi (13-Patterning), le reti di cavi in 14-Tools;
+- gli adattamenti alla TensileLib 2.3 (repository `../tensilelib`), al motore ARAP C# e all'assenza del plug-in Rhino di FeMM;
 - sei componenti nuovi di Arachne, elencati a parte.
 
 Si lavora in N e mm: Build Model ha come predefinito Nmm (come FeMM), le sezioni sono nelle unità del modello e la gravità di Solver Options, in N/mm, vale 9806.65 mm/s².
@@ -21,7 +21,7 @@ I GUID sono nuovi, così FeMM e Arachne possono essere caricati insieme. Le defi
 | FeMM.Common: modelli (Models), helper e geometria usati dal form finding | `src/Arachne.Common` |
 | FeMM.Grasshopper: data type, attributi grafici, componenti | `src/Arachne.Grasshopper` |
 | MaffeisIGL (ARAP nativo, libigl) | `src/Arachne.Arap`, motore C# riscritto |
-| TensileLib 2.0.6 (NuGet, non più disponibile) | TensileLib 2.2.0.0 da `../tensilelib` |
+| TensileLib 2.0.6 (NuGet, non più disponibile) | TensileLib 2.3.0.0 da `../tensilelib` |
 
 Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino, plug-in FeMM.Rhino e risultati delle analisi FEM (resta solo il modello delle reazioni, `NodeReactResultModel`, usato dal form finding). Di conseguenza:
 
@@ -72,9 +72,9 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 | 08-Loads | Beam Point Load (BPL) | `Components/Loads/BeamPointLoadComponent.cs` | 08795ed9-9536-4f38-bc7f-960a3bf30266 | 7f58c892-a469-400c-bc46-e2c9c60ad280 |
 | 08-Loads | Node Load (NL) | `Components/Loads/NodeLoadComponent.cs` | 554499f4-e448-46a5-a457-40e308be5c87 | 705f086f-9f47-46f9-92b0-9c20e9115891 |
 | 13-Patterning | Borders (Bs) | `Components/Patterning/BordersComponent.cs` | 49141274-7cad-44b1-8c31-ba5d2c9d74dc | 810c4b07-ff37-5c08-b92e-a7a9a288ef41 |
-| 13-Patterning | Cable Net (CN) | `Components/Patterning/CableNetComponent.cs` | 53e1a59c-b28d-4619-9ab6-70d2bf72c379 | cb2b48b5-63b8-4af9-8f54-75ff5d506e5f |
+| 14-Tools | Cable Net (CN) | `Components/Patterning/CableNetComponent.cs` | 53e1a59c-b28d-4619-9ab6-70d2bf72c379 | cb2b48b5-63b8-4af9-8f54-75ff5d506e5f |
 | 13-Patterning | Compensation (C) | `Components/Patterning/CompensationComponent.cs` | c64f8be6-7169-46b2-a501-8a6fab04c724 | 51dce643-1c37-56ac-9eb1-9641e7bcdf1f |
-| 13-Patterning | Compound Net (CompNet) | `Components/Patterning/CompoundNetComponent.cs` | c5e1549c-7c80-4bb0-a067-117eb2d19240 | ca17f231-a85b-42dd-b48f-91c81e0916d7 |
+| 14-Tools | Compound Net (CompNet) | `Components/Patterning/CompoundNetComponent.cs` | c5e1549c-7c80-4bb0-a067-117eb2d19240 | ca17f231-a85b-42dd-b48f-91c81e0916d7 |
 | 13-Patterning | Decompensation (DC) | `Components/Patterning/DecompensationComponent.cs` | a9e861a6-31e7-46ea-b3de-f39ad896bd6a | 9bcc0da9-b5e3-5b52-9801-47c48ae166f1 |
 | 13-Patterning | DecompensationDescriptor (DD) | `Components/Patterning/DecompensationDescriptorComponent.cs` | 4e5480bb-ac1e-441b-b0d8-c28aa5d92e50 | 88842b12-f723-5963-aa1f-5d80a18b50f5 |
 | 13-Patterning | DecompensationDescriptorExt (DDE) | `Components/Patterning/DecompensationDescriptorExtComponent.cs` | d787c3ec-4659-4ba1-b2d5-a4d226f14bf8 | af556c97-1cca-549b-9094-36dd61c91595 |
@@ -86,10 +86,9 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 | 13-Patterning | Mesh Clean (MC) | `Components/Patterning/MeshCleanComponent.cs` | f77f438b-00d4-46dd-b428-bc3ec195cfd2 | ca2b11c4-55c9-5d47-8db1-af6ecf7efa07 |
 | 13-Patterning | Mesh Divide (MD) | `Components/Patterning/MeshDivideComponent.cs` | 065060c5-cde9-489f-a9d4-348447b3be1f | 1af1264d-127a-5fc0-a8fc-93713840902e |
 | 13-Patterning | Mesh Geodesic (MG) | `Components/Patterning/MeshGeodesicComponent.cs` | d9ad6d18-9b32-4958-9836-c980c22e381b | fe0db245-06c9-5b1c-92bd-6b7c8bff360d |
-| 13-Patterning | Mesh Pipe (MP) | `Components/Patterning/MeshPipeComponent.cs` | b6b9a33b-b036-4e3d-97f6-898c3ced844f | dd2927ec-f681-56e7-ab75-f4916b2528d3 |
 | 13-Patterning | Mesh Remap (MR) | `Components/Patterning/MeshRemapComponent.cs` | 4bc2da90-9230-4fb8-b044-7b70e826270c | fd929959-b16b-5f27-8026-cb7374c3922a |
 | 13-Patterning | OrderBorders (OB) | `Components/Patterning/OrderBordersComponent.cs` | 335d8f38-48a3-485e-ae93-8b5f3d72992f | 085ff316-27ac-53fb-b09f-2f8039f82f68 |
-| 13-Patterning | Radial Cable Net (RCN) | `Components/Patterning/CableNetRadialComponent.cs` | 0f317607-a1e1-40ed-b988-c2157b8b3907 | f5b16b9e-f4e6-45c1-9430-7595f8b26cca |
+| 14-Tools | Radial Cable Net (RCN) | `Components/Patterning/CableNetRadialComponent.cs` | 0f317607-a1e1-40ed-b988-c2157b8b3907 | f5b16b9e-f4e6-45c1-9430-7595f8b26cca |
 | 13-Patterning | Remesh (R) | `Components/Tools/RemeshComponent.cs` | 4c4d90ee-ff74-4cf0-8fc7-b3a73e06512a | 7fd3c82c-a8ea-4d66-9147-c8b722b9b1bb |
 | 13-Patterning | Split Mesh On Curves (SM) | `Components/Patterning/SplitMeshOnCurvesComponent.cs` | 6413cd87-824b-484f-89b4-115f928f96fd | f1efd4c3-1fac-5f78-b272-a0b71b9af9f6 |
 | 13-Patterning | Subdivide Mesh (MC) | `Components/Patterning/SubdivideMeshComponent.cs` | 8dcc7742-7a42-40bb-a94f-27b77c085f24 | a9271e1c-81d2-58d2-843c-bee8a3e0aa8d |
@@ -109,7 +108,7 @@ Non esistono in FeMM.
 | Pannello | Componente | Cosa fa | GUID |
 | --- | --- | --- | --- |
 | 02-Materials | Membrane Material (MM) | Materiale di una membrana (tessuto spalmato o film) dai valori della scheda tecnica: peso in g/m², resistenze di ordito e trama in N/5cm, e facoltativi rigidezze E·t di ordito e trama e rigidezza a taglio G·t in kN/m, coefficiente di Poisson. Li salva in t, N e mm. Si collega a Plate Property. | 3653a652-deb4-4695-b52d-1fce5edfe629 |
-| 12-Analysis | Solver Options (SO) | Le opzioni del Form Find, che in FeMM erano suoi ingressi, con gli stessi nomi e predefiniti: Gravity, Pressure, Pressure Load Case, Max Iter, Tolerance, Max Iter,s, Tolerance,s, Create mesh, Plate Property. Senza questo componente il Form Find usa i predefiniti. | 4b18d9c1-d734-40c5-99d8-9d53333a76d5 |
+| 12-Analysis | Solver Options (SO) | Le opzioni del Form Find, che in FeMM erano suoi ingressi, con gli stessi nomi: Gravity, Pressure, Pressure Load Case, Max Iter, Tolerance, Max Iter,s, ToleranceA,s, ToleranceB,s, Create mesh, Plate Property; in più Load Cases, i casi dei carichi da applicare. Predefiniti di FeMM, tranne le due tolleranze algebriche (1e-6, vedi Adattamenti). Senza questo componente il Form Find usa i predefiniti. | 4b18d9c1-d734-40c5-99d8-9d53333a76d5 |
 | 09-Model | Check Model (CkM) | Controlla il modello prima del form finding: vincoli per ogni parte e direzione, nodi senza aste con forza, aste senza densità di forza, lunghezze nulle, aste doppie, valori non validi di lunghezza o forza fissa. Uscite: Valid, Errors, Warnings, Parts. | 6b9c4718-1b7d-485e-9293-31637d077e35 |
 | 13-Patterning | Panel Distortion (PD) | Confronta un pannello 3D con il suo sviluppo (stessi vertici): allungamento di ogni lato in %, massimo e variazione d'area. | 44d42704-4c53-4dbc-a113-c2f9a3b6388d |
 | 12-Analysis | Beam Forces (BF) | Linee, forze assiali (dal pre-carico salvato dal Form Find), densità di forza N/L, lunghezze e ID delle aste. | 5f9a26f9-c55b-496a-8153-459d8e9a56db |
@@ -175,15 +174,19 @@ Comportamento invariato rispetto a FeMM: Form Find (Linear e Non-Linear), Flatte
 ## Adattamenti
 
 - Ingressi tolti di proposito: Build Model non ha più Load Combinations, Named sets e Staged constructions; Beam Distributed Load non ha più P1 e P2. Beam Distributed Load accetta solo i carichi uniformi e trapezi; senza Coordinate System il carico è globale (in FeMM era nel sistema locale dell'asta, che il form finding non gestisce). Lo stesso vale per Beam Point Load.
-- TensileLib 2.2: i solutori accettano una sola tolleranza algebrica, quindi Solver Options ha solo Tolerance,s (FeMM: ToleranceA,s e ToleranceB,s). Non esiste più l'opzione CreateMesh del motore: senza piastre in ingresso, le piastre vengono generate dalle aste per ogni parte della rete.
+- TensileLib 2.3: le due tolleranze algebriche di FeMM (TensileLib 2.0.6) ci sono di nuovo. ToleranceA,s: residuo relativo del gradiente coniugato (Linear) e residuo ai minimi quadrati |A^T r|/(|A| |r|) di LSQR (Non-Linear); ToleranceB,s: LSQR si ferma quando |r| <= B |b|. Predefinite a 1e-6, il valore predefinito di ALGLIB letto dalla DLL in uso (anche SciPy e MATLAB per LSQR: circa 6 cifre esatte). FeMM dava 0, che ALGLIB trasforma in 1e-6 solo se anche Max Iter,s è 0; altrimenti il solutore gira fino agli errori di arrotondamento. Non esiste più l'opzione CreateMesh del motore: senza piastre in ingresso, le piastre vengono generate dalle aste per ogni parte della rete.
+- Peso proprio delle piastre (TensileLib 2.3), con Gravity diversa da 0: spessore × densità della Plate Property × gravità × area attuale, ricalcolato a ogni iterazione e verso -Z come per le aste. Per un Membrane Material il peso per area è quello della scheda tecnica (lo spessore si elide). La proprietà è quella delle piastre in ingresso o, per le piastre generate dalle aste, il Plate Property di Solver Options. Le reazioni lo comprendono.
+- Casi di carico: il solutore prendeva tutti i carichi, qualunque fosse il loro caso. L'ingresso Load Cases di Solver Options sceglie i casi dei carichi nodali e sulle aste da applicare; vuoto: tutti, come prima. Gli attributi di form finding (densità di forza, lunghezze e forze fisse) non dipendono dai casi; il loro caso etichetta il pre-carico.
+- Fixed compensation è una lunghezza fissa pari alla lunghezza dell'asta ridotta del C%. La Compensation la impone sul lato del pannello piano con gli stessi vertici (verificato: 10% su un lato di 2 dà 1.8); nel Form Find (Non-Linear e step by step) agisce come Fixed Length.
 - Snellimento (0.3.0-rc.5), con GUID nuovi per i componenti con ingressi diversi da FeMM:
   - Load Case: tolto Gravity NSM (gravità sulla massa non strutturale, solo SAP);
   - Table Material: tolto (tabella sforzi-deformazioni per SAP); per le membrane c'è Membrane Material;
   - Plate Property: Name, Thickness e Material; tolti il tipo SAP (Shell-Thin, Membrane, Load Patch...) e il secondo spessore. Senza spessore l'anteprima della piastra è la superficie, come il Load Patch di FeMM;
-  - Form Find: restano Model, Solver Type, Plane e Auto Run; le altre opzioni sono date da Solver Options, con gli stessi predefiniti. Se Options è collegato ma vuoto (per esempio una pressione senza caso di carico), il Form Find si ferma invece di usare i predefiniti;
-  - pannelli: Node, Beam e Plate restano in 06-Model; Build, Decompose e Check Model sono in 09-Model, dopo attributi e carichi; il patterning è in 13-Patterning, dopo l'analisi.
+  - Form Find: restano Model, Solver Type, Plane e Auto Run; le altre opzioni sono date da Solver Options. Se Options è collegato ma vuoto (per esempio una pressione senza caso di carico), il Form Find si ferma invece di usare i predefiniti;
+  - Mesh Pipe: tolto;
+  - pannelli: Node, Beam e Plate restano in 06-Model; Build, Decompose e Check Model sono in 09-Model, dopo attributi e carichi; il patterning è in 13-Patterning, dopo l'analisi; Cable Net, Radial Cable Net e Compound Net, che generano la rete, sono in 14-Tools.
 - TensileLib 2.2 non modifica più le densità obiettivo delle aste (la densità trovata è `Beam.ForceDensity`): Linear step by step riparte a ogni passo dalle densità appena trovate, come prima.
 - Non-Linear: i pesi di Keep Position e delle Force Density ora hanno effetto. Nella TensileLib precedente il calcolo ricadeva quasi sempre su un metodo che li ignorava (vedere il registro di TensileLib). I pesi di Fixed Length e Fixed Axial Force contano quando questi vincoli non si possono soddisfare tutti insieme.
-- Il Form Find salva nel modello le reazioni dei vincoli (`NodeReactResultModel` di FeMM, caso "Form Finding"), calcolate dall'equilibrio dei nodi vincolati con le forze delle aste e i carichi applicati dal solutore (carichi nodali e delle aste, peso proprio, pressione). Sono salvate solo se il calcolo converge e sono sostituite a ogni nuovo form finding. Le legge Support Reactions.
+- Il Form Find salva nel modello le reazioni dei vincoli (`NodeReactResultModel` di FeMM, caso "Form Finding"), calcolate dall'equilibrio dei nodi vincolati con le forze delle aste e i carichi applicati dal solutore (carichi nodali e delle aste, peso proprio di aste e piastre, pressione). Sono salvate solo se il calcolo converge e sono sostituite a ogni nuovo form finding. Le legge Support Reactions.
 - Flattening ARAP e Deform ARAP usano il motore C# di `Arachne.Arap`. Quando non converge, il motore non restituisce la mesh (FeMM la pubblicava con un avviso); il componente mostra il motivo.
 - Remesh compare nel pannello del patterning, come in FeMM, anche se il sorgente era nella cartella Tools.

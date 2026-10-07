@@ -2,7 +2,7 @@
 
 Plug-in Grasshopper per il form finding e il patterning di tele e tensostrutture. Contiene i componenti di FeMM dedicati a questi due temi, con gli stessi ingressi e uscite tranne lo snellimento (dati SAP tolti, opzioni del Form Find in Solver Options); i GUID sono nuovi, così i due plug-in si possono caricare insieme. Sono corretti i bug trovati durante il trasferimento ([dettagli](docs/PORTING.md)). Componenti nuovi: Membrane Material, Solver Options, Check Model, Beam Forces, Support Reactions e Panel Distortion.
 
-**Versione:** 0.3.0-rc.5 (DLL 0.3.0.5). Si lavora in N e mm. Motore di form finding: TensileLib 2.2 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)).
+**Versione:** 0.3.0-rc.5 (DLL 0.3.0.5). Si lavora in N e mm. Motore di form finding: TensileLib 2.3 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)).
 
 ## Struttura
 
@@ -52,7 +52,8 @@ Note d'uso, come in FeMM:
 - **Unità:** si lavora in N e mm, il predefinito di Build Model (Nmm). Le dimensioni delle sezioni sono nelle unità del modello (mm), le densità di forza in N/mm e la gravità di Solver Options, se si vuole il peso proprio, vale 9806.65 mm/s². Le tolleranze di Solver Options sono relative; TensileLib risolve il modello centrato nell'origine, quindi le coordinate di cantiere non peggiorano la convergenza né la precisione.
 - **Rami:** collegare a Build Model tutti gli elementi in un'unica lista, appiattendo l'ingresso Elements se arrivano da percorsi diversi. Gli elementi con lo stesso GUID (per esempio una Beam passata da Force Density e da Fixed Length) vengono uniti.
 - **Fusione dei nodi:** due nodi più vicini di 0.001 (unità del modello) vengono uniti con attributi e carichi. FeMM leggeva questa tolleranza dalle opzioni del suo plug-in Rhino.
-- **Form Find:** calcola con il pulsante **Run** oppure con Auto Run = True. Gravità, pressione, iterazioni, tolleranze e mesh si danno con Solver Options; senza, valgono i predefiniti di FeMM. La pressione richiede un Load Case, a cui vengono assegnati i carichi nodali risultanti; una pressione positiva agisce secondo la normale dell'ingresso Plane (+Z con il piano predefinito). I solutori Linear e Non-Linear pubblicano il risultato anche al limite di iterazioni, con un avviso. Linear step by step si ferma invece con un errore.
+- **Form Find:** calcola con il pulsante **Run** oppure con Auto Run = True. Gravità, pressione, casi di carico, iterazioni, tolleranze e mesh si danno con Solver Options; senza, valgono i predefiniti. Load Cases sceglie i casi dei carichi nodali e sulle aste da applicare (vuoto: tutti).
+- **Peso proprio:** con Gravity diversa da 0 pesano le aste (area × densità della sezione) e le piastre con una Plate Property (spessore × densità; per un Membrane Material il peso in g/m² della scheda). Le piastre generate dalle aste prendono il Plate Property di Solver Options. La pressione richiede un Load Case, a cui vengono assegnati i carichi nodali risultanti; una pressione positiva agisce secondo la normale dell'ingresso Plane (+Z con il piano predefinito). I solutori Linear e Non-Linear pubblicano il risultato anche al limite di iterazioni, con un avviso. Linear step by step si ferma invece con un errore.
 - **Risultati:** il modello calcolato contiene le forze assiali delle aste (pre-carichi, come in FeMM) e, se il calcolo converge, le reazioni dei vincoli. Beam Forces e Support Reactions le estraggono.
 - **Carichi sulle aste:** solo forze, uniformi o trapezie, in un sistema globale o in un Coordinate System; sono ripartite sui nodi con la regola della leva e restano alla stessa frazione della lunghezza quando l'asta si allunga.
 - **Filtri:** Node, Beam e Plate Filter cercano per ID gli identificativi assegnati con Element Id.
@@ -72,8 +73,8 @@ Note d'uso, come in FeMM:
 | 08-Loads | Node Load, Beam Point Load, Beam Distributed Load |
 | 09-Model | Build Model, Decompose Model, *Check Model* |
 | 12-Analysis | Form Find, *Solver Options*, *Beam Forces*, *Support Reactions* |
-| 13-Patterning | Cable Net, Radial Cable Net, Compound Net, Borders, OrderBorders, Compensation, Decompensation, DecompensationDescriptor, DecompensationDescriptorExt, Flattening, Flattening ARAP, Deform ARAP, Geodesic Offsets, Line-Up, Mesh Clean, Mesh Divide, Mesh Geodesic, Mesh Pipe, Mesh Remap, Remesh, Split Mesh On Curves, Subdivide Mesh, Unweld Mesh, *Panel Distortion* |
-| 14-Tools | Curve2Mesh, Node Filter, Beam Filter, Plate Filter |
+| 13-Patterning | Borders, OrderBorders, Compensation, Decompensation, DecompensationDescriptor, DecompensationDescriptorExt, Flattening, Flattening ARAP, Deform ARAP, Geodesic Offsets, Line-Up, Mesh Clean, Mesh Divide, Mesh Geodesic, Mesh Remap, Remesh, Split Mesh On Curves, Subdivide Mesh, Unweld Mesh, *Panel Distortion* |
+| 14-Tools | Cable Net, Radial Cable Net, Compound Net, Curve2Mesh, Node Filter, Beam Filter, Plate Filter |
 
 Le sezioni servono al peso proprio (area) e all'anteprima delle aste, disegnate con la loro sezione. In corsivo i componenti nuovi di Arachne, che non esistono in FeMM. La tabella con sorgente FeMM e GUID di ogni componente è in [PORTING.md](docs/PORTING.md); le icone sono in [ICONS.svg](docs/ICONS.svg).
 
