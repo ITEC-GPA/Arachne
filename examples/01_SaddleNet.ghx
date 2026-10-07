@@ -22,7 +22,7 @@
       <chunks count="5">
         <chunk name="DocumentHeader">
           <items count="5">
-            <item name="DocumentID" type_name="gh_guid" type_code="9">4e267eaf-cc93-484b-bef6-5540b1acb8d6</item>
+            <item name="DocumentID" type_name="gh_guid" type_code="9">2f680e04-b6c9-44a8-95f8-90faf61c4457</item>
             <item name="Preview" type_name="gh_string" type_code="10">Shaded</item>
             <item name="PreviewMeshType" type_name="gh_int32" type_code="3">1</item>
             <item name="PreviewNormal" type_name="gh_drawing_color" type_code="36">
@@ -35,7 +35,7 @@
         </chunk>
         <chunk name="DefinitionProperties">
           <items count="4">
-            <item name="Date" type_name="gh_date" type_code="8">639269270474838109</item>
+            <item name="Date" type_name="gh_date" type_code="8">639269857920293257</item>
             <item name="Description" type_name="gh_string" type_code="10"></item>
             <item name="KeepOpen" type_name="gh_bool" type_code="1">false</item>
             <item name="Name" type_name="gh_string" type_code="10"></item>
@@ -49,10 +49,10 @@
             <chunk name="Projection">
               <items count="2">
                 <item name="Target" type_name="gh_drawing_point" type_code="30">
-                  <X>15</X>
-                  <Y>15</Y>
+                  <X>12</X>
+                  <Y>12</Y>
                 </item>
-                <item name="Zoom" type_name="gh_single" type_code="5">1.5</item>
+                <item name="Zoom" type_name="gh_single" type_code="5">1.25</item>
               </items>
             </chunk>
             <chunk name="Views">
@@ -82,8 +82,8 @@
             </chunk>
             <chunk name="Library" index="1">
               <items count="6">
-                <item name="AssemblyFullName" type_name="gh_string" type_code="10">Arachne.Grasshopper, Version=0.3.0.0, Culture=neutral, PublicKeyToken=null</item>
-                <item name="AssemblyVersion" type_name="gh_string" type_code="10">0.3.0.0</item>
+                <item name="AssemblyFullName" type_name="gh_string" type_code="10">Arachne.Grasshopper, Version=0.3.0.5, Culture=neutral, PublicKeyToken=null</item>
+                <item name="AssemblyVersion" type_name="gh_string" type_code="10">0.3.0.5</item>
                 <item name="Author" type_name="gh_string" type_code="10">GPC</item>
                 <item name="Id" type_name="gh_guid" type_code="9">3f5451ce-fb9d-4b79-bbc3-0d78995556ce</item>
                 <item name="Name" type_name="gh_string" type_code="10">Arachne</item>
@@ -94,12 +94,12 @@
         </chunk>
         <chunk name="DefinitionObjects">
           <items count="1">
-            <item name="ObjectCount" type_name="gh_int32" type_code="3">17</item>
+            <item name="ObjectCount" type_name="gh_int32" type_code="3">18</item>
           </items>
-          <chunks count="17">
+          <chunks count="18">
             <chunk name="Object" index="0">
               <items count="3">
-                <item name="GUID" type_name="gh_guid" type_code="9">d36a3ace-b39c-450c-b059-e743137cde26</item>
+                <item name="GUID" type_name="gh_guid" type_code="9">dd9360b8-20ab-4a62-aa15-bbad93f0f9b6</item>
                 <item name="Lib" type_name="gh_guid" type_code="9">3f5451ce-fb9d-4b79-bbc3-0d78995556ce</item>
                 <item name="Name" type_name="gh_string" type_code="10">Load Case</item>
               </items>
@@ -107,11 +107,11 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">A load case definition</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">25c2ead4-1d20-43c6-a770-726927cc3086</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">0aa06221-44f9-4f1e-82ca-a45f6568a693</item>
                     <item name="Name" type_name="gh_string" type_code="10">Load Case</item>
                     <item name="NickName" type_name="gh_string" type_code="10">LC</item>
                   </items>
-                  <chunks count="4">
+                  <chunks count="3">
                     <chunk name="Attributes">
                       <items count="2">
                         <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
@@ -129,7 +129,7 @@
                     <chunk name="param_input" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The load case name</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">1a8dce3d-4c34-4d8a-a7bc-ec59a938ea1d</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">bc49c5a2-3984-4fb0-8240-83a911c98967</item>
                         <item name="Name" type_name="gh_string" type_code="10">Name</item>
                         <item name="NickName" type_name="gh_string" type_code="10">N</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -169,52 +169,10 @@
                         </chunk>
                       </chunks>
                     </chunk>
-                    <chunk name="param_input" index="1">
-                      <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">Apply gravity to non-structural mass</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">8116a90a-1f84-4850-bfa4-b0e9142dbb69</item>
-                        <item name="Name" type_name="gh_string" type_code="10">Gravity NSM</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">NSM</item>
-                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
-                      </items>
-                      <chunks count="2">
-                        <chunk name="Attributes">
-                          <items count="1">
-                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
-                              <X>0</X>
-                              <Y>0</Y>
-                              <W>150</W>
-                              <H>20</H>
-                            </item>
-                          </items>
-                        </chunk>
-                        <chunk name="PersistentData">
-                          <items count="1">
-                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                          </items>
-                          <chunks count="1">
-                            <chunk name="Branch" index="0">
-                              <items count="2">
-                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
-                              </items>
-                              <chunks count="1">
-                                <chunk name="Item" index="0">
-                                  <items count="1">
-                                    <item name="boolean" type_name="gh_bool" type_code="1">false</item>
-                                  </items>
-                                </chunk>
-                              </chunks>
-                            </chunk>
-                          </chunks>
-                        </chunk>
-                      </chunks>
-                    </chunk>
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The defined load case</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">536afb70-eb79-4128-991d-9363c599bbbf</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">f13a4767-fa58-43f2-8fe2-b0c2efde3019</item>
                         <item name="Name" type_name="gh_string" type_code="10">LoadCase</item>
                         <item name="NickName" type_name="gh_string" type_code="10">LC</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -247,7 +205,7 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">Defines a solid circle beam section</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">670f9196-1206-4015-8e17-1a06ddfc7b78</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">e7e92fac-2d8a-44d4-9a7e-8e136b391ba7</item>
                     <item name="Name" type_name="gh_string" type_code="10">Solid Circle</item>
                     <item name="NickName" type_name="gh_string" type_code="10">SC</item>
                   </items>
@@ -269,7 +227,7 @@
                     <chunk name="param_input" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The section diameter</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">6a69095c-cc94-4f53-a8ea-ed8e8a9c7163</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">86fccc3d-f17f-43b2-a668-7b60f72609aa</item>
                         <item name="Name" type_name="gh_string" type_code="10">Diameter</item>
                         <item name="NickName" type_name="gh_string" type_code="10">D</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -311,7 +269,7 @@
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The solid circular section</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">b1075cd3-6af1-4c5d-98c4-b84a8f1986b2</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">07b683d1-cf4a-4ca2-8df9-e8432ab72619</item>
                         <item name="Name" type_name="gh_string" type_code="10">Section</item>
                         <item name="NickName" type_name="gh_string" type_code="10">S</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -344,7 +302,7 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">Steel Material</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">c5d71cff-9191-483a-a29b-9f39c8956442</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">28db81d5-14e0-471a-8c35-395056c0adba</item>
                     <item name="Name" type_name="gh_string" type_code="10">Steel</item>
                     <item name="NickName" type_name="gh_string" type_code="10">SM</item>
                   </items>
@@ -366,7 +324,7 @@
                     <chunk name="param_input" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The name of the material</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">828542ef-e2bd-46bd-9009-5498f3c9dd6d</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">523dc1a1-0c42-4c25-abf3-46c77bb86a93</item>
                         <item name="Name" type_name="gh_string" type_code="10">Name</item>
                         <item name="NickName" type_name="gh_string" type_code="10">N</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -409,7 +367,7 @@
                     <chunk name="param_input" index="1">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The steel grade</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">f4580451-72b4-4801-b7b5-a3d782dcdde5</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">56a758e6-13bc-4500-8356-6a4413ef55dd</item>
                         <item name="Name" type_name="gh_string" type_code="10">Grade</item>
                         <item name="NickName" type_name="gh_string" type_code="10">G</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -451,7 +409,7 @@
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The Steel material</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">db87ae68-7e69-4b46-aa7a-c0df7ab6ec91</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">03d3be07-00d1-4bfe-8970-65d9644dd3f1</item>
                         <item name="Name" type_name="gh_string" type_code="10">Material</item>
                         <item name="NickName" type_name="gh_string" type_code="10">M</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -484,7 +442,7 @@
                 <chunk name="Container">
                   <items count="5">
                     <item name="Description" type_name="gh_string" type_code="10">Beam properties</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">e1e62d37-70d1-4bf4-9e64-3a4a84772d29</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">e887a16b-c359-4494-97f5-4fb743d6f9d8</item>
                     <item name="Name" type_name="gh_string" type_code="10">Beam Property</item>
                     <item name="NickName" type_name="gh_string" type_code="10">BP</item>
                     <item name="Release" type_name="gh_int32" type_code="3">1</item>
@@ -504,7 +462,7 @@
                         <chunk name="InputParam" index="0">
                           <items count="6">
                             <item name="Description" type_name="gh_string" type_code="10">Property name</item>
-                            <item name="InstanceGuid" type_name="gh_guid" type_code="9">e1254a4b-f0c2-471c-abf1-f053ca54877a</item>
+                            <item name="InstanceGuid" type_name="gh_guid" type_code="9">a198d4a7-3688-4d29-83ff-245092e26f4c</item>
                             <item name="Name" type_name="gh_string" type_code="10">Name</item>
                             <item name="NickName" type_name="gh_string" type_code="10">N</item>
                             <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -547,7 +505,7 @@
                         <chunk name="InputParam" index="1">
                           <items count="6">
                             <item name="Description" type_name="gh_string" type_code="10">The property type</item>
-                            <item name="InstanceGuid" type_name="gh_guid" type_code="9">5f868ac2-cb94-46bd-9db6-810a0acab1e3</item>
+                            <item name="InstanceGuid" type_name="gh_guid" type_code="9">c6aab756-9c4d-4036-80a3-21edfddc1685</item>
                             <item name="Name" type_name="gh_string" type_code="10">Type</item>
                             <item name="NickName" type_name="gh_string" type_code="10">T</item>
                             <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -589,11 +547,11 @@
                         <chunk name="InputParam" index="2">
                           <items count="7">
                             <item name="Description" type_name="gh_string" type_code="10">Section</item>
-                            <item name="InstanceGuid" type_name="gh_guid" type_code="9">5212e5b4-5e58-49ac-9ed3-8e0792c3c031</item>
+                            <item name="InstanceGuid" type_name="gh_guid" type_code="9">766a8452-4239-4029-98e3-cec4b73b9692</item>
                             <item name="Name" type_name="gh_string" type_code="10">Section</item>
                             <item name="NickName" type_name="gh_string" type_code="10">S</item>
                             <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                            <item name="Source" index="0" type_name="gh_guid" type_code="9">b1075cd3-6af1-4c5d-98c4-b84a8f1986b2</item>
+                            <item name="Source" index="0" type_name="gh_guid" type_code="9">07b683d1-cf4a-4ca2-8df9-e8432ab72619</item>
                             <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                           </items>
                           <chunks count="1">
@@ -612,11 +570,11 @@
                         <chunk name="InputParam" index="3">
                           <items count="7">
                             <item name="Description" type_name="gh_string" type_code="10">Material</item>
-                            <item name="InstanceGuid" type_name="gh_guid" type_code="9">1d6e5950-ae3f-490f-8f4b-268d6b4523f6</item>
+                            <item name="InstanceGuid" type_name="gh_guid" type_code="9">89cfacbe-68c6-49c4-858e-dfff93123935</item>
                             <item name="Name" type_name="gh_string" type_code="10">Material</item>
                             <item name="NickName" type_name="gh_string" type_code="10">M</item>
                             <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                            <item name="Source" index="0" type_name="gh_guid" type_code="9">db87ae68-7e69-4b46-aa7a-c0df7ab6ec91</item>
+                            <item name="Source" index="0" type_name="gh_guid" type_code="9">03d3be07-00d1-4bfe-8970-65d9644dd3f1</item>
                             <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                           </items>
                           <chunks count="1">
@@ -635,7 +593,7 @@
                         <chunk name="OutputParam" index="0">
                           <items count="6">
                             <item name="Description" type_name="gh_string" type_code="10">Beam property</item>
-                            <item name="InstanceGuid" type_name="gh_guid" type_code="9">84a35a2f-f222-44f1-b3c4-7b2e8ea9a5da</item>
+                            <item name="InstanceGuid" type_name="gh_guid" type_code="9">63c8bd35-c0a7-49d0-b1f3-178e240d473c</item>
                             <item name="Name" type_name="gh_string" type_code="10">Property</item>
                             <item name="NickName" type_name="gh_string" type_code="10">BP</item>
                             <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -673,7 +631,7 @@
                     <chunk name="param_input" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">Property name</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">e1254a4b-f0c2-471c-abf1-f053ca54877a</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">a198d4a7-3688-4d29-83ff-245092e26f4c</item>
                         <item name="Name" type_name="gh_string" type_code="10">Name</item>
                         <item name="NickName" type_name="gh_string" type_code="10">N</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -716,7 +674,7 @@
                     <chunk name="param_input" index="1">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The property type</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">5f868ac2-cb94-46bd-9db6-810a0acab1e3</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">c6aab756-9c4d-4036-80a3-21edfddc1685</item>
                         <item name="Name" type_name="gh_string" type_code="10">Type</item>
                         <item name="NickName" type_name="gh_string" type_code="10">T</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -758,11 +716,11 @@
                     <chunk name="param_input" index="2">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">Section</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">5212e5b4-5e58-49ac-9ed3-8e0792c3c031</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">766a8452-4239-4029-98e3-cec4b73b9692</item>
                         <item name="Name" type_name="gh_string" type_code="10">Section</item>
                         <item name="NickName" type_name="gh_string" type_code="10">S</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">b1075cd3-6af1-4c5d-98c4-b84a8f1986b2</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">07b683d1-cf4a-4ca2-8df9-e8432ab72619</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -781,11 +739,11 @@
                     <chunk name="param_input" index="3">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">Material</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">1d6e5950-ae3f-490f-8f4b-268d6b4523f6</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">89cfacbe-68c6-49c4-858e-dfff93123935</item>
                         <item name="Name" type_name="gh_string" type_code="10">Material</item>
                         <item name="NickName" type_name="gh_string" type_code="10">M</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">db87ae68-7e69-4b46-aa7a-c0df7ab6ec91</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">03d3be07-00d1-4bfe-8970-65d9644dd3f1</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -804,7 +762,7 @@
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">Beam property</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">84a35a2f-f222-44f1-b3c4-7b2e8ea9a5da</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">63c8bd35-c0a7-49d0-b1f3-178e240d473c</item>
                         <item name="Name" type_name="gh_string" type_code="10">Property</item>
                         <item name="NickName" type_name="gh_string" type_code="10">BP</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -836,7 +794,7 @@
                 <chunk name="Container">
                   <items count="6">
                     <item name="Description" type_name="gh_string" type_code="10">Contains a collection of generic curves</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">cb7bb5ac-0c9e-493c-a14e-ddfe6d0b384f</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">40b8e3a4-f2cf-45ed-bc81-8a7df2c8aa06</item>
                     <item name="Name" type_name="gh_string" type_code="10">Curve</item>
                     <item name="NickName" type_name="gh_string" type_code="10">Cavi</item>
                     <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -847,9 +805,9 @@
                       <items count="2">
                         <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
                           <X>-25</X>
-                          <Y>-12</Y>
+                          <Y>-10</Y>
                           <W>50</W>
-                          <H>24</H>
+                          <H>20</H>
                         </item>
                         <item name="Pivot" type_name="gh_drawing_pointf" type_code="31">
                           <X>60</X>
@@ -1285,7 +1243,7 @@
                 <chunk name="Container">
                   <items count="6">
                     <item name="Description" type_name="gh_string" type_code="10">Contains a collection of three-dimensional points</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">e4ee713f-3223-416f-9358-f04aaf0f5444</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">6530dac2-ba73-4bb2-85ec-bd3fee19bbfa</item>
                     <item name="Name" type_name="gh_string" type_code="10">Point</item>
                     <item name="NickName" type_name="gh_string" type_code="10">Vincoli</item>
                     <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -1296,9 +1254,9 @@
                       <items count="2">
                         <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
                           <X>-25</X>
-                          <Y>-12</Y>
+                          <Y>-10</Y>
                           <W>50</W>
-                          <H>24</H>
+                          <H>20</H>
                         </item>
                         <item name="Pivot" type_name="gh_drawing_pointf" type_code="31">
                           <X>60</X>
@@ -1495,7 +1453,7 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">Define a Beam</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">12bd2e82-1b3e-46aa-bed9-8a177461b964</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">a64417a3-b1e6-435a-bd82-06b6e8fe553f</item>
                     <item name="Name" type_name="gh_string" type_code="10">Beam</item>
                     <item name="NickName" type_name="gh_string" type_code="10">BM</item>
                   </items>
@@ -1517,11 +1475,11 @@
                     <chunk name="param_input" index="0">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">The generating line</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">4e095353-6c80-4522-9d15-b7fe3aebb24e</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">00be6308-6e13-4ff7-af66-272ea43492a5</item>
                         <item name="Name" type_name="gh_string" type_code="10">Line</item>
                         <item name="NickName" type_name="gh_string" type_code="10">L</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">cb7bb5ac-0c9e-493c-a14e-ddfe6d0b384f</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">40b8e3a4-f2cf-45ed-bc81-8a7df2c8aa06</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -1540,11 +1498,11 @@
                     <chunk name="param_input" index="1">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">The property to assign to the generated beam</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">a751a8d7-1c1f-4066-ad93-07ac54ea81ce</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">480c5374-0bc5-43da-872e-6876348cc24e</item>
                         <item name="Name" type_name="gh_string" type_code="10">Property</item>
                         <item name="NickName" type_name="gh_string" type_code="10">BP</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">84a35a2f-f222-44f1-b3c4-7b2e8ea9a5da</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">63c8bd35-c0a7-49d0-b1f3-178e240d473c</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -1564,7 +1522,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The groups to assign to the beam</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">e8a59e41-3f20-4b4f-aa70-3f7c10041f20</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">8f3008c0-a90b-4e1f-a782-d4b21f7bd079</item>
                         <item name="Name" type_name="gh_string" type_code="10">Groups</item>
                         <item name="NickName" type_name="gh_string" type_code="10">G</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">true</item>
@@ -1586,7 +1544,7 @@
                     <chunk name="param_input" index="3">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The rotation angle along the principal axis [deg]</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">f2d4f650-3510-4cca-8491-1fb0fab61f6e</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">f7717bbc-59b5-42aa-b04c-92a245a86a2d</item>
                         <item name="Name" type_name="gh_string" type_code="10">Angle</item>
                         <item name="NickName" type_name="gh_string" type_code="10">A</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -1628,7 +1586,7 @@
                     <chunk name="param_input" index="4">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The translation offset along the principal axis</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">15011626-2b12-4653-8dcc-350cccae433c</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">4ad01db5-09bb-47c1-8068-81ee7b8cc89e</item>
                         <item name="Name" type_name="gh_string" type_code="10">Offset</item>
                         <item name="NickName" type_name="gh_string" type_code="10">O</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">true</item>
@@ -1650,7 +1608,7 @@
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The generated beam</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">776947de-988a-4da2-8f12-be2a2dbf15bb</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">22296dbe-4e9c-4ea0-a8ad-6dec9e838872</item>
                         <item name="Name" type_name="gh_string" type_code="10">Beam</item>
                         <item name="NickName" type_name="gh_string" type_code="10">B</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -1683,7 +1641,7 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">A force densisty load</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">7610deb9-c17e-4d1d-8758-313807aac8ba</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">e1689c94-c294-4fc3-9b91-5acb18f30abc</item>
                     <item name="Name" type_name="gh_string" type_code="10">Force Density</item>
                     <item name="NickName" type_name="gh_string" type_code="10">FD</item>
                   </items>
@@ -1705,11 +1663,11 @@
                     <chunk name="param_input" index="0">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">The beam where add the Force Density attribute</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">9bc5896f-7851-42a0-8445-836230adedcf</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">80d49157-c8b6-4f81-a3e4-f2e3e2715d6b</item>
                         <item name="Name" type_name="gh_string" type_code="10">Beam</item>
                         <item name="NickName" type_name="gh_string" type_code="10">B</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">776947de-988a-4da2-8f12-be2a2dbf15bb</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">22296dbe-4e9c-4ea0-a8ad-6dec9e838872</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -1728,7 +1686,7 @@
                     <chunk name="param_input" index="1">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The property type</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">1d706f35-c932-43d5-948c-dcdf2efa7dcc</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">ccddd47e-ae61-40e4-bebd-a5f4cb542276</item>
                         <item name="Name" type_name="gh_string" type_code="10">Type</item>
                         <item name="NickName" type_name="gh_string" type_code="10">T</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -1770,11 +1728,11 @@
                     <chunk name="param_input" index="2">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">The load case</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">1ff6b40c-7f24-4480-94ab-fabc440a8705</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">463563e3-62cb-4d6e-a551-1157586148c9</item>
                         <item name="Name" type_name="gh_string" type_code="10">LoadCase</item>
                         <item name="NickName" type_name="gh_string" type_code="10">LC</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">536afb70-eb79-4128-991d-9363c599bbbf</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">f13a4767-fa58-43f2-8fe2-b0c2efde3019</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -1793,7 +1751,7 @@
                     <chunk name="param_input" index="3">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The force density value</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">18dfd0fb-6c9e-421c-aa06-604184c640ee</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">c840c207-b233-4adf-9d0a-085627993eb3</item>
                         <item name="Name" type_name="gh_string" type_code="10">Value</item>
                         <item name="NickName" type_name="gh_string" type_code="10">V</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -1835,7 +1793,7 @@
                     <chunk name="param_input" index="4">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">If true, use the length projected on the xy plane, else use the real length</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">8da1c885-caf3-4009-afef-f696cf458432</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">6f8241aa-c5de-4343-a2e9-9fa3227ed31b</item>
                         <item name="Name" type_name="gh_string" type_code="10">Project</item>
                         <item name="NickName" type_name="gh_string" type_code="10">P</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -1877,7 +1835,7 @@
                     <chunk name="param_input" index="5">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The weight of the force density value in the non-linear solver</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">7c12e901-e15e-48b2-9478-4143e176714f</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">8639d973-b23e-42b0-8e04-0b375d54e045</item>
                         <item name="Name" type_name="gh_string" type_code="10">Weight</item>
                         <item name="NickName" type_name="gh_string" type_code="10">W</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">true</item>
@@ -1919,7 +1877,7 @@
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The modified beam</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">ab0ae19f-aaf7-4f50-92a3-8acfb07aea9b</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">c6132f63-d515-44c3-a7c1-67d183446047</item>
                         <item name="Name" type_name="gh_string" type_code="10">Beam</item>
                         <item name="NickName" type_name="gh_string" type_code="10">B</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -1952,7 +1910,7 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">Define a Node</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">ff428e5e-1467-4463-b114-61e57ced5d91</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">d6f8aab5-3601-4207-a2c7-23db91ade858</item>
                     <item name="Name" type_name="gh_string" type_code="10">Node</item>
                     <item name="NickName" type_name="gh_string" type_code="10">N</item>
                   </items>
@@ -1974,11 +1932,11 @@
                     <chunk name="param_input" index="0">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">The node point coordinate</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">65867a04-f8cd-4c43-a072-ec0b942eb9a9</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">d4f5103f-a266-4c5b-b605-6d2a3c1eceb3</item>
                         <item name="Name" type_name="gh_string" type_code="10">Point</item>
                         <item name="NickName" type_name="gh_string" type_code="10">P</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">e4ee713f-3223-416f-9358-f04aaf0f5444</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">6530dac2-ba73-4bb2-85ec-bd3fee19bbfa</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -1997,7 +1955,7 @@
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The generated node</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">8e7be0c6-aadf-4d53-ad8b-e5d4469058bd</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">2a34569f-2d49-4fe0-b162-dc510f6c508f</item>
                         <item name="Name" type_name="gh_string" type_code="10">Node</item>
                         <item name="NickName" type_name="gh_string" type_code="10">N</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -2031,7 +1989,7 @@
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">Define a node restraints 
  false = not restrained; true = restrained</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">89d6d9d6-0f12-4f88-8477-a6bb8106ed93</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">e1817eb1-a1a9-4c91-a3d8-d08da554f8d7</item>
                     <item name="Name" type_name="gh_string" type_code="10">Restraints</item>
                     <item name="NickName" type_name="gh_string" type_code="10">NR</item>
                   </items>
@@ -2053,11 +2011,11 @@
                     <chunk name="param_input" index="0">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">The node where define the restraits</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">858513d4-e245-4c30-8905-39310444b23e</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">3d52a16c-cd6c-4f7e-b54c-be1172862ad8</item>
                         <item name="Name" type_name="gh_string" type_code="10">Node</item>
                         <item name="NickName" type_name="gh_string" type_code="10">N</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">8e7be0c6-aadf-4d53-ad8b-e5d4469058bd</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">2a34569f-2d49-4fe0-b162-dc510f6c508f</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -2077,7 +2035,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The transational restraints</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">a5705089-c528-4c1b-9029-b71725b07c18</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">6d017862-2f4a-4fe6-8475-d6019b412759</item>
                         <item name="Name" type_name="gh_string" type_code="10">Transational</item>
                         <item name="NickName" type_name="gh_string" type_code="10">T</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">true</item>
@@ -2133,7 +2091,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The rotation restraints</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">0390285f-4416-4d73-b3ce-c3efbf1f0b61</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">de082fca-530c-4462-9bc1-6be50dc4005e</item>
                         <item name="Name" type_name="gh_string" type_code="10">Rotation</item>
                         <item name="NickName" type_name="gh_string" type_code="10">R</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">true</item>
@@ -2155,7 +2113,7 @@
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The modified node</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">dfcad677-2ca8-4dd3-ae36-aec7d163c115</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">8d522328-b484-4022-b15e-ecf7547f729d</item>
                         <item name="Name" type_name="gh_string" type_code="10">Node</item>
                         <item name="NickName" type_name="gh_string" type_code="10">N</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -2188,7 +2146,7 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">Build the FEM model</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">2c1cd0ff-3ec8-4168-b771-19b2b24f318f</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">17a04784-af33-4c29-b1b1-98dcb987d4a4</item>
                     <item name="Name" type_name="gh_string" type_code="10">Build Model</item>
                     <item name="NickName" type_name="gh_string" type_code="10">BM</item>
                   </items>
@@ -2211,13 +2169,13 @@
                       <items count="10">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The model elements</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">f7fb3c19-76c0-4b2b-8787-4155c70636f5</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">0ad21671-fee8-4b90-80d2-9fb5f9a822e5</item>
                         <item name="Mapping" type_name="gh_int32" type_code="3">1</item>
                         <item name="Name" type_name="gh_string" type_code="10">Elements</item>
                         <item name="NickName" type_name="gh_string" type_code="10">E</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">ab0ae19f-aaf7-4f50-92a3-8acfb07aea9b</item>
-                        <item name="Source" index="1" type_name="gh_guid" type_code="9">dfcad677-2ca8-4dd3-ae36-aec7d163c115</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">c6132f63-d515-44c3-a7c1-67d183446047</item>
+                        <item name="Source" index="1" type_name="gh_guid" type_code="9">8d522328-b484-4022-b15e-ecf7547f729d</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">2</item>
                       </items>
                       <chunks count="1">
@@ -2236,7 +2194,7 @@
                     <chunk name="param_input" index="1">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The name of the model</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">d46ac1c4-bcb9-4052-9f1f-06c69a89a107</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">63bf7e2f-9936-4d96-a8fc-74790c7ee554</item>
                         <item name="Name" type_name="gh_string" type_code="10">Name</item>
                         <item name="NickName" type_name="gh_string" type_code="10">N</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -2279,7 +2237,7 @@
                     <chunk name="param_input" index="2">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The measure units</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">ceaad494-f0a1-46d7-ac12-3b6816c587e0</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">2a36d3bf-70c4-4946-869f-e76bb4dda3cb</item>
                         <item name="Name" type_name="gh_string" type_code="10">Units</item>
                         <item name="NickName" type_name="gh_string" type_code="10">U</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -2321,7 +2279,7 @@
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The FEM model</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">66786dd1-187d-44de-8553-529f483a3d6b</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">91aff14a-56a6-44d4-9245-3c55e09c1663</item>
                         <item name="Name" type_name="gh_string" type_code="10">Model</item>
                         <item name="NickName" type_name="gh_string" type_code="10">M</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -2354,7 +2312,7 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">Check a model before the form finding: supports, connectivity and force densities</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">d64efe08-bbca-4a9f-86d7-8e42246816a3</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">31538511-4988-4f2d-b3b5-013aec253996</item>
                     <item name="Name" type_name="gh_string" type_code="10">Check Model</item>
                     <item name="NickName" type_name="gh_string" type_code="10">CkM</item>
                   </items>
@@ -2376,11 +2334,11 @@
                     <chunk name="param_input" index="0">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">The FEM model</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">993b954b-f8cb-42b4-a808-7d1be7eb9842</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">64f63052-b142-4342-8141-6232380b3329</item>
                         <item name="Name" type_name="gh_string" type_code="10">Model</item>
                         <item name="NickName" type_name="gh_string" type_code="10">M</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">66786dd1-187d-44de-8553-529f483a3d6b</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">91aff14a-56a6-44d4-9245-3c55e09c1663</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -2399,7 +2357,7 @@
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">True if the model has no errors</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">53079352-2f00-425e-b12e-466a736d513c</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">2060b375-0908-4c6e-acf5-b53e2629da16</item>
                         <item name="Name" type_name="gh_string" type_code="10">Valid</item>
                         <item name="NickName" type_name="gh_string" type_code="10">V</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -2422,7 +2380,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The problems that make the form finding fail</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">a45f8f8e-2400-48c6-9c1a-c78166654ee0</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">218e6a7b-6cd7-4a11-acb2-c9b8df2838d0</item>
                         <item name="Name" type_name="gh_string" type_code="10">Errors</item>
                         <item name="NickName" type_name="gh_string" type_code="10">E</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -2445,7 +2403,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The probable mistakes</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">9e7e4375-65f4-498e-89b6-b109b75e7320</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">f4e4eab5-d44f-4e3e-b4ff-2e69cc6e7e8a</item>
                         <item name="Name" type_name="gh_string" type_code="10">Warnings</item>
                         <item name="NickName" type_name="gh_string" type_code="10">W</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -2467,7 +2425,7 @@
                     <chunk name="param_output" index="3">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The number of groups of nodes connected by beams that carry a force</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">41199365-2cf3-4521-85df-d9bb58bba340</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">3afb7d13-0847-464f-9fdc-2f1154549cb5</item>
                         <item name="Name" type_name="gh_string" type_code="10">Parts</item>
                         <item name="NickName" type_name="gh_string" type_code="10">P</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -2492,7 +2450,7 @@
             </chunk>
             <chunk name="Object" index="12">
               <items count="3">
-                <item name="GUID" type_name="gh_guid" type_code="9">cb0c82d4-0d41-49c5-8f14-7897700e20be</item>
+                <item name="GUID" type_name="gh_guid" type_code="9">f4c3d571-98d3-4bc9-926e-b3315a1444f3</item>
                 <item name="Lib" type_name="gh_guid" type_code="9">3f5451ce-fb9d-4b79-bbc3-0d78995556ce</item>
                 <item name="Name" type_name="gh_string" type_code="10">Form Find</item>
               </items>
@@ -2500,11 +2458,11 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">Calculate the net cable form</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">032d5d26-c7d3-4562-a8d9-ca57be080228</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">cc8f287a-bfe4-4848-81ff-4fa8f4a7bd03</item>
                     <item name="Name" type_name="gh_string" type_code="10">Form Find</item>
                     <item name="NickName" type_name="gh_string" type_code="10">FF</item>
                   </items>
-                  <chunks count="17">
+                  <chunks count="8">
                     <chunk name="Attributes">
                       <items count="2">
                         <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
@@ -2522,11 +2480,11 @@
                     <chunk name="param_input" index="0">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">The FEM model</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">a4a52daf-6240-4c98-a9cf-5b3bd5892c1a</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">db7b6ee6-22ea-4e1d-9691-76e2c3b4d96c</item>
                         <item name="Name" type_name="gh_string" type_code="10">Model</item>
                         <item name="NickName" type_name="gh_string" type_code="10">M</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">66786dd1-187d-44de-8553-529f483a3d6b</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">91aff14a-56a6-44d4-9245-3c55e09c1663</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -2544,114 +2502,8 @@
                     </chunk>
                     <chunk name="param_input" index="1">
                       <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">The gravity acceleration for self-weight calculation purpose</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">3cc20628-5ceb-4be3-acf8-13fcd50b8e36</item>
-                        <item name="Name" type_name="gh_string" type_code="10">Gravity</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">G</item>
-                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
-                      </items>
-                      <chunks count="2">
-                        <chunk name="Attributes">
-                          <items count="1">
-                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
-                              <X>0</X>
-                              <Y>0</Y>
-                              <W>150</W>
-                              <H>20</H>
-                            </item>
-                          </items>
-                        </chunk>
-                        <chunk name="PersistentData">
-                          <items count="1">
-                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                          </items>
-                          <chunks count="1">
-                            <chunk name="Branch" index="0">
-                              <items count="2">
-                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
-                              </items>
-                              <chunks count="1">
-                                <chunk name="Item" index="0">
-                                  <items count="1">
-                                    <item name="number" type_name="gh_double" type_code="6">0</item>
-                                  </items>
-                                </chunk>
-                              </chunks>
-                            </chunk>
-                          </chunks>
-                        </chunk>
-                      </chunks>
-                    </chunk>
-                    <chunk name="param_input" index="2">
-                      <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">The normal pressure applied to the model</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">d953ea19-542a-45ea-bf80-283d01ce6648</item>
-                        <item name="Name" type_name="gh_string" type_code="10">Pressure</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">P</item>
-                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
-                      </items>
-                      <chunks count="2">
-                        <chunk name="Attributes">
-                          <items count="1">
-                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
-                              <X>0</X>
-                              <Y>0</Y>
-                              <W>150</W>
-                              <H>20</H>
-                            </item>
-                          </items>
-                        </chunk>
-                        <chunk name="PersistentData">
-                          <items count="1">
-                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                          </items>
-                          <chunks count="1">
-                            <chunk name="Branch" index="0">
-                              <items count="2">
-                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
-                              </items>
-                              <chunks count="1">
-                                <chunk name="Item" index="0">
-                                  <items count="1">
-                                    <item name="number" type_name="gh_double" type_code="6">0</item>
-                                  </items>
-                                </chunk>
-                              </chunks>
-                            </chunk>
-                          </chunks>
-                        </chunk>
-                      </chunks>
-                    </chunk>
-                    <chunk name="param_input" index="3">
-                      <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">The load case used for the resulting pressure forces</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">776e6bd9-8284-40ad-848f-bb3ffc917483</item>
-                        <item name="Name" type_name="gh_string" type_code="10">Pressure Load Case</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">LC</item>
-                        <item name="Optional" type_name="gh_bool" type_code="1">true</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
-                      </items>
-                      <chunks count="1">
-                        <chunk name="Attributes">
-                          <items count="1">
-                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
-                              <X>0</X>
-                              <Y>0</Y>
-                              <W>150</W>
-                              <H>20</H>
-                            </item>
-                          </items>
-                        </chunk>
-                      </chunks>
-                    </chunk>
-                    <chunk name="param_input" index="4">
-                      <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The type of solver to be used</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">d4685830-75c4-4a86-8d7c-da8b9baa3589</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">4e8d31b9-2088-4fcf-b22d-aa2eff32adeb</item>
                         <item name="Name" type_name="gh_string" type_code="10">Solver Type</item>
                         <item name="NickName" type_name="gh_string" type_code="10">ST</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -2690,266 +2542,15 @@
                         </chunk>
                       </chunks>
                     </chunk>
-                    <chunk name="param_input" index="5">
-                      <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">Max number of iterations in solution (only for Linear step by step and Non-Linear solution)</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">e850b56b-4a6d-404c-9ccf-6083acf37cf6</item>
-                        <item name="Name" type_name="gh_string" type_code="10">Max Iter</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">MI</item>
-                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
-                      </items>
-                      <chunks count="2">
-                        <chunk name="Attributes">
-                          <items count="1">
-                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
-                              <X>0</X>
-                              <Y>0</Y>
-                              <W>150</W>
-                              <H>20</H>
-                            </item>
-                          </items>
-                        </chunk>
-                        <chunk name="PersistentData">
-                          <items count="1">
-                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                          </items>
-                          <chunks count="1">
-                            <chunk name="Branch" index="0">
-                              <items count="2">
-                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
-                              </items>
-                              <chunks count="1">
-                                <chunk name="Item" index="0">
-                                  <items count="1">
-                                    <item name="number" type_name="gh_int32" type_code="3">20</item>
-                                  </items>
-                                </chunk>
-                              </chunks>
-                            </chunk>
-                          </chunks>
-                        </chunk>
-                      </chunks>
-                    </chunk>
-                    <chunk name="param_input" index="6">
-                      <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">Tolerance on relative error durign solution</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">ad959052-dbdf-4052-95ff-5b56469c3c58</item>
-                        <item name="Name" type_name="gh_string" type_code="10">Tolerance</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">T</item>
-                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
-                      </items>
-                      <chunks count="2">
-                        <chunk name="Attributes">
-                          <items count="1">
-                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
-                              <X>0</X>
-                              <Y>0</Y>
-                              <W>150</W>
-                              <H>20</H>
-                            </item>
-                          </items>
-                        </chunk>
-                        <chunk name="PersistentData">
-                          <items count="1">
-                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                          </items>
-                          <chunks count="1">
-                            <chunk name="Branch" index="0">
-                              <items count="2">
-                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
-                              </items>
-                              <chunks count="1">
-                                <chunk name="Item" index="0">
-                                  <items count="1">
-                                    <item name="number" type_name="gh_double" type_code="6">0.0001</item>
-                                  </items>
-                                </chunk>
-                              </chunks>
-                            </chunk>
-                          </chunks>
-                        </chunk>
-                      </chunks>
-                    </chunk>
-                    <chunk name="param_input" index="7">
-                      <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">Max number of iterations for the algebric solver</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">f02b21ea-7f29-4985-bfc0-afb085b6852e</item>
-                        <item name="Name" type_name="gh_string" type_code="10">Max Iter,s</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">MI,s</item>
-                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
-                      </items>
-                      <chunks count="2">
-                        <chunk name="Attributes">
-                          <items count="1">
-                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
-                              <X>0</X>
-                              <Y>0</Y>
-                              <W>150</W>
-                              <H>20</H>
-                            </item>
-                          </items>
-                        </chunk>
-                        <chunk name="PersistentData">
-                          <items count="1">
-                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                          </items>
-                          <chunks count="1">
-                            <chunk name="Branch" index="0">
-                              <items count="2">
-                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
-                              </items>
-                              <chunks count="1">
-                                <chunk name="Item" index="0">
-                                  <items count="1">
-                                    <item name="number" type_name="gh_int32" type_code="3">0</item>
-                                  </items>
-                                </chunk>
-                              </chunks>
-                            </chunk>
-                          </chunks>
-                        </chunk>
-                      </chunks>
-                    </chunk>
-                    <chunk name="param_input" index="8">
-                      <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">Tolerance for the algebric solver</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">82b7d2ad-97dc-4103-9b3e-3146c28dfd4f</item>
-                        <item name="Name" type_name="gh_string" type_code="10">ToleranceA,s</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">T,s</item>
-                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
-                      </items>
-                      <chunks count="2">
-                        <chunk name="Attributes">
-                          <items count="1">
-                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
-                              <X>0</X>
-                              <Y>0</Y>
-                              <W>150</W>
-                              <H>20</H>
-                            </item>
-                          </items>
-                        </chunk>
-                        <chunk name="PersistentData">
-                          <items count="1">
-                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                          </items>
-                          <chunks count="1">
-                            <chunk name="Branch" index="0">
-                              <items count="2">
-                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
-                              </items>
-                              <chunks count="1">
-                                <chunk name="Item" index="0">
-                                  <items count="1">
-                                    <item name="number" type_name="gh_double" type_code="6">0</item>
-                                  </items>
-                                </chunk>
-                              </chunks>
-                            </chunk>
-                          </chunks>
-                        </chunk>
-                      </chunks>
-                    </chunk>
-                    <chunk name="param_input" index="9">
-                      <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">Tolerance for the algebric solver</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">89dd2a4f-47a3-4c8c-822a-e306ea7b9e2a</item>
-                        <item name="Name" type_name="gh_string" type_code="10">ToleranceB,s</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">T,s</item>
-                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
-                      </items>
-                      <chunks count="2">
-                        <chunk name="Attributes">
-                          <items count="1">
-                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
-                              <X>0</X>
-                              <Y>0</Y>
-                              <W>150</W>
-                              <H>20</H>
-                            </item>
-                          </items>
-                        </chunk>
-                        <chunk name="PersistentData">
-                          <items count="1">
-                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                          </items>
-                          <chunks count="1">
-                            <chunk name="Branch" index="0">
-                              <items count="2">
-                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
-                              </items>
-                              <chunks count="1">
-                                <chunk name="Item" index="0">
-                                  <items count="1">
-                                    <item name="number" type_name="gh_double" type_code="6">0</item>
-                                  </items>
-                                </chunk>
-                              </chunks>
-                            </chunk>
-                          </chunks>
-                        </chunk>
-                      </chunks>
-                    </chunk>
-                    <chunk name="param_input" index="10">
-                      <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">Automatically create the plates and the mesh</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">be3995e7-ab47-4ece-b170-d4e233374713</item>
-                        <item name="Name" type_name="gh_string" type_code="10">Create mesh</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">CM</item>
-                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
-                      </items>
-                      <chunks count="2">
-                        <chunk name="Attributes">
-                          <items count="1">
-                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
-                              <X>0</X>
-                              <Y>0</Y>
-                              <W>150</W>
-                              <H>20</H>
-                            </item>
-                          </items>
-                        </chunk>
-                        <chunk name="PersistentData">
-                          <items count="1">
-                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                          </items>
-                          <chunks count="1">
-                            <chunk name="Branch" index="0">
-                              <items count="2">
-                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
-                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
-                              </items>
-                              <chunks count="1">
-                                <chunk name="Item" index="0">
-                                  <items count="1">
-                                    <item name="boolean" type_name="gh_bool" type_code="1">true</item>
-                                  </items>
-                                </chunk>
-                              </chunks>
-                            </chunk>
-                          </chunks>
-                        </chunk>
-                      </chunks>
-                    </chunk>
-                    <chunk name="param_input" index="11">
-                      <items count="6">
-                        <item name="Description" type_name="gh_string" type_code="10">The property to assign to the generated plates. Create mesh must be set to true</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">20f2390d-2d73-4186-a7b4-cf6f5b7a0027</item>
-                        <item name="Name" type_name="gh_string" type_code="10">Plate Property</item>
-                        <item name="NickName" type_name="gh_string" type_code="10">PP</item>
+                    <chunk name="param_input" index="2">
+                      <items count="7">
+                        <item name="Description" type_name="gh_string" type_code="10">The solver options (Solver Options component). If not connected, the defaults</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">8224fa3a-7659-4c73-b058-f9e283b39514</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Options</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">O</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">true</item>
-                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">a3365a6e-b0ef-4f7d-9d45-a652b8fd4257</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
                         <chunk name="Attributes">
@@ -2964,10 +2565,10 @@
                         </chunk>
                       </chunks>
                     </chunk>
-                    <chunk name="param_input" index="12">
+                    <chunk name="param_input" index="3">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">Plane of mesh generation</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">380658e0-724a-4f37-9d8d-2e3fcdbc7619</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">5f71746b-7f86-4b83-90f5-984a1238f167</item>
                         <item name="Name" type_name="gh_string" type_code="10">Plane</item>
                         <item name="NickName" type_name="gh_string" type_code="10">P</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3016,14 +2617,14 @@
                         </chunk>
                       </chunks>
                     </chunk>
-                    <chunk name="param_input" index="13">
+                    <chunk name="param_input" index="4">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">Activate or disable the live update</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">cd2deb4c-bfb5-4932-af24-0f3e8184e4c0</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">ee691344-9566-49f8-8cf2-4c7b995d2987</item>
                         <item name="Name" type_name="gh_string" type_code="10">Auto Run</item>
                         <item name="NickName" type_name="gh_string" type_code="10">AR</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">3d6e9fe8-28ce-4856-ae1b-eb0fcba03da6</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">53d3c705-326b-4279-8d7a-fcdcf4d0caff</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="2">
@@ -3062,7 +2663,7 @@
                     <chunk name="param_output" index="0">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The FEM model</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">77816aff-9fd8-474b-b6cc-d6b9343659da</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">7aa43239-8e52-4725-ae48-edf54fe3b12e</item>
                         <item name="Name" type_name="gh_string" type_code="10">Model</item>
                         <item name="NickName" type_name="gh_string" type_code="10">M</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3084,7 +2685,7 @@
                     <chunk name="param_output" index="1">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The resulting mesh usefull to geometric operations</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">78240582-fadf-4553-8db0-a64980fa148a</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">a68ab571-d020-4c57-8203-ba67cde790c1</item>
                         <item name="Name" type_name="gh_string" type_code="10">Mesh</item>
                         <item name="NickName" type_name="gh_string" type_code="10">M</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3108,6 +2709,399 @@
               </chunks>
             </chunk>
             <chunk name="Object" index="13">
+              <items count="3">
+                <item name="GUID" type_name="gh_guid" type_code="9">4b18d9c1-d734-40c5-99d8-9d53333a76d5</item>
+                <item name="Lib" type_name="gh_guid" type_code="9">3f5451ce-fb9d-4b79-bbc3-0d78995556ce</item>
+                <item name="Name" type_name="gh_string" type_code="10">Solver Options</item>
+              </items>
+              <chunks count="1">
+                <chunk name="Container">
+                  <items count="4">
+                    <item name="Description" type_name="gh_string" type_code="10">The options of the Form Find. Without this component the Form Find uses the defaults</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">cff42e1d-9415-4ea3-9038-53db6a6c11c0</item>
+                    <item name="Name" type_name="gh_string" type_code="10">Solver Options</item>
+                    <item name="NickName" type_name="gh_string" type_code="10">SO</item>
+                  </items>
+                  <chunks count="11">
+                    <chunk name="Attributes">
+                      <items count="2">
+                        <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                          <X>0</X>
+                          <Y>0</Y>
+                          <W>150</W>
+                          <H>20</H>
+                        </item>
+                        <item name="Pivot" type_name="gh_drawing_pointf" type_code="31">
+                          <X>760</X>
+                          <Y>420</Y>
+                        </item>
+                      </items>
+                    </chunk>
+                    <chunk name="param_input" index="0">
+                      <items count="6">
+                        <item name="Description" type_name="gh_string" type_code="10">The gravity acceleration for self-weight calculation purpose, in model units (9806.65 in N/mm)</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">2b88589d-1fd0-49d3-ab76-636860f1dacd</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Gravity</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">G</item>
+                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                      </items>
+                      <chunks count="2">
+                        <chunk name="Attributes">
+                          <items count="1">
+                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                              <X>0</X>
+                              <Y>0</Y>
+                              <W>150</W>
+                              <H>20</H>
+                            </item>
+                          </items>
+                        </chunk>
+                        <chunk name="PersistentData">
+                          <items count="1">
+                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                          </items>
+                          <chunks count="1">
+                            <chunk name="Branch" index="0">
+                              <items count="2">
+                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
+                              </items>
+                              <chunks count="1">
+                                <chunk name="Item" index="0">
+                                  <items count="1">
+                                    <item name="number" type_name="gh_double" type_code="6">0</item>
+                                  </items>
+                                </chunk>
+                              </chunks>
+                            </chunk>
+                          </chunks>
+                        </chunk>
+                      </chunks>
+                    </chunk>
+                    <chunk name="param_input" index="1">
+                      <items count="6">
+                        <item name="Description" type_name="gh_string" type_code="10">The normal pressure applied to the model</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">080e157c-5ce2-4c4d-8709-e3f5fa9cf6d6</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Pressure</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">P</item>
+                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                      </items>
+                      <chunks count="2">
+                        <chunk name="Attributes">
+                          <items count="1">
+                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                              <X>0</X>
+                              <Y>0</Y>
+                              <W>150</W>
+                              <H>20</H>
+                            </item>
+                          </items>
+                        </chunk>
+                        <chunk name="PersistentData">
+                          <items count="1">
+                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                          </items>
+                          <chunks count="1">
+                            <chunk name="Branch" index="0">
+                              <items count="2">
+                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
+                              </items>
+                              <chunks count="1">
+                                <chunk name="Item" index="0">
+                                  <items count="1">
+                                    <item name="number" type_name="gh_double" type_code="6">0</item>
+                                  </items>
+                                </chunk>
+                              </chunks>
+                            </chunk>
+                          </chunks>
+                        </chunk>
+                      </chunks>
+                    </chunk>
+                    <chunk name="param_input" index="2">
+                      <items count="6">
+                        <item name="Description" type_name="gh_string" type_code="10">The load case used for the resulting pressure forces</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">908753b2-830e-42de-8485-3b6adbe65ae9</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Pressure Load Case</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">LC</item>
+                        <item name="Optional" type_name="gh_bool" type_code="1">true</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                      </items>
+                      <chunks count="1">
+                        <chunk name="Attributes">
+                          <items count="1">
+                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                              <X>0</X>
+                              <Y>0</Y>
+                              <W>150</W>
+                              <H>20</H>
+                            </item>
+                          </items>
+                        </chunk>
+                      </chunks>
+                    </chunk>
+                    <chunk name="param_input" index="3">
+                      <items count="6">
+                        <item name="Description" type_name="gh_string" type_code="10">Max number of iterations in solution</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">9c32f7d4-5583-45c0-bf33-cbd80a74a8c0</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Max Iter</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">MI</item>
+                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                      </items>
+                      <chunks count="2">
+                        <chunk name="Attributes">
+                          <items count="1">
+                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                              <X>0</X>
+                              <Y>0</Y>
+                              <W>150</W>
+                              <H>20</H>
+                            </item>
+                          </items>
+                        </chunk>
+                        <chunk name="PersistentData">
+                          <items count="1">
+                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                          </items>
+                          <chunks count="1">
+                            <chunk name="Branch" index="0">
+                              <items count="2">
+                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
+                              </items>
+                              <chunks count="1">
+                                <chunk name="Item" index="0">
+                                  <items count="1">
+                                    <item name="number" type_name="gh_int32" type_code="3">20</item>
+                                  </items>
+                                </chunk>
+                              </chunks>
+                            </chunk>
+                          </chunks>
+                        </chunk>
+                      </chunks>
+                    </chunk>
+                    <chunk name="param_input" index="4">
+                      <items count="6">
+                        <item name="Description" type_name="gh_string" type_code="10">Tolerance on relative error during solution</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">56d36f3f-4f13-486e-a89f-45e5469288a8</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Tolerance</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">T</item>
+                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                      </items>
+                      <chunks count="2">
+                        <chunk name="Attributes">
+                          <items count="1">
+                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                              <X>0</X>
+                              <Y>0</Y>
+                              <W>150</W>
+                              <H>20</H>
+                            </item>
+                          </items>
+                        </chunk>
+                        <chunk name="PersistentData">
+                          <items count="1">
+                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                          </items>
+                          <chunks count="1">
+                            <chunk name="Branch" index="0">
+                              <items count="2">
+                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
+                              </items>
+                              <chunks count="1">
+                                <chunk name="Item" index="0">
+                                  <items count="1">
+                                    <item name="number" type_name="gh_double" type_code="6">0.0001</item>
+                                  </items>
+                                </chunk>
+                              </chunks>
+                            </chunk>
+                          </chunks>
+                        </chunk>
+                      </chunks>
+                    </chunk>
+                    <chunk name="param_input" index="5">
+                      <items count="6">
+                        <item name="Description" type_name="gh_string" type_code="10">Max number of iterations for the algebric solver (0: automatic)</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">8f33d419-32d2-4d5b-ac30-ba41a9310820</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Max Iter,s</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">MI,s</item>
+                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                      </items>
+                      <chunks count="2">
+                        <chunk name="Attributes">
+                          <items count="1">
+                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                              <X>0</X>
+                              <Y>0</Y>
+                              <W>150</W>
+                              <H>20</H>
+                            </item>
+                          </items>
+                        </chunk>
+                        <chunk name="PersistentData">
+                          <items count="1">
+                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                          </items>
+                          <chunks count="1">
+                            <chunk name="Branch" index="0">
+                              <items count="2">
+                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
+                              </items>
+                              <chunks count="1">
+                                <chunk name="Item" index="0">
+                                  <items count="1">
+                                    <item name="number" type_name="gh_int32" type_code="3">0</item>
+                                  </items>
+                                </chunk>
+                              </chunks>
+                            </chunk>
+                          </chunks>
+                        </chunk>
+                      </chunks>
+                    </chunk>
+                    <chunk name="param_input" index="6">
+                      <items count="6">
+                        <item name="Description" type_name="gh_string" type_code="10">Tolerance for the algebric solver (0: automatic)</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">08f245bc-ba6d-4f1a-adac-f0d9fcb6f0d3</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Tolerance,s</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">T,s</item>
+                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                      </items>
+                      <chunks count="2">
+                        <chunk name="Attributes">
+                          <items count="1">
+                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                              <X>0</X>
+                              <Y>0</Y>
+                              <W>150</W>
+                              <H>20</H>
+                            </item>
+                          </items>
+                        </chunk>
+                        <chunk name="PersistentData">
+                          <items count="1">
+                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                          </items>
+                          <chunks count="1">
+                            <chunk name="Branch" index="0">
+                              <items count="2">
+                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
+                              </items>
+                              <chunks count="1">
+                                <chunk name="Item" index="0">
+                                  <items count="1">
+                                    <item name="number" type_name="gh_double" type_code="6">0</item>
+                                  </items>
+                                </chunk>
+                              </chunks>
+                            </chunk>
+                          </chunks>
+                        </chunk>
+                      </chunks>
+                    </chunk>
+                    <chunk name="param_input" index="7">
+                      <items count="6">
+                        <item name="Description" type_name="gh_string" type_code="10">Automatically create the plates and the mesh</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">ffa383a1-ff14-43c1-b0c5-144a351ebe8b</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Create mesh</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">CM</item>
+                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                      </items>
+                      <chunks count="2">
+                        <chunk name="Attributes">
+                          <items count="1">
+                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                              <X>0</X>
+                              <Y>0</Y>
+                              <W>150</W>
+                              <H>20</H>
+                            </item>
+                          </items>
+                        </chunk>
+                        <chunk name="PersistentData">
+                          <items count="1">
+                            <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                          </items>
+                          <chunks count="1">
+                            <chunk name="Branch" index="0">
+                              <items count="2">
+                                <item name="Count" type_name="gh_int32" type_code="3">1</item>
+                                <item name="Path" type_name="gh_string" type_code="10">{0}</item>
+                              </items>
+                              <chunks count="1">
+                                <chunk name="Item" index="0">
+                                  <items count="1">
+                                    <item name="boolean" type_name="gh_bool" type_code="1">true</item>
+                                  </items>
+                                </chunk>
+                              </chunks>
+                            </chunk>
+                          </chunks>
+                        </chunk>
+                      </chunks>
+                    </chunk>
+                    <chunk name="param_input" index="8">
+                      <items count="6">
+                        <item name="Description" type_name="gh_string" type_code="10">The property to assign to the generated plates. Create mesh must be set to true</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">ff793018-e3f7-49b5-845c-dcd7dd3988c9</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Plate Property</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">PP</item>
+                        <item name="Optional" type_name="gh_bool" type_code="1">true</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                      </items>
+                      <chunks count="1">
+                        <chunk name="Attributes">
+                          <items count="1">
+                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                              <X>0</X>
+                              <Y>0</Y>
+                              <W>150</W>
+                              <H>20</H>
+                            </item>
+                          </items>
+                        </chunk>
+                      </chunks>
+                    </chunk>
+                    <chunk name="param_output" index="0">
+                      <items count="6">
+                        <item name="Description" type_name="gh_string" type_code="10">The options for the Form Find</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">a3365a6e-b0ef-4f7d-9d45-a652b8fd4257</item>
+                        <item name="Name" type_name="gh_string" type_code="10">Options</item>
+                        <item name="NickName" type_name="gh_string" type_code="10">O</item>
+                        <item name="Optional" type_name="gh_bool" type_code="1">false</item>
+                        <item name="SourceCount" type_name="gh_int32" type_code="3">0</item>
+                      </items>
+                      <chunks count="1">
+                        <chunk name="Attributes">
+                          <items count="1">
+                            <item name="Bounds" type_name="gh_drawing_rectanglef" type_code="35">
+                              <X>0</X>
+                              <Y>0</Y>
+                              <W>150</W>
+                              <H>20</H>
+                            </item>
+                          </items>
+                        </chunk>
+                      </chunks>
+                    </chunk>
+                  </chunks>
+                </chunk>
+              </chunks>
+            </chunk>
+            <chunk name="Object" index="14">
               <items count="2">
                 <item name="GUID" type_name="gh_guid" type_code="9">2e78987b-9dfb-42a2-8b76-3923ac8bd91a</item>
                 <item name="Name" type_name="gh_string" type_code="10">Boolean Toggle</item>
@@ -3116,7 +3110,7 @@
                 <chunk name="Container">
                   <items count="7">
                     <item name="Description" type_name="gh_string" type_code="10">Boolean (true/false) toggle</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">3d6e9fe8-28ce-4856-ae1b-eb0fcba03da6</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">53d3c705-326b-4279-8d7a-fcdcf4d0caff</item>
                     <item name="Name" type_name="gh_string" type_code="10">Boolean Toggle</item>
                     <item name="NickName" type_name="gh_string" type_code="10">Auto Run</item>
                     <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3142,7 +3136,7 @@
                 </chunk>
               </chunks>
             </chunk>
-            <chunk name="Object" index="14">
+            <chunk name="Object" index="15">
               <items count="3">
                 <item name="GUID" type_name="gh_guid" type_code="9">5f9a26f9-c55b-496a-8153-459d8e9a56db</item>
                 <item name="Lib" type_name="gh_guid" type_code="9">3f5451ce-fb9d-4b79-bbc3-0d78995556ce</item>
@@ -3152,7 +3146,7 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">The axial forces of the beams of a form found model</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">949cafb4-4560-4779-8962-66dddefba7c8</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">486f27d8-babf-478d-8509-8616ec262f8e</item>
                     <item name="Name" type_name="gh_string" type_code="10">Beam Forces</item>
                     <item name="NickName" type_name="gh_string" type_code="10">BF</item>
                   </items>
@@ -3174,11 +3168,11 @@
                     <chunk name="param_input" index="0">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">The model computed by the Form Find component</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">3a340fa4-7b82-4dcb-8128-1a46727e77a0</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">90c1e4a9-e889-4c04-830e-5ba63843212f</item>
                         <item name="Name" type_name="gh_string" type_code="10">Model</item>
                         <item name="NickName" type_name="gh_string" type_code="10">M</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">77816aff-9fd8-474b-b6cc-d6b9343659da</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">7aa43239-8e52-4725-ae48-edf54fe3b12e</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -3198,7 +3192,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The beams</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">888dad42-474a-435c-b500-75d5a16fd75c</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">68097ec6-40cc-4200-b86d-90f788335bd2</item>
                         <item name="Name" type_name="gh_string" type_code="10">Lines</item>
                         <item name="NickName" type_name="gh_string" type_code="10">Ln</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3221,7 +3215,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The axial forces (tension &gt; 0). The beams without force density, fixed axial force or fixed length carry no force</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">edb46efe-1345-40a3-ba6b-63925f390cf7</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">d775cd30-8c1b-4538-99a6-a127cf2a7aa2</item>
                         <item name="Name" type_name="gh_string" type_code="10">Axial Forces</item>
                         <item name="NickName" type_name="gh_string" type_code="10">N</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3244,7 +3238,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The force densities: axial force / length</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">f8240d86-852f-4f0c-bce6-8d08a0a2e5d9</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">6dcd78c1-6d96-41a2-972e-a9234eb75259</item>
                         <item name="Name" type_name="gh_string" type_code="10">Force Densities</item>
                         <item name="NickName" type_name="gh_string" type_code="10">q</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3267,7 +3261,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The beam lengths</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">c946bada-1452-41dd-92e1-c904aa20202d</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">eeee5c86-15ca-44c1-9324-82e8b2fc24e4</item>
                         <item name="Name" type_name="gh_string" type_code="10">Lengths</item>
                         <item name="NickName" type_name="gh_string" type_code="10">L</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3290,7 +3284,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The beam IDs</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">f1d88445-58d2-44bc-a4fd-5259a1a71ec8</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">81efbfcd-ff81-4121-ac09-272903bab2ef</item>
                         <item name="Name" type_name="gh_string" type_code="10">IDs</item>
                         <item name="NickName" type_name="gh_string" type_code="10">ID</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3313,7 +3307,7 @@
                 </chunk>
               </chunks>
             </chunk>
-            <chunk name="Object" index="15">
+            <chunk name="Object" index="16">
               <items count="3">
                 <item name="GUID" type_name="gh_guid" type_code="9">2df8465b-e430-4c4c-b077-6f64ee5150e9</item>
                 <item name="Lib" type_name="gh_guid" type_code="9">3f5451ce-fb9d-4b79-bbc3-0d78995556ce</item>
@@ -3323,7 +3317,7 @@
                 <chunk name="Container">
                   <items count="4">
                     <item name="Description" type_name="gh_string" type_code="10">The forces of the supports of a form found model</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">d4e62786-3f01-4a98-9aae-879633023100</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">0496c2c4-ced8-4678-87c5-fa829d82b9a3</item>
                     <item name="Name" type_name="gh_string" type_code="10">Support Reactions</item>
                     <item name="NickName" type_name="gh_string" type_code="10">SR</item>
                   </items>
@@ -3345,11 +3339,11 @@
                     <chunk name="param_input" index="0">
                       <items count="7">
                         <item name="Description" type_name="gh_string" type_code="10">The model computed by the Form Find component</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">35885cb6-6f48-4069-8563-cf4ae3c7b701</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">776d4104-48e9-4796-901a-d366d5f3ff4e</item>
                         <item name="Name" type_name="gh_string" type_code="10">Model</item>
                         <item name="NickName" type_name="gh_string" type_code="10">M</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
-                        <item name="Source" index="0" type_name="gh_guid" type_code="9">77816aff-9fd8-474b-b6cc-d6b9343659da</item>
+                        <item name="Source" index="0" type_name="gh_guid" type_code="9">7aa43239-8e52-4725-ae48-edf54fe3b12e</item>
                         <item name="SourceCount" type_name="gh_int32" type_code="3">1</item>
                       </items>
                       <chunks count="1">
@@ -3369,7 +3363,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The restrained nodes</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">2687a7e9-f40d-422b-8266-0427737f7942</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">e490028a-02f9-432a-90b5-9e14c4ef7653</item>
                         <item name="Name" type_name="gh_string" type_code="10">Points</item>
                         <item name="NickName" type_name="gh_string" type_code="10">P</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3392,7 +3386,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The forces that the supports exert on the structure, along the restrained directions only</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">ffcbf65b-aead-4801-9ce6-81f16a8c79bb</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">46c51a8c-1f2f-4995-942f-3498ab9ff88f</item>
                         <item name="Name" type_name="gh_string" type_code="10">Reactions</item>
                         <item name="NickName" type_name="gh_string" type_code="10">R</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3415,7 +3409,7 @@
                       <items count="7">
                         <item name="Access" type_name="gh_int32" type_code="3">1</item>
                         <item name="Description" type_name="gh_string" type_code="10">The node IDs</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">51b15f26-c877-4ebe-b07f-79135ac5edc9</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">32b2a93f-7067-44b6-b997-2fcd20f8d404</item>
                         <item name="Name" type_name="gh_string" type_code="10">IDs</item>
                         <item name="NickName" type_name="gh_string" type_code="10">ID</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3437,7 +3431,7 @@
                     <chunk name="param_output" index="3">
                       <items count="6">
                         <item name="Description" type_name="gh_string" type_code="10">The sum of the reactions: it balances the total load</item>
-                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">30276e3b-db39-49a1-bee1-e083e801ca76</item>
+                        <item name="InstanceGuid" type_name="gh_guid" type_code="9">6661b26e-d810-42ad-96c4-ff47951ecaf1</item>
                         <item name="Name" type_name="gh_string" type_code="10">Total</item>
                         <item name="NickName" type_name="gh_string" type_code="10">T</item>
                         <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3460,7 +3454,7 @@
                 </chunk>
               </chunks>
             </chunk>
-            <chunk name="Object" index="16">
+            <chunk name="Object" index="17">
               <items count="2">
                 <item name="GUID" type_name="gh_guid" type_code="9">59e0b89a-e487-49f8-bab8-b5bab16be14c</item>
                 <item name="Name" type_name="gh_string" type_code="10">Panel</item>
@@ -3469,7 +3463,7 @@
                 <chunk name="Container">
                   <items count="8">
                     <item name="Description" type_name="gh_string" type_code="10">A panel for custom notes and text values</item>
-                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">7d5d8c96-e237-4b9a-a8c6-4b08ff27e7c6</item>
+                    <item name="InstanceGuid" type_name="gh_guid" type_code="9">f62c13dc-cc40-4caf-9155-776eaaf45ae2</item>
                     <item name="Name" type_name="gh_string" type_code="10">Panel</item>
                     <item name="NickName" type_name="gh_string" type_code="10"></item>
                     <item name="Optional" type_name="gh_bool" type_code="1">false</item>
@@ -3478,7 +3472,7 @@
                     <item name="UserText" type_name="gh_string" type_code="10">ARACHNE | 01 Sella (N, mm)
 Rete 10 x 10 m, 4 x 4 campi, bordo vincolato con quote +/-2 m agli angoli.
 Beam (proprieta Cable, sezione piena D 10 mm, acciaio) + Force Density 1 N/mm, caso di carico FF.
-Build Model in N/mm -&gt; Check Model -&gt; Form Find lineare -&gt; Beam Forces (tiri, N) e Support Reactions (N).
+Build Model in N/mm -&gt; Check Model -&gt; Form Find lineare (Solver Options con i valori predefiniti) -&gt; Beam Forces (tiri, N) e Support Reactions (N).
 Auto Run attivo: disattivarlo e usare il pulsante Run.</item>
                   </items>
                   <chunks count="2">

@@ -116,9 +116,6 @@ namespace Arachne.Grasshopper.Components.Loads
             Message = string.Format("Coordinate System: {0}\nDirection: {1}", coordinateSystem.Name,
                 known_dir ? Enum.GetName(typeof(BeamDistributedLoadModel.LoadDirection), dir).Replace('_', ' ') : "?");
 
-            if (lc.Value.NonStructuralMassAcceleration)
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "The connected LoadCase have the Non-structural mass flag set to on");
-
             bool input_errors = false;
             if (!has_dir || !known_dir)
             {

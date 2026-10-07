@@ -18,9 +18,11 @@ internal static class Program
         int femmIndex = Array.IndexOf(args, "--femm");
         string femm = femmIndex >= 0 && femmIndex + 1 < args.Length ? Path.GetFullPath(args[femmIndex + 1])
             : Path.GetFullPath(Path.Combine(root, "..", "FeMM 30-5-2024", "Test1", "FeMM"));
-        // The tool checks the plug-in built with its own configuration (Debug or Release).
-        string configuration = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory).Parent.Name;
-        var pluginDir = Path.Combine(root, "bin", "Arachne.Grasshopper", configuration, "net48");
+        // The tool checks the plug-in built next to it, with the same configuration:
+        // <bin>\Arachne.ExampleWriter\<configuration>\net48 -> <bin>\Arachne.Grasshopper\<configuration>\net48
+        var toolDir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+        string configuration = toolDir.Parent.Name;
+        var pluginDir = Path.Combine(toolDir.Parent.Parent.Parent.FullName, "Arachne.Grasshopper", configuration, "net48");
         AppDomain.CurrentDomain.AssemblyResolve += (sender, request) =>
         {
             string name = new AssemblyName(request.Name).Name;

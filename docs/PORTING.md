@@ -6,10 +6,11 @@ I componenti di Arachne sono quelli di FeMM, con **gli stessi ingressi e le stes
 
 - le correzioni dei bug elencate più sotto;
 - gli ingressi tolti di proposito (definizioni SAP e carichi non gestiti dal form finding, vedi Adattamenti), elencati anche nel banco di prova;
+- lo snellimento: Table Material tolto, Plate Property con un solo spessore e senza tipo, le opzioni del Form Find nel componente Solver Options, Build, Decompose e Check Model nel pannello 09-Model, il patterning dopo l'analisi (13-Patterning);
 - gli adattamenti alla TensileLib 2.2 (repository `../tensilelib`), al motore ARAP C# e all'assenza del plug-in Rhino di FeMM;
-- quattro componenti nuovi di Arachne, elencati a parte.
+- sei componenti nuovi di Arachne, elencati a parte.
 
-Si lavora in N e mm: Build Model ha come predefinito Nmm (come FeMM), le sezioni sono nelle unità del modello e la gravità del Form Find, in N/mm, vale 9806.65 mm/s².
+Si lavora in N e mm: Build Model ha come predefinito Nmm (come FeMM), le sezioni sono nelle unità del modello e la gravità di Solver Options, in N/mm, vale 9806.65 mm/s².
 
 I GUID sono nuovi, così FeMM e Arachne possono essere caricati insieme. Le definizioni FeMM non vengono convertite automaticamente. Le icone sono quelle nuove di Arachne (`tools/Arachne.ExampleWriter/IconArtwork.cs`).
 
@@ -26,7 +27,8 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 
 - il bake di nodi, aste, piastre e modelli produce geometria Rhino semplice (punti, linee, mesh) al posto degli oggetti del plug-in FeMM;
 - la tolleranza di fusione dei nodi di Build Model, che FeMM leggeva dalle opzioni del plug-in Rhino, è nelle impostazioni Grasshopper di Arachne con lo stesso valore predefinito (0.001, unità del modello);
-- combinazioni di carico, named sets, costruzioni per fasi, funzioni e superelementi sono stati tolti dal modello, insieme al parametro Load Combinations e al componente Section Geometry.
+- combinazioni di carico, named sets, costruzioni per fasi, funzioni e superelementi sono stati tolti dal modello, insieme al parametro Load Combinations e al componente Section Geometry;
+- dal caso di carico sono stati tolti i dati SAP sull'inerzia (gravità sulla massa non strutturale, accelerazioni, temperatura), dai materiali la tabella sforzi-deformazioni di Table Material.
 
 ## Componenti
 
@@ -37,7 +39,6 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 | 02-Materials | Concrete (CM) | `Components/Materials/MaterialConcreteComponent.cs` | 9d2f4b12-e3f3-4cbd-af84-1b67fb3157b9 | 76802e52-c065-47ff-9c04-97094ab9edc8 |
 | 02-Materials | Custom Material (CM) | `Components/Materials/MaterialCustomComponent.cs` | 262c4c26-81bf-4cfc-9ff9-28cb6db0c7bd | 7d402b00-2590-463f-950a-acf6d0e970f4 |
 | 02-Materials | Steel (SM) | `Components/Materials/MaterialSteelComponent.cs` | f8fb5764-1e8a-420c-a530-f34727c05fe7 | d6938aa3-6c82-4648-8d33-f61505ddd262 |
-| 02-Materials | Table Material (TM) | `Components/Materials/MaterialTableComponent.cs` | 81d52ce7-7934-4a6b-abc5-ddcff5f165c0 | f8dbf21e-db9f-4511-83f4-ad302452a3b3 |
 | 03-Sections | Angle Section (A) | `Components/Sections/BeamSectionAngleComponent.cs` | c991750b-19ce-4ba8-b94d-ef31c2de20b7 | ea358ee1-c6ec-4849-9411-77fa20cc0b8c |
 | 03-Sections | Brep Section (BS) | `Components/Sections/BeamSectionBrepComponent.cs` | 348fb5b1-671c-4fd5-b409-8c241761dbf1 | b105ee76-1e25-432e-a2b6-8b0ae1b7ed54 |
 | 03-Sections | C Section (C) | `Components/Sections/BeamSectionCComponent.cs` | 19a82708-2ee3-4e75-aa88-436e47cbd1be | d915ff63-5959-4f99-ac4a-8c3d7fb20713 |
@@ -50,12 +51,12 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 | 03-Sections | Solid Rect (SR) | `Components/Sections/BeamSectionSolidRectComponent.cs` | c68750fa-b296-4dab-ab51-8e9ff9ea2b27 | 31479893-1941-41e3-99d8-238efc1bcff6 |
 | 03-Sections | T Section (T) | `Components/Sections/BeamSectionTComponent.cs` | 2a2a2c2f-c079-4ad1-b298-5ba8a53e0003 | 4573bce8-dc25-4b73-a0d5-cdce1f86846f |
 | 04-Definitions | Group (G) | `Components/Definitions/GroupComponent.cs` | 7cf9eb7e-1292-4d7c-b1d7-44f0c29e65be | b9dfba03-6308-4ee0-ab3c-076b1fe0b0a8 |
-| 04-Definitions | Load Case (LC) | `Components/Definitions/LoadCaseComponent.cs` | fc022fd8-4ebf-4c56-a428-3a9efeff43b3 | d36a3ace-b39c-450c-b059-e743137cde26 |
+| 04-Definitions | Load Case (LC) | `Components/Definitions/LoadCaseComponent.cs` | fc022fd8-4ebf-4c56-a428-3a9efeff43b3 | dd9360b8-20ab-4a62-aa15-bbad93f0f9b6 |
 | 05-Properties | Beam Property (BP) | `Components/ElementProperties/BeamPropertyComponent.cs` | dfa97707-eae3-465a-84d6-90b240e1e972 | d44afeb3-cd24-42bf-a5d5-45a14cee69f3 |
-| 05-Properties | Plate Property (PP) | `Components/ElementProperties/PlatePropertyComponent.cs` | 02de1de2-3151-4ff5-8059-0ce082fb5f44 | aa289e2e-280d-4984-ab23-8baabcbddc03 |
+| 05-Properties | Plate Property (PP) | `Components/ElementProperties/PlatePropertyComponent.cs` | 02de1de2-3151-4ff5-8059-0ce082fb5f44 | 77ce7fd4-99f4-4bc1-9d3f-5c6ce0955ab1 |
 | 06-Model | Beam (BM) | `Components/Models/BeamComponent.cs` | a5b774a8-51ec-4c79-bfe7-e19558f444a9 | 03f091b7-2779-4f4b-ae65-9953fe26a366 |
-| 06-Model | Build Model (BM) | `Components/Models/BuildModelComponent.cs` | c3c8837b-57fa-4fdc-8b99-849bfe468232 | 36226b88-8b00-470b-abf2-26f40b07f0ca |
-| 06-Model | Decompose Model (DM) | `Components/Models/DecomposeModelComponent.cs` | 700a15f9-cf8d-4062-9c99-32628b99cda8 | c4146124-3da2-491d-96e4-7e0f565ece4b |
+| 09-Model | Build Model (BM) | `Components/Models/BuildModelComponent.cs` | c3c8837b-57fa-4fdc-8b99-849bfe468232 | 36226b88-8b00-470b-abf2-26f40b07f0ca |
+| 09-Model | Decompose Model (DM) | `Components/Models/DecomposeModelComponent.cs` | 700a15f9-cf8d-4062-9c99-32628b99cda8 | c4146124-3da2-491d-96e4-7e0f565ece4b |
 | 06-Model | Node (N) | `Components/Models/NodeComponent.cs` | 768f9c12-8a9f-4525-8d3a-f33a77793444 | 2d7a3c66-282f-4bbf-a11e-db55827e3224 |
 | 06-Model | Plate (PL) | `Components/Models/PlateComponent.cs` | 2e9fcc4d-5f9b-403c-be31-40804205df1a | ad3fea4a-1c4b-4923-bb06-3e58ae1f3247 |
 | 07-Attributes | Element Id (EI) | `Components/Attributes/ElementIdComponent.cs` | b21816ea-0ef6-4feb-a522-f9371f28faf6 | 92cb7203-eb55-4cc4-a322-8e4ccd2bed08 |
@@ -70,30 +71,30 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 | 08-Loads | Beam Distributed Load (BDL) | `Components/Loads/BeamDistributedLoadComponent.cs` | 3203a9e1-c15b-4761-a81d-682c8da941ce | 19f2292f-70a7-4fce-bc0d-2f8923829b69 |
 | 08-Loads | Beam Point Load (BPL) | `Components/Loads/BeamPointLoadComponent.cs` | 08795ed9-9536-4f38-bc7f-960a3bf30266 | 7f58c892-a469-400c-bc46-e2c9c60ad280 |
 | 08-Loads | Node Load (NL) | `Components/Loads/NodeLoadComponent.cs` | 554499f4-e448-46a5-a457-40e308be5c87 | 705f086f-9f47-46f9-92b0-9c20e9115891 |
-| 09-Patterning | Borders (Bs) | `Components/Patterning/BordersComponent.cs` | 49141274-7cad-44b1-8c31-ba5d2c9d74dc | 810c4b07-ff37-5c08-b92e-a7a9a288ef41 |
-| 09-Patterning | Cable Net (CN) | `Components/Patterning/CableNetComponent.cs` | 53e1a59c-b28d-4619-9ab6-70d2bf72c379 | cb2b48b5-63b8-4af9-8f54-75ff5d506e5f |
-| 09-Patterning | Compensation (C) | `Components/Patterning/CompensationComponent.cs` | c64f8be6-7169-46b2-a501-8a6fab04c724 | 51dce643-1c37-56ac-9eb1-9641e7bcdf1f |
-| 09-Patterning | Compound Net (CompNet) | `Components/Patterning/CompoundNetComponent.cs` | c5e1549c-7c80-4bb0-a067-117eb2d19240 | ca17f231-a85b-42dd-b48f-91c81e0916d7 |
-| 09-Patterning | Decompensation (DC) | `Components/Patterning/DecompensationComponent.cs` | a9e861a6-31e7-46ea-b3de-f39ad896bd6a | 9bcc0da9-b5e3-5b52-9801-47c48ae166f1 |
-| 09-Patterning | DecompensationDescriptor (DD) | `Components/Patterning/DecompensationDescriptorComponent.cs` | 4e5480bb-ac1e-441b-b0d8-c28aa5d92e50 | 88842b12-f723-5963-aa1f-5d80a18b50f5 |
-| 09-Patterning | DecompensationDescriptorExt (DDE) | `Components/Patterning/DecompensationDescriptorExtComponent.cs` | d787c3ec-4659-4ba1-b2d5-a4d226f14bf8 | af556c97-1cca-549b-9094-36dd61c91595 |
-| 09-Patterning | Deform ARAP (DA) | `Components/Patterning/DeformArapComponent.cs` | cba10d67-bfa1-4ceb-a61c-37c5e11e6fe7 | e0346aed-16ed-4ebb-8b59-a1cf04ddad67 |
-| 09-Patterning | Flattening (F) | `Components/Patterning/FlatteningComponent.cs` | 29b336bf-5f02-44bc-bce9-90eefd10c433 | b8fa603b-1674-573c-9380-450724df4b24 |
-| 09-Patterning | Flattening ARAP (FA) | `Components/Patterning/FlatteningArapComponent.cs` | b3f17427-3496-4000-b632-72b1f14ce789 | 6923d40f-6d82-4765-bc05-7c4381bdb996 |
-| 09-Patterning | Geodesic Offsets (GO) | `Components/Patterning/GeodesicOffsetsComponent.cs` | c1e35ec9-caf9-4dcf-abc1-41b8dcd34a46 | c1e96689-970d-5d37-9fac-5f2fd2e5ebe3 |
-| 09-Patterning | Line-Up (LU) | `Components/Patterning/LineUpComponent.cs` | 52e1aa90-a28d-4e3d-bac6-177c713f5a2f | dce9b365-6f46-5d47-a342-bc5a769d640d |
-| 09-Patterning | Mesh Clean (MC) | `Components/Patterning/MeshCleanComponent.cs` | f77f438b-00d4-46dd-b428-bc3ec195cfd2 | ca2b11c4-55c9-5d47-8db1-af6ecf7efa07 |
-| 09-Patterning | Mesh Divide (MD) | `Components/Patterning/MeshDivideComponent.cs` | 065060c5-cde9-489f-a9d4-348447b3be1f | 1af1264d-127a-5fc0-a8fc-93713840902e |
-| 09-Patterning | Mesh Geodesic (MG) | `Components/Patterning/MeshGeodesicComponent.cs` | d9ad6d18-9b32-4958-9836-c980c22e381b | fe0db245-06c9-5b1c-92bd-6b7c8bff360d |
-| 09-Patterning | Mesh Pipe (MP) | `Components/Patterning/MeshPipeComponent.cs` | b6b9a33b-b036-4e3d-97f6-898c3ced844f | dd2927ec-f681-56e7-ab75-f4916b2528d3 |
-| 09-Patterning | Mesh Remap (MR) | `Components/Patterning/MeshRemapComponent.cs` | 4bc2da90-9230-4fb8-b044-7b70e826270c | fd929959-b16b-5f27-8026-cb7374c3922a |
-| 09-Patterning | OrderBorders (OB) | `Components/Patterning/OrderBordersComponent.cs` | 335d8f38-48a3-485e-ae93-8b5f3d72992f | 085ff316-27ac-53fb-b09f-2f8039f82f68 |
-| 09-Patterning | Radial Cable Net (RCN) | `Components/Patterning/CableNetRadialComponent.cs` | 0f317607-a1e1-40ed-b988-c2157b8b3907 | f5b16b9e-f4e6-45c1-9430-7595f8b26cca |
-| 09-Patterning | Remesh (R) | `Components/Tools/RemeshComponent.cs` | 4c4d90ee-ff74-4cf0-8fc7-b3a73e06512a | 7fd3c82c-a8ea-4d66-9147-c8b722b9b1bb |
-| 09-Patterning | Split Mesh On Curves (SM) | `Components/Patterning/SplitMeshOnCurvesComponent.cs` | 6413cd87-824b-484f-89b4-115f928f96fd | f1efd4c3-1fac-5f78-b272-a0b71b9af9f6 |
-| 09-Patterning | Subdivide Mesh (MC) | `Components/Patterning/SubdivideMeshComponent.cs` | 8dcc7742-7a42-40bb-a94f-27b77c085f24 | a9271e1c-81d2-58d2-843c-bee8a3e0aa8d |
-| 09-Patterning | Unweld Mesh (UM) | `Components/Patterning/UnweldMeshComponent.cs` | 0c4b1071-f64a-4a93-981e-6b9de5b1b7ba | 23032209-c252-5a53-a96d-3a958c387f15 |
-| 12-Analysis | Form Find (FF) | `Components/Analysis/FormFindComponent.cs` | 83be34af-f862-457b-8c03-109fadcd679e | cb0c82d4-0d41-49c5-8f14-7897700e20be |
+| 13-Patterning | Borders (Bs) | `Components/Patterning/BordersComponent.cs` | 49141274-7cad-44b1-8c31-ba5d2c9d74dc | 810c4b07-ff37-5c08-b92e-a7a9a288ef41 |
+| 13-Patterning | Cable Net (CN) | `Components/Patterning/CableNetComponent.cs` | 53e1a59c-b28d-4619-9ab6-70d2bf72c379 | cb2b48b5-63b8-4af9-8f54-75ff5d506e5f |
+| 13-Patterning | Compensation (C) | `Components/Patterning/CompensationComponent.cs` | c64f8be6-7169-46b2-a501-8a6fab04c724 | 51dce643-1c37-56ac-9eb1-9641e7bcdf1f |
+| 13-Patterning | Compound Net (CompNet) | `Components/Patterning/CompoundNetComponent.cs` | c5e1549c-7c80-4bb0-a067-117eb2d19240 | ca17f231-a85b-42dd-b48f-91c81e0916d7 |
+| 13-Patterning | Decompensation (DC) | `Components/Patterning/DecompensationComponent.cs` | a9e861a6-31e7-46ea-b3de-f39ad896bd6a | 9bcc0da9-b5e3-5b52-9801-47c48ae166f1 |
+| 13-Patterning | DecompensationDescriptor (DD) | `Components/Patterning/DecompensationDescriptorComponent.cs` | 4e5480bb-ac1e-441b-b0d8-c28aa5d92e50 | 88842b12-f723-5963-aa1f-5d80a18b50f5 |
+| 13-Patterning | DecompensationDescriptorExt (DDE) | `Components/Patterning/DecompensationDescriptorExtComponent.cs` | d787c3ec-4659-4ba1-b2d5-a4d226f14bf8 | af556c97-1cca-549b-9094-36dd61c91595 |
+| 13-Patterning | Deform ARAP (DA) | `Components/Patterning/DeformArapComponent.cs` | cba10d67-bfa1-4ceb-a61c-37c5e11e6fe7 | e0346aed-16ed-4ebb-8b59-a1cf04ddad67 |
+| 13-Patterning | Flattening (F) | `Components/Patterning/FlatteningComponent.cs` | 29b336bf-5f02-44bc-bce9-90eefd10c433 | b8fa603b-1674-573c-9380-450724df4b24 |
+| 13-Patterning | Flattening ARAP (FA) | `Components/Patterning/FlatteningArapComponent.cs` | b3f17427-3496-4000-b632-72b1f14ce789 | 6923d40f-6d82-4765-bc05-7c4381bdb996 |
+| 13-Patterning | Geodesic Offsets (GO) | `Components/Patterning/GeodesicOffsetsComponent.cs` | c1e35ec9-caf9-4dcf-abc1-41b8dcd34a46 | c1e96689-970d-5d37-9fac-5f2fd2e5ebe3 |
+| 13-Patterning | Line-Up (LU) | `Components/Patterning/LineUpComponent.cs` | 52e1aa90-a28d-4e3d-bac6-177c713f5a2f | dce9b365-6f46-5d47-a342-bc5a769d640d |
+| 13-Patterning | Mesh Clean (MC) | `Components/Patterning/MeshCleanComponent.cs` | f77f438b-00d4-46dd-b428-bc3ec195cfd2 | ca2b11c4-55c9-5d47-8db1-af6ecf7efa07 |
+| 13-Patterning | Mesh Divide (MD) | `Components/Patterning/MeshDivideComponent.cs` | 065060c5-cde9-489f-a9d4-348447b3be1f | 1af1264d-127a-5fc0-a8fc-93713840902e |
+| 13-Patterning | Mesh Geodesic (MG) | `Components/Patterning/MeshGeodesicComponent.cs` | d9ad6d18-9b32-4958-9836-c980c22e381b | fe0db245-06c9-5b1c-92bd-6b7c8bff360d |
+| 13-Patterning | Mesh Pipe (MP) | `Components/Patterning/MeshPipeComponent.cs` | b6b9a33b-b036-4e3d-97f6-898c3ced844f | dd2927ec-f681-56e7-ab75-f4916b2528d3 |
+| 13-Patterning | Mesh Remap (MR) | `Components/Patterning/MeshRemapComponent.cs` | 4bc2da90-9230-4fb8-b044-7b70e826270c | fd929959-b16b-5f27-8026-cb7374c3922a |
+| 13-Patterning | OrderBorders (OB) | `Components/Patterning/OrderBordersComponent.cs` | 335d8f38-48a3-485e-ae93-8b5f3d72992f | 085ff316-27ac-53fb-b09f-2f8039f82f68 |
+| 13-Patterning | Radial Cable Net (RCN) | `Components/Patterning/CableNetRadialComponent.cs` | 0f317607-a1e1-40ed-b988-c2157b8b3907 | f5b16b9e-f4e6-45c1-9430-7595f8b26cca |
+| 13-Patterning | Remesh (R) | `Components/Tools/RemeshComponent.cs` | 4c4d90ee-ff74-4cf0-8fc7-b3a73e06512a | 7fd3c82c-a8ea-4d66-9147-c8b722b9b1bb |
+| 13-Patterning | Split Mesh On Curves (SM) | `Components/Patterning/SplitMeshOnCurvesComponent.cs` | 6413cd87-824b-484f-89b4-115f928f96fd | f1efd4c3-1fac-5f78-b272-a0b71b9af9f6 |
+| 13-Patterning | Subdivide Mesh (MC) | `Components/Patterning/SubdivideMeshComponent.cs` | 8dcc7742-7a42-40bb-a94f-27b77c085f24 | a9271e1c-81d2-58d2-843c-bee8a3e0aa8d |
+| 13-Patterning | Unweld Mesh (UM) | `Components/Patterning/UnweldMeshComponent.cs` | 0c4b1071-f64a-4a93-981e-6b9de5b1b7ba | 23032209-c252-5a53-a96d-3a958c387f15 |
+| 12-Analysis | Form Find (FF) | `Components/Analysis/FormFindComponent.cs` | 83be34af-f862-457b-8c03-109fadcd679e | f4c3d571-98d3-4bc9-926e-b3315a1444f3 |
 | 14-Tools | Beam Filter (BF) | `Components/Tools/BeamFilterComponent.cs` | f19ab6c2-3624-48ad-9d49-a1e74dae489b | 8d3cb7f2-7de6-4594-a437-9756dc36b47c |
 | 14-Tools | Curve2Mesh (C2M) | `Components/Tools/CurveToMeshComponent.cs` | 2bfbb9cf-09b0-4ce6-be33-31bdaafffe92 | 923d40fe-63a7-4d04-84f3-6b8f825cabb9 |
 | 14-Tools | Node Filter (NF) | `Components/Tools/NodeFilterComponent.cs` | ee66aa2b-1b65-44ee-a638-248871d92b64 | f322b12d-ddb7-4287-aaa6-67813e6cc864 |
@@ -103,12 +104,14 @@ I componenti Patterning della prima versione di Arachne mantengono i GUID già a
 
 ## Componenti nuovi di Arachne
 
-Non esistono in FeMM. Leggono il modello prodotto dal Form Find o le mesh del patterning, senza cambiare i componenti FeMM.
+Non esistono in FeMM.
 
 | Pannello | Componente | Cosa fa | GUID |
 | --- | --- | --- | --- |
-| 06-Model | Check Model (CkM) | Controlla il modello prima del form finding: vincoli per ogni parte e direzione, nodi senza aste con forza, aste senza densità di forza, lunghezze nulle, aste doppie, valori non validi di lunghezza o forza fissa. Uscite: Valid, Errors, Warnings, Parts. | 6b9c4718-1b7d-485e-9293-31637d077e35 |
-| 09-Patterning | Panel Distortion (PD) | Confronta un pannello 3D con il suo sviluppo (stessi vertici): allungamento di ogni lato in %, massimo e variazione d'area. | 44d42704-4c53-4dbc-a113-c2f9a3b6388d |
+| 02-Materials | Membrane Material (MM) | Materiale di una membrana (tessuto spalmato o film) dai valori della scheda tecnica: peso in g/m², resistenze di ordito e trama in N/5cm, e facoltativi rigidezze E·t di ordito e trama e rigidezza a taglio G·t in kN/m, coefficiente di Poisson. Li salva in t, N e mm. Si collega a Plate Property. | 3653a652-deb4-4695-b52d-1fce5edfe629 |
+| 12-Analysis | Solver Options (SO) | Le opzioni del Form Find, che in FeMM erano suoi ingressi, con gli stessi nomi e predefiniti: Gravity, Pressure, Pressure Load Case, Max Iter, Tolerance, Max Iter,s, Tolerance,s, Create mesh, Plate Property. Senza questo componente il Form Find usa i predefiniti. | 4b18d9c1-d734-40c5-99d8-9d53333a76d5 |
+| 09-Model | Check Model (CkM) | Controlla il modello prima del form finding: vincoli per ogni parte e direzione, nodi senza aste con forza, aste senza densità di forza, lunghezze nulle, aste doppie, valori non validi di lunghezza o forza fissa. Uscite: Valid, Errors, Warnings, Parts. | 6b9c4718-1b7d-485e-9293-31637d077e35 |
+| 13-Patterning | Panel Distortion (PD) | Confronta un pannello 3D con il suo sviluppo (stessi vertici): allungamento di ogni lato in %, massimo e variazione d'area. | 44d42704-4c53-4dbc-a113-c2f9a3b6388d |
 | 12-Analysis | Beam Forces (BF) | Linee, forze assiali (dal pre-carico salvato dal Form Find), densità di forza N/L, lunghezze e ID delle aste. | 5f9a26f9-c55b-496a-8153-459d8e9a56db |
 | 12-Analysis | Support Reactions (SR) | Punti, reazioni dei vincoli (solo nelle direzioni vincolate), ID e risultante. Le reazioni sono calcolate dal Form Find. | 2df8465b-e430-4c4c-b077-6f64ee5150e9 |
 
@@ -160,14 +163,27 @@ Patterning e strumenti:
 31. Node Filter e Plate Filter: l'ingresso Units non aveva un valore predefinito (Beam Filter sì, 2), quindi il filtro non faceva nulla finché Units non veniva collegato. Ora il predefinito è 2 (Nmm). L'ingresso resta per compatibilità: la tolleranza viene dalle impostazioni di Arachne.
 32. Mesh Clean: saldava e ripuliva direttamente la mesh in ingresso, che Grasshopper condivide con i componenti a monte; dopo il calcolo anche la sorgente aveva i vertici coincidenti fusi (su un caso di prova da 8 a 7 vertici). Ora lavora su una copia.
 
+Sezioni, materiali e proprietà:
+
+33. Generic Section: l'anteprima delle aste (cerchio della stessa area) aveva il raggio moltiplicato per 0.001, quindi un cavo di 20 mm era disegnato spesso 0.02 mm. Ora il raggio è √(A/π) nelle unità del modello, come le dimensioni delle altre sezioni.
+34. Plate Property: i dati interni salvati nel file perdevano materiale e spessori (venivano riletti solo Id e nome) e non si potevano rileggere, perché il tipo di dato non aveva il costruttore vuoto richiesto da Grasshopper. Ora si salva e si rilegge tutta la proprietà.
+35. Custom Material con Kind = Rebar terminava con un'eccezione non gestita. Rebar, tipo SAP, non è più nell'elenco.
+36. Materiale: la resistenza ultima a taglio leggeva e scriveva quella a trazione.
+
 Comportamento invariato rispetto a FeMM: Form Find (Linear e Non-Linear), Flattening e Compensation pubblicano il risultato anche quando raggiungono il limite di iterazioni, con un avviso. Linear step by step, invece, termina con errore e senza risultato. Node, Beam e Plate Filter cercano per ID solo gli identificativi assegnati con Element Id, non la numerazione automatica.
 
 ## Adattamenti
 
 - Ingressi tolti di proposito: Build Model non ha più Load Combinations, Named sets e Staged constructions; Beam Distributed Load non ha più P1 e P2. Beam Distributed Load accetta solo i carichi uniformi e trapezi; senza Coordinate System il carico è globale (in FeMM era nel sistema locale dell'asta, che il form finding non gestisce). Lo stesso vale per Beam Point Load.
-- TensileLib 2.2: i solutori accettano una sola tolleranza algebrica. L'ingresso ToleranceB,s resta, ma viene ignorato con un avviso. Non esiste più l'opzione CreateMesh del motore: senza piastre in ingresso, le piastre vengono generate dalle aste per ogni parte della rete.
+- TensileLib 2.2: i solutori accettano una sola tolleranza algebrica, quindi Solver Options ha solo Tolerance,s (FeMM: ToleranceA,s e ToleranceB,s). Non esiste più l'opzione CreateMesh del motore: senza piastre in ingresso, le piastre vengono generate dalle aste per ogni parte della rete.
+- Snellimento (0.3.0-rc.5), con GUID nuovi per i componenti con ingressi diversi da FeMM:
+  - Load Case: tolto Gravity NSM (gravità sulla massa non strutturale, solo SAP);
+  - Table Material: tolto (tabella sforzi-deformazioni per SAP); per le membrane c'è Membrane Material;
+  - Plate Property: Name, Thickness e Material; tolti il tipo SAP (Shell-Thin, Membrane, Load Patch...) e il secondo spessore. Senza spessore l'anteprima della piastra è la superficie, come il Load Patch di FeMM;
+  - Form Find: restano Model, Solver Type, Plane e Auto Run; le altre opzioni sono date da Solver Options, con gli stessi predefiniti. Se Options è collegato ma vuoto (per esempio una pressione senza caso di carico), il Form Find si ferma invece di usare i predefiniti;
+  - pannelli: Node, Beam e Plate restano in 06-Model; Build, Decompose e Check Model sono in 09-Model, dopo attributi e carichi; il patterning è in 13-Patterning, dopo l'analisi.
 - TensileLib 2.2 non modifica più le densità obiettivo delle aste (la densità trovata è `Beam.ForceDensity`): Linear step by step riparte a ogni passo dalle densità appena trovate, come prima.
 - Non-Linear: i pesi di Keep Position e delle Force Density ora hanno effetto. Nella TensileLib precedente il calcolo ricadeva quasi sempre su un metodo che li ignorava (vedere il registro di TensileLib). I pesi di Fixed Length e Fixed Axial Force contano quando questi vincoli non si possono soddisfare tutti insieme.
 - Il Form Find salva nel modello le reazioni dei vincoli (`NodeReactResultModel` di FeMM, caso "Form Finding"), calcolate dall'equilibrio dei nodi vincolati con le forze delle aste e i carichi applicati dal solutore (carichi nodali e delle aste, peso proprio, pressione). Sono salvate solo se il calcolo converge e sono sostituite a ogni nuovo form finding. Le legge Support Reactions.
 - Flattening ARAP e Deform ARAP usano il motore C# di `Arachne.Arap`. Quando non converge, il motore non restituisce la mesh (FeMM la pubblicava con un avviso); il componente mostra il motivo.
-- Remesh compare nel pannello 09-Patterning, come in FeMM, anche se il sorgente era nella cartella Tools.
+- Remesh compare nel pannello del patterning, come in FeMM, anche se il sorgente era nella cartella Tools.

@@ -269,14 +269,15 @@ namespace Arachne.Common.Models
 
 			v.Unitize();
 
-			if (PlateProperty.PropertyType == PlatePropertyType.LoadPatch)
+			// Without a thickness the view is the surface (FeMM: the Load Patch type)
+			if (!(_property.Thickness > 0))
 			{
 				_shape = brep;
 			}
 			else
 			{
-				brep.Translate(v * (-_property.MembraneThickness / 2 + _offset));
-				LineCurve line = new LineCurve(_points[0], _points[0] + v * _property.MembraneThickness);
+				brep.Translate(v * (-_property.Thickness / 2 + _offset));
+				LineCurve line = new LineCurve(_points[0], _points[0] + v * _property.Thickness);
 				_shape = brep.Faces[0].CreateExtrusion(line, true);
 			}
 		}

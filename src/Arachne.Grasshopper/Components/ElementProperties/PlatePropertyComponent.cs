@@ -1,11 +1,8 @@
 using System;
-using System.Collections.Generic;
-using Arachne.Common.Helpers;
 using Arachne.Common.Models;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Parameters;
 
 namespace Arachne.Grasshopper.Components.ElementProperties
 {
@@ -25,20 +22,8 @@ namespace Arachne.Grasshopper.Components.ElementProperties
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
             pManager.AddTextParameter("Name", "N", "Property name", GH_ParamAccess.item);
-            int i = pManager.AddIntegerParameter("Type", "T", "The property type", GH_ParamAccess.item);
-            Param_Integer mtParam = pManager[i] as Param_Integer;
-            Array values = Enum.GetValues(typeof(PlatePropertyType));
-            foreach (PlatePropertyType val in values)
-            {
-                if (val != PlatePropertyType.Undefined)
-                    mtParam.AddNamedValue(val.GetDescription(), (int)val);
-            }
-            i = pManager.AddNumberParameter("Membrane Thickness", "MT", "The membrane thickness value", GH_ParamAccess.item);
-            pManager[i].Optional = true;
-            i = pManager.AddNumberParameter("Bending Thickness", "BT", "The bending thickness value", GH_ParamAccess.item, 0);
-            pManager[i].Optional = true;
-            i = pManager.AddGenericParameter("Material", "M", "Material", GH_ParamAccess.item);
-            pManager[i].Optional = true;
+            pManager.AddNumberParameter("Thickness", "T", "The thickness", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Material", "M", "Material", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -56,48 +41,25 @@ namespace Arachne.Grasshopper.Components.ElementProperties
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             string name = "";
-            int type = 0;
-            double mem_thick = 0;
-            double ben_thick = 0;
+            double thickness = 0;
             GH_Material material = null;
-            if (!DA.GetData("Name", ref name))
+            if (!DA.GetData(0, ref name) || !DA.GetData(1, ref thickness) || !DA.GetData(2, ref material))
                 return;
-            if (!DA.GetData("Type", ref type))
-                return;
-            DA.GetData("Membrane Thickness", ref mem_thick);
-            DA.GetData("Bending Thickness", ref ben_thick);
-            bool has_material = DA.GetData("Material", ref material);
 
-            if (type != 5)
+            if (!(thickness > 0))
             {
-                bool missing_values = false;
-                if (mem_thick == 0)
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Input parameter Membrane Thickness failed to collect data");
-                    missing_values = true;
-                }
-                if (!has_material)
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Input parameter Material failed to collect data");
-                    missing_values = true;
-                }
-                if (missing_values)
-                    return;
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The thickness must be greater than 0");
+                return;
             }
 
             PlatePropertyModel pp = new PlatePropertyModel
             {
                 Name = name,
-                Material = material?.Value,
-                PropertyType = (PlatePropertyType)type,
-                MembraneThickness = mem_thick,
-                BendingThickness = ben_thick
+                Material = material.Value,
+                Thickness = thickness
             };
 
-            Message = pp.PropertyType.GetDescription();
-
-            GH_PlateProperty gh_pp = new GH_PlateProperty(pp);
-            DA.SetData(0, gh_pp);
+            DA.SetData(0, new GH_PlateProperty(pp));
         }
 
         /// <summary>
@@ -105,9 +67,7 @@ namespace Arachne.Grasshopper.Components.ElementProperties
         /// </summary>
         protected override System.Drawing.Bitmap Icon => Arachne.Grasshopper.Helpers.ComponentIcons.Get(GetType().Name);
 
-        /// <summary>
-        /// Gets the unique ID for this component. Do not change this ID after release.
-        /// </summary>
-        public override Guid ComponentGuid => new Guid("aa289e2e-280d-4984-ab23-8baabcbddc03");
+        // New GUID: FeMM had the SAP shell Type and two thicknesses (membrane and bending)
+        public override Guid ComponentGuid => new Guid("77ce7fd4-99f4-4bc1-9d3f-5c6ce0955ab1");
     }
 }

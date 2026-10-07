@@ -84,11 +84,22 @@ internal static class InventoryChecks
     }
 
     // FeMM inputs removed on purpose: the SAP model definitions (load combinations, named sets,
-    // staged constructions) and the distributed loads that the form finding does not handle.
+    // staged constructions, the gravity on the non-structural mass) and the distributed loads
+    // that the form finding does not handle.
     private static readonly Dictionary<string, string[]> RemovedInputs = new Dictionary<string, string[]>
     {
         { "BuildModelComponent", new[] { "Load Combinations", "Named sets", "Staged constructions" } },
         { "BeamDistributedLoadComponent", new[] { "P1", "P2" } },
+        { "LoadCaseComponent", new[] { "Gravity NSM" } },
+    };
+
+    // FeMM components whose inputs were reworked on purpose: the inputs are the ones listed here,
+    // the outputs are still compared with FeMM. Plate Property has one thickness and no SAP shell
+    // type; the options of the Form Find are given by the Solver Options component.
+    private static readonly Dictionary<string, string[]> ReworkedInputs = new Dictionary<string, string[]>
+    {
+        { "PlatePropertyComponent", new[] { "Name", "Thickness", "Material" } },
+        { "FormFindComponent", new[] { "Model", "Solver Type", "Options", "Plane", "Auto Run" } },
     };
 
     private static void CompareParameters(GH_Component component, string source)
@@ -102,7 +113,10 @@ internal static class InventoryChecks
             Check(removed.All(name => inputs.Any(d => d.Name == name)), "A removed input is not in the FeMM source");
             inputs = inputs.Where(d => !removed.Contains(d.Name)).ToList();
         }
-        Compare("input", inputs, component.Params.Input);
+        if (ReworkedInputs.TryGetValue(component.GetType().Name, out string[] reworked))
+            Check(component.Params.Input.Select(p => p.Name).SequenceEqual(reworked), "inputs " + string.Join(", ", component.Params.Input.Select(p => p.Name)));
+        else
+            Compare("input", inputs, component.Params.Input);
         Compare("output", outputs, component.Params.Output);
     }
 

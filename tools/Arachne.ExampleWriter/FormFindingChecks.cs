@@ -97,17 +97,23 @@ internal static class FormFindingChecks
         return build;
     }
 
+    // Form Find with its Solver Options (inputs: Gravity, Pressure, Pressure Load Case, Max Iter, Tolerance...)
     internal static GH_Component FormFind(Chain chain, GH_Component build, int solverType, int maxIterations = 20, double tolerance = 1e-4, double gravity = 0)
     {
+        var options = chain.Canvas.Add(new SolverOptionsComponent());
+        Canvas.Set(options, 0, new GH_Number(gravity));
+        Canvas.Set(options, 3, new GH_Integer(maxIterations));
+        Canvas.Set(options, 4, new GH_Number(tolerance));
         var ff = chain.Canvas.Add(new FormFindComponent());
         Canvas.Link(ff, 0, build);
-        Canvas.Set(ff, 1, new GH_Number(gravity));
-        Canvas.Set(ff, 4, new GH_Integer(solverType));
-        Canvas.Set(ff, 5, new GH_Integer(maxIterations));
-        Canvas.Set(ff, 6, new GH_Number(tolerance));
-        Canvas.Set(ff, 13, new GH_Boolean(true));
+        Canvas.Set(ff, 1, new GH_Integer(solverType));
+        Canvas.Link(ff, 2, options);
+        Canvas.Set(ff, 4, new GH_Boolean(true));
         return ff;
     }
+
+    // The Solver Options of a Form Find made by FormFind
+    internal static GH_Component Options(GH_Component ff) => (GH_Component)ff.Params.Input[2].Sources[0].Attributes.GetTopLevel.DocObject;
 
     internal static GH_Component Analysis(Chain chain, GH_Component component, GH_Component ff)
     {
@@ -242,7 +248,7 @@ internal static class FormFindingChecks
                 var chain = Start(c); var (lines, border) = SaddleGrid(4, 10, 2);
                 var wind = c.Add(new LoadCaseComponent()); Canvas.Set(wind, 0, new GH_String("Wind"));
                 var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border)), 0);
-                Canvas.Set(ff, 2, new GH_Number(0.05)); Canvas.Link(ff, 3, wind);
+                Canvas.Set(Options(ff), 1, new GH_Number(0.05)); Canvas.Link(Options(ff), 2, wind);
                 c.Solve();
                 var model = Solved(ff);
                 var loads = model.Nodes.SelectMany(n => n.Loads.OfType<NodeForceLoadModel>()).ToList();
@@ -251,15 +257,76 @@ internal static class FormFindingChecks
             }
         });
 
-        Test("Pressure without a load case: warning and no result (FeMM behaviour)", () =>
+        Test("Pressure without a load case: warning and no result (FeMM behaviour), not the default options", () =>
         {
             using (var c = new Canvas())
             {
                 var chain = Start(c); var (lines, border) = SaddleGrid(2, 4, 1);
                 var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border)), 0);
-                Canvas.Set(ff, 2, new GH_Number(0.05));
+                Canvas.Set(Options(ff), 1, new GH_Number(0.05));
                 c.Solve();
+                Check(Options(ff).RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count > 0 && Canvas.Out(Options(ff), 0).Count == 0, "Solver Options without warning");
+                // Without options from the connected component the Form Find stops instead of using the defaults
                 Check(ff.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Count > 0 && Canvas.Out(ff, 0).Count == 0, "Missing warning");
+            }
+        });
+
+        Test("Form Find without Solver Options uses the defaults: same result as the default options", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c); var (lines, border) = SaddleGrid(2, 4, 1);
+                var build = Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border));
+                var withOptions = c.Add(new FormFindComponent()); Canvas.Link(withOptions, 0, build);
+                Canvas.Link(withOptions, 2, c.Add(new SolverOptionsComponent())); Canvas.Set(withOptions, 4, new GH_Boolean(true));
+                var without = c.Add(new FormFindComponent()); Canvas.Link(without, 0, build); Canvas.Set(without, 4, new GH_Boolean(true));
+                c.Solve();
+                var first = Solved(withOptions).Nodes.Select(n => n.Position).ToList();
+                var second = Solved(without).Nodes.Select(n => n.Position).ToList();
+                Check(first.Count == 9 && first.Zip(second, (p, q) => p.DistanceTo(q)).Max() == 0, "Different results");
+                Check(Canvas.Single<GH_Mesh>(without, 1).Value.Faces.Count == 4, "No mesh with the default Create mesh");
+            }
+        });
+
+        Test("Membrane Material: data sheet units to N and mm; Plate Property saves material and thickness", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var membrane = c.Add(new MaterialMembraneComponent());
+                Canvas.Set(membrane, 0, new GH_String("PVC/PES")); Canvas.Set(membrane, 1, new GH_Number(1050));
+                Canvas.Set(membrane, 2, new GH_Number(4200)); Canvas.Set(membrane, 3, new GH_Number(4000)); Canvas.Set(membrane, 4, new GH_Number(600));
+                var property = c.Add(new PlatePropertyComponent());
+                Canvas.Set(property, 0, new GH_String("Fabric")); Canvas.Set(property, 1, new GH_Number(0.8)); Canvas.Link(property, 2, membrane);
+                c.Solve();
+                var material = Canvas.Single<Arachne.Grasshopper.DataTypes.GH_Material>(membrane).Value;
+                Check(material.Kind == MaterialModel.MaterialKind.Membrane && Math.Abs(material.AreaDensity - 1.05e-9) < 1e-18, "Weight " + material.AreaDensity);
+                Check(material.StrengthWarp == 84 && material.StrengthWeft == 80 && material.StiffnessWarp == 600 && material.StiffnessWeft == 0, "Strengths and stiffnesses");
+                // FeMM wrote the material of a plate property but read back only its name
+                var chunk = new GH_LooseChunk("check");
+                Check(Canvas.Single<GH_PlateProperty>(property).Write(chunk.CreateChunk("property")), "Write failed");
+                var read = new GH_LooseChunk("check"); read.Deserialize_Binary(chunk.Serialize_Binary());
+                var restored = new GH_PlateProperty();
+                Check(restored.Read(read.FindChunk("property")), "Read failed");
+                Check(restored.Value.Name == "Fabric" && restored.Value.Thickness == 0.8 && restored.Value.Material.StrengthWarp == 84, "Restored " + restored.Value);
+            }
+        });
+
+        Test("Generic section: the beam preview is the circle of the same area", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var section = c.Add(new BeamSectionGenericComponent()); Canvas.Set(section, 0, new GH_Number(100 * Math.PI));
+                var material = c.Add(new MaterialSteelComponent()); Canvas.Set(material, 0, new GH_String("Steel")); Canvas.Set(material, 1, new GH_Integer(0));
+                var property = c.Add(new BeamPropertyComponent()); Canvas.Set(property, 0, new GH_String("Cable")); Canvas.Set(property, 1, new GH_Integer(1));
+                Canvas.Link(property, 2, section); Canvas.Link(property, 3, material);
+                var beam = c.Add(new BeamComponent()); Canvas.Set(beam, 0, new GH_Curve(new LineCurve(Point3d.Origin, new Point3d(1000, 0, 0)))); Canvas.Link(beam, 1, property);
+                c.Solve();
+                var shapes = Canvas.Single<GH_Beam>(beam).Value.Shapes;
+                Check(shapes != null && shapes.Length == 1, "No preview");
+                var box = shapes[0].GetBoundingBox(true);
+                var sizes = new[] { box.Max.X - box.Min.X, box.Max.Y - box.Min.Y, box.Max.Z - box.Min.Z }.OrderBy(v => v).ToArray();
+                // FeMM scaled the radius by 0.001: a 20 mm cable was drawn 0.02 mm thick
+                Check(Math.Abs(sizes[0] - 20) < 1e-6 && Math.Abs(sizes[1] - 20) < 1e-6 && Math.Abs(sizes[2] - 1000) < 1e-6, "Preview " + string.Join(" x ", sizes));
             }
         });
 
@@ -359,7 +426,7 @@ internal static class FormFindingChecks
                     if (reversed) { lines.Reverse(); lines = lines.Select(l => new Line(l.To, l.From)).ToList(); }
                     var wind = c.Add(new LoadCaseComponent()); Canvas.Set(wind, 0, new GH_String("Wind"));
                     var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border)), 0, 100, 1e-8);
-                    Canvas.Set(ff, 2, new GH_Number(1e-4)); Canvas.Link(ff, 3, wind);
+                    Canvas.Set(Options(ff), 1, new GH_Number(1e-4)); Canvas.Link(Options(ff), 2, wind);
                     c.Solve();
                     var model = Solved(ff);
                     Check(Canvas.Single<GH_Mesh>(ff, 1).Value.Faces.Count == 16, "Mesh faces");
@@ -379,7 +446,7 @@ internal static class FormFindingChecks
                     var chain = Start(c); var (lines, border) = SaddleGrid(4, 10000, 2000, offset);
                     var wind = c.Add(new LoadCaseComponent()); Canvas.Set(wind, 0, new GH_String("Wind"));
                     var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border)), 0);
-                    Canvas.Set(ff, 2, new GH_Number(1e-4)); Canvas.Link(ff, 3, wind);
+                    Canvas.Set(Options(ff), 1, new GH_Number(1e-4)); Canvas.Link(Options(ff), 2, wind);
                     c.Solve();
                     return Solved(ff).Nodes.Select(n => n.Position - new Vector3d(offset, 0, 0)).ToList();
                 }
@@ -492,7 +559,7 @@ internal static class FormFindingChecks
                 var wind = c.Add(new LoadCaseComponent()); Canvas.Set(wind, 0, new GH_String("Wind"));
                 var top = NodeLoad(chain, Nodes(chain, new[] { new Point3d(5000, 5000, 0) }), new Vector3d(100, 0, -1000));
                 var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border), top), 0, 100, 1e-10);
-                Canvas.Set(ff, 2, new GH_Number(1e-4)); Canvas.Link(ff, 3, wind);
+                Canvas.Set(Options(ff), 1, new GH_Number(1e-4)); Canvas.Link(Options(ff), 2, wind);
                 var reactions = Analysis(chain, new SupportReactionsComponent(), ff);
                 c.Solve();
                 var model = Solved(ff);
@@ -592,7 +659,7 @@ internal static class FormFindingChecks
                 var first = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, new[] { new Line(a, m), new Line(m, b2) }), 2), Supports(chain, new[] { a, b2 }),
                     NodeLoad(chain, Nodes(chain, new[] { m }), new Vector3d(0, 0, -4))), 0);
                 var second = chain.Canvas.Add(new FormFindComponent());
-                Canvas.Link(second, 0, first); Canvas.Set(second, 13, new GH_Boolean(true));
+                Canvas.Link(second, 0, first); Canvas.Set(second, 4, new GH_Boolean(true));
                 c.Solve();
                 var model = Solved(second);
                 Check(model.Nodes.All(n => n.Results.OfType<NodeReactResultModel>().Count() == (n.HasAttribute(typeof(NodeRestraintAttributeModel)) ? 1 : 0)), "Stale reactions");
@@ -645,7 +712,7 @@ internal static class FormFindingChecks
             }
         });
 
-        Test("Form Find keeps one result per model and warns on ToleranceB,s", () =>
+        Test("Form Find keeps one result per model", () =>
         {
             using (var c = new Canvas())
             {
@@ -655,13 +722,12 @@ internal static class FormFindingChecks
                 var high = Build(chain, ForceDensity(chain, Beams(chain, new[] { new Line(a, m), new Line(m, b2) }), 1), Supports(chain, new[] { a, b2 }),
                     NodeLoad(chain, Nodes(chain, new[] { m }), new Vector3d(0, 0, -2)));
                 var ff = FormFind(chain, low, 0);
-                Canvas.Link(ff, 0, high); Canvas.Set(ff, 9, new GH_Number(0.1));
+                Canvas.Link(ff, 0, high);
                 c.Solve();
                 var models = Canvas.Out(ff, 0).Cast<GH_Model>().ToList();
                 Check(models.Count == 2 && Canvas.Out(ff, 1).Count == 2, "Results " + models.Count);
                 double Sag(GH_Model model) => model.Value.Nodes.Single(n => !n.HasAttribute(typeof(NodeRestraintAttributeModel))).Position.Z;
                 Check(Math.Abs(Sag(models[0]) + 0.5) < 1e-6 && Math.Abs(Sag(models[1]) + 1) < 1e-6, $"Sags {Sag(models[0])}, {Sag(models[1])}");
-                Check(ff.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Any(w => w.Contains("ToleranceB")), "Missing ToleranceB warning");
             }
         });
 

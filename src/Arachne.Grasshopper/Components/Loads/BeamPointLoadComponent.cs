@@ -79,9 +79,6 @@ namespace Arachne.Grasshopper.Components.Loads
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "The 'a' value must be between 0 and 1");
                 return;
             }
-            if (lc.Value.NonStructuralMassAcceleration)
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "The connected LoadCase have the Non-structural mass flag set to on");
-
             BeamPointLoadModel.LoadData load_value = new BeamPointLoadModel.LoadData()
             {
                 CoordinateSystem = coordinateSystem,

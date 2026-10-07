@@ -13,7 +13,8 @@ namespace Arachne.Common.Models
 			Steel,
 			Concrete,
 			Aluminium,
-			Rebar
+			Rebar,
+			Membrane
 		}
 
 		public enum TemperatureOnTimeType
@@ -71,7 +72,13 @@ namespace Arachne.Common.Models
 		protected double _tensileUltimateStrength;
 		protected double _shearUltimateStrength;
 
-		protected (double stress, double strain)[] _stressStrainTable;
+		// Membranes (coated fabrics and foils): values per unit width, in t, N and mm
+		protected double _areaDensity;
+		protected double _strengthWarp;
+		protected double _strengthWeft;
+		protected double _stiffnessWarp;
+		protected double _stiffnessWeft;
+		protected double _shearStiffness;
 
 		#region Properties
 
@@ -235,14 +242,50 @@ namespace Arachne.Common.Models
 
 		public double ShearUltimateStrength
 		{
-			get => _tensileUltimateStrength;
-			set => _tensileUltimateStrength = value;
+			get => _shearUltimateStrength;
+			set => _shearUltimateStrength = value;
 		}
 
-		public (double stress, double strain)[] StressStrainTable
+		/// <summary>Membrane mass per unit area, t/mm².</summary>
+		public double AreaDensity
 		{
-			get => _stressStrainTable;
-			set => _stressStrainTable = value;
+			get => _areaDensity;
+			set => _areaDensity = value;
+		}
+
+		/// <summary>Membrane tensile strength along the warp, per unit width, N/mm.</summary>
+		public double StrengthWarp
+		{
+			get => _strengthWarp;
+			set => _strengthWarp = value;
+		}
+
+		/// <summary>Membrane tensile strength along the weft, per unit width, N/mm.</summary>
+		public double StrengthWeft
+		{
+			get => _strengthWeft;
+			set => _strengthWeft = value;
+		}
+
+		/// <summary>Membrane tensile stiffness E·t along the warp, N/mm.</summary>
+		public double StiffnessWarp
+		{
+			get => _stiffnessWarp;
+			set => _stiffnessWarp = value;
+		}
+
+		/// <summary>Membrane tensile stiffness E·t along the weft, N/mm.</summary>
+		public double StiffnessWeft
+		{
+			get => _stiffnessWeft;
+			set => _stiffnessWeft = value;
+		}
+
+		/// <summary>Membrane shear stiffness G·t, N/mm.</summary>
+		public double ShearStiffness
+		{
+			get => _shearStiffness;
+			set => _shearStiffness = value;
 		}
 
 		public bool IsValid => _materialKind != MaterialKind.Undefined;
@@ -268,7 +311,8 @@ namespace Arachne.Common.Models
 
 		#region Serialization
 		private string SERIALIZATION_RELEASE_NAME = "MaterialModel_SERIALIZATION_RELEASE"; //do not modify the name!
-		private int SERIALIZATION_RELEASE = 1;
+		// Release 2: membrane data; the SAP stress-strain table is no longer stored
+		private int SERIALIZATION_RELEASE = 2;
 
 		protected MaterialModel(SerializationInfo info, StreamingContext context)
 		{
@@ -309,13 +353,14 @@ namespace Arachne.Common.Models
 			_tensileYieldStrength = info.GetDouble("TensileYieldStrength");
 			_tensileUltimateStrength = info.GetDouble("TensileUltimateStrength");
 			_shearUltimateStrength = info.GetDouble("ShearUltimateStrength");
-			try
+			if (savedRelease >= 2)
 			{
-				_stressStrainTable = ((double stress, double strain)[])info.GetValue("StressStrainTable", typeof((double stress, double strain)[]));
-			}
-			catch (Exception)
-			{
-				_stressStrainTable = null;
+				_areaDensity = info.GetDouble("AreaDensity");
+				_strengthWarp = info.GetDouble("StrengthWarp");
+				_strengthWeft = info.GetDouble("StrengthWeft");
+				_stiffnessWarp = info.GetDouble("StiffnessWarp");
+				_stiffnessWeft = info.GetDouble("StiffnessWeft");
+				_shearStiffness = info.GetDouble("ShearStiffness");
 			}
 		}
 
@@ -354,7 +399,12 @@ namespace Arachne.Common.Models
 			info.AddValue("TensileYieldStrength", _tensileYieldStrength);
 			info.AddValue("TensileUltimateStrength", _tensileUltimateStrength);
 			info.AddValue("ShearUltimateStrength", _shearUltimateStrength);
-			info.AddValue("StressStrainTable", _stressStrainTable, typeof((double stress, double strain)[]));
+			info.AddValue("AreaDensity", _areaDensity);
+			info.AddValue("StrengthWarp", _strengthWarp);
+			info.AddValue("StrengthWeft", _strengthWeft);
+			info.AddValue("StiffnessWarp", _stiffnessWarp);
+			info.AddValue("StiffnessWeft", _stiffnessWeft);
+			info.AddValue("ShearStiffness", _shearStiffness);
 		}
 
 		#endregion
@@ -390,13 +440,32 @@ namespace Arachne.Common.Models
 			_tensileYieldStrength = material._tensileYieldStrength;
 			_tensileUltimateStrength = material._tensileUltimateStrength;
 			_shearUltimateStrength = material._shearUltimateStrength;
-
-			_stressStrainTable = material._stressStrainTable;
+			_areaDensity = material._areaDensity;
+			_strengthWarp = material._strengthWarp;
+			_strengthWeft = material._strengthWeft;
+			_stiffnessWarp = material._stiffnessWarp;
+			_stiffnessWeft = material._stiffnessWeft;
+			_shearStiffness = material._shearStiffness;
 		}
 
 		public override string ToString()
 		{
 			string text = string.Empty;
+
+			if (_materialKind == MaterialKind.Membrane)
+			{
+				// In the units of the fabric data sheets
+				text = $"Membrane: {Name};\n" +
+					$"Weight: {_areaDensity * 1e12:0.#} g/m²;\n" +
+					$"Strength warp/weft: {_strengthWarp * 50:0.#} / {_strengthWeft * 50:0.#} N/5cm;\n";
+				if (_stiffnessWarp > 0 || _stiffnessWeft > 0)
+					text += $"Stiffness warp/weft: {_stiffnessWarp:0.#} / {_stiffnessWeft:0.#} kN/m;\n";
+				if (_poissonRatio > 0)
+					text += $"Poisson ratio: {_poissonRatio};\n";
+				if (_shearStiffness > 0)
+					text += $"Shear stiffness: {_shearStiffness:0.#} kN/m;\n";
+				return text;
+			}
 
 			if (string.IsNullOrEmpty(_id) || string.IsNullOrWhiteSpace(_id))
 			{

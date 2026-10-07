@@ -123,8 +123,11 @@ namespace Arachne.Examples
                     case "MaterialConcreteComponent": Swatch(Color.FromArgb(206,201,190),Color.FromArgb(150,146,136),"C");break;
                     case "MaterialCustomComponent": Swatch(Color.FromArgb(150,0,137,153),Color.FromArgb(220,0,137,153),"E");break;
                     case "MaterialSteelComponent": Swatch(Color.FromArgb(160,174,196),Color.FromArgb(92,110,138),"S");break;
-                    case "MaterialTableComponent":
-                        Path(Ink,3,4,21,4,21,20,3,20,3,4);L(3,9,21,9);L(12,4,12,20);L(3,14.5f,21,14.5f);Path(Weft,14,18,16,15,18.5f,12,20,11);break;
+                    case "MaterialMembraneComponent":
+                        // A sagging fabric between two edges, with warp and weft
+                        Fill(Color.FromArgb(235,231,214),3,5,21,5,21,13,12,17,3,13);
+                        L(9,5,9,15,Weft);L(15,5,15,15,Weft);L(3,9,21,9,Warp);Path(Warp,3,13,12,17,21,13);
+                        Path(Ink,3,5,21,5,21,13);Path(Ink,3,5,3,13);Badge("M",Ink);break;
 
                     // 03-Sections
                     case "BeamSectionAngleComponent": Section(Shade,6,3,10,3,10,16,20,16,20,20,6,20,6,3);break;
@@ -159,6 +162,8 @@ namespace Arachne.Examples
                     case "NodeComponent": Circle(12,12,4.5f,Warp,true);L(3,12,7,12);L(17,12,21,12);L(12,3,12,7);L(12,17,12,21);break;
                     case "BeamComponent": P.Width=3;L(4,19,20,5,Warp);P.Width=1.55f;Circle(4,19,2.2f,Ink,true);Circle(20,5,2.2f,Ink,true);break;
                     case "PlateComponent": Fill(Shade,4,6,19,3,21,18,3,20);Path(Ink,4,6,19,3,21,18,3,20,4,6);Circle(4,6,1.6f,Ink,true);Circle(19,3,1.6f,Ink,true);Circle(21,18,1.6f,Ink,true);Circle(3,20,1.6f,Ink,true);break;
+
+                    // 09-Model
                     case "BuildModelComponent": Mesh();Circle(3,7,2,Weft,true);Circle(17,3,2,Weft,true);Circle(21,17,2,Weft,true);Circle(7,21,2,Weft,true);break;
                     case "DecomposeModelComponent":
                         Path(Warp,2,6,10,3,11,11,3,13,2,6);Circle(2,6,1.5f,Ink,true);Circle(10,3,1.5f,Ink,true);
@@ -188,7 +193,7 @@ namespace Arachne.Examples
                     case "BeamPointLoadComponent": Bar(3,18,21,18);Arrow(9,3,9,15,Weft);break;
                     case "BeamDistributedLoadComponent": Bar(3,19,21,19);L(4,4,20,4,Weft);Arrow(5,4,5,16,Weft);Arrow(12,4,12,16,Weft);Arrow(19,4,19,16,Weft);break;
 
-                    // 09-Patterning
+                    // 13-Patterning
                     case "CableNetComponent": Net();break;
                     case "CableNetRadialComponent":
                         Circle(12,12,9,Weft);Circle(12,12,5,Weft);
@@ -222,6 +227,9 @@ namespace Arachne.Examples
 
                     // 12-Analysis
                     case "FormFindComponent": Mesh();Arrow(5,2,12,2,Weft);Arrow(22,6,22,13,Weft);Badge("F",Warp);break;
+                    case "SolverOptionsComponent":
+                        // Three sliders: the options of the form finding
+                        L(3,6,21,6);Circle(8,6,2.4f,Warp,true);L(3,12,21,12);Circle(16,12,2.4f,Weft,true);L(3,18,21,18);Circle(11,18,2.4f,Blue,true);break;
                     case "BeamForcesComponent":
                         P.Width=3.4f;L(3,19,12,12,Weft);P.Width=2.3f;L(12,12,21,5,Warp);P.Width=1.2f;L(12,12,21,19,Blue);P.Width=1.55f;
                         Circle(12,12,1.8f,Ink,true);Circle(3,19,1.8f,Ink,true);Circle(21,5,1.8f,Ink,true);Circle(21,19,1.8f,Ink,true);Text("N",6,6,8.5f,Ink);break;

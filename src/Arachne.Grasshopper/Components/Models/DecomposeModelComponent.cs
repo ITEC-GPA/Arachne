@@ -13,7 +13,7 @@ namespace Arachne.Grasshopper.Components.Models
         /// Initializes a new instance of the DecomposeModelComponent class.
         /// </summary>
         public DecomposeModelComponent()
-          : base("Decompose Model", "DM", "Decompose a FEM model in his elements", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_MODEL)
+          : base("Decompose Model", "DM", "Decompose a FEM model in his elements", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_MODEL_BUILD)
         {
         }
 

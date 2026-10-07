@@ -32,9 +32,11 @@ namespace Arachne.Grasshopper.Components.Materials
             // Kind param
             pManager.AddIntegerParameter("Kind", "K", "The kind of the material", GH_ParamAccess.item);
             Param_Integer param = (Param_Integer)pManager[1];
+            // Membranes have their own component; Rebar was a SAP kind without properties here
             Array values = Enum.GetValues(typeof(MaterialModel.MaterialKind));
             foreach (MaterialModel.MaterialKind val in values)
-                param.AddNamedValue(val.GetDescription(), (int)val);
+                if (val != MaterialModel.MaterialKind.Membrane && val != MaterialModel.MaterialKind.Rebar)
+                    param.AddNamedValue(val.GetDescription(), (int)val);
             pManager.AddIntegerParameter("Units", "U", "The measure units", GH_ParamAccess.item);
             // Mesaure units param
             Param_Integer type_param = (Param_Integer)pManager[2];
@@ -155,7 +157,8 @@ namespace Arachne.Grasshopper.Components.Materials
                 case MaterialModel.MaterialKind.Undefined:
                     break;
                 default:
-                    throw new NotSupportedException();
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unsupported kind: use the Membrane Material component for membranes");
+                    return;
             }
 
             DA.SetData(0, new GH_Material(material));

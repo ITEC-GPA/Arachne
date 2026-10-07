@@ -19,7 +19,7 @@ namespace Arachne.Grasshopper.Components.Models
         /// Initializes a new instance of the BuildModelComponent class.
         /// </summary>
         public BuildModelComponent()
-          : base("Build Model", "BM", "Build the FEM model", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_MODEL)
+          : base("Build Model", "BM", "Build the FEM model", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_MODEL_BUILD)
         {
         }
 

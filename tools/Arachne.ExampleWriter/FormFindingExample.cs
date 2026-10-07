@@ -52,8 +52,16 @@ internal static class FormFindingExample
     private static GH_BooleanToggle AutoRun(Canvas c, FormFindComponent ff, float x, float y)
     {
         var toggle = c.Add(new GH_BooleanToggle { Value = true, NickName = "Auto Run" }, x, y);
-        ff.Params.Input[13].AddSource(toggle);
+        ff.Params.Input[4].AddSource(toggle);
         return toggle;
+    }
+
+    // The options of the Form Find, with their defaults
+    private static SolverOptionsComponent Options(Canvas c, FormFindComponent ff, float x, float y)
+    {
+        var options = c.Add(new SolverOptionsComponent(), x, y);
+        Canvas.Link(ff, 2, options);
+        return options;
     }
 
     // Grid lines of a square saddle, with the border lifted at the corners.
@@ -74,6 +82,7 @@ internal static class FormFindingExample
         var build = FormFindingChecks.Build(chain, fd, restraints);
         var check = c.Add(new CheckModelComponent(), 1000, 480); Canvas.Link(check, 0, build);
         var ff = c.Add(new FormFindComponent()); Canvas.Link(ff, 0, build);
+        Options(c, ff, 760, 420);
         AutoRun(c, ff, 980, 640);
         var forces = c.Add(new BeamForcesComponent(), 1260, 200); Canvas.Link(forces, 0, ff);
         var reactions = c.Add(new SupportReactionsComponent(), 1260, 400); Canvas.Link(reactions, 0, ff);
@@ -83,7 +92,7 @@ internal static class FormFindingExample
         Place(c, fd, 520, 140); Place(c, build, 760, 260); Place(c, ff, 1000, 260);
         Note(c, "ARACHNE | 01 Sella (N, mm)\nRete 10 x 10 m, 4 x 4 campi, bordo vincolato con quote +/-2 m agli angoli.\n" +
                 "Beam (proprieta Cable, sezione piena D 10 mm, acciaio) + Force Density 1 N/mm, caso di carico FF.\n" +
-                "Build Model in N/mm -> Check Model -> Form Find lineare -> Beam Forces (tiri, N) e Support Reactions (N).\n" +
+                "Build Model in N/mm -> Check Model -> Form Find lineare (Solver Options con i valori predefiniti) -> Beam Forces (tiri, N) e Support Reactions (N).\n" +
                 "Auto Run attivo: disattivarlo e usare il pulsante Run.", 60, 860, 680, 120);
     }
 
@@ -110,12 +119,13 @@ internal static class FormFindingExample
         Canvas.Set<IGH_Goo>(restraints, 1, new GH_Boolean(true), new GH_Boolean(true), new GH_Boolean(true));
         var build = FormFindingChecks.Build(chain, fdWarp, fdWeft, fdEdges, restraints); Place(c, build, 1060, 300);
         var ff = c.Add(new FormFindComponent(), 1300, 300); Canvas.Link(ff, 0, build);
+        Options(c, ff, 1060, 480);
         AutoRun(c, ff, 1280, 560);
         Place(c, chain.LoadCase, 300, 520); Place(c, chain.Property, 300, 680);
         Arrange(c, 820);
         Note(c, "ARACHNE | 03 Cable Net (N, mm)\nPerimetro a sella 12 x 8 m, maglia 1 x 1 m. Ordito q = 2 N/mm, trama q = 1 N/mm, bordo vincolato.\n" +
                 "Le linee di bordo vincolate (Restraint edges) entrano come Beam per chiudere le maglie della mesh.\n" +
-                "Build Model in N/mm -> Form Find lineare con mesh.", 60, 900, 660, 100);
+                "Build Model in N/mm -> Form Find lineare con mesh (Solver Options con i valori predefiniti).", 60, 900, 660, 100);
     }
 
     private static void Save(string root, string name, Action<Canvas> build, int nodes, int beams)

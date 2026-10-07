@@ -1,11 +1,8 @@
 using System;
-using System.Collections.Generic;
-using Arachne.Common.Helpers;
 using Arachne.Common.Models;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Parameters;
 
 namespace Arachne.Grasshopper.Components.Definitions
 {
@@ -25,7 +22,6 @@ namespace Arachne.Grasshopper.Components.Definitions
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
             pManager.AddTextParameter("Name", "N", "The load case name", GH_ParamAccess.item);
-            pManager.AddBooleanParameter("Gravity NSM", "NSM", "Apply gravity to non-structural mass", GH_ParamAccess.item, false);
         }
 
         /// <summary>
@@ -43,35 +39,11 @@ namespace Arachne.Grasshopper.Components.Definitions
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             string name = "";
-            bool nsm = false;
 
             if (!DA.GetData(0, ref name))
                 return;
-            if (!DA.GetData(1, ref nsm))
-                return;
 
-            LoadCaseModel lc;
-            if (name == LoadCaseModel.Dead.Name)
-            {
-                if (nsm)
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid nsm");
-                    return;
-                }
-                lc = new LoadCaseModel(LoadCaseModel.Dead);
-            }
-            else
-            {
-                lc = new LoadCaseModel("", name);
-                if (nsm)
-                {
-                    lc.GlobalInertiaLoad = LoadCaseModel.GlobalInertiaLoads.Gravity;
-                    lc.GravityDirection = LoadCaseModel.GravityDirections.Z;
-                    lc.GravityValue = -ModelModel.GRAVITY_mmSuS2;
-                    lc.StructuralMassAcceleration = false;
-                    lc.NonStructuralMassAcceleration = true;
-                }
-            }
+            LoadCaseModel lc = name == LoadCaseModel.Dead.Name ? new LoadCaseModel(LoadCaseModel.Dead) : new LoadCaseModel("", name);
 
             Message = name;
 
@@ -80,6 +52,7 @@ namespace Arachne.Grasshopper.Components.Definitions
 
         protected override System.Drawing.Bitmap Icon => Arachne.Grasshopper.Helpers.ComponentIcons.Get(GetType().Name);
 
-        public override Guid ComponentGuid => new Guid("d36a3ace-b39c-450c-b059-e743137cde26");
+        // New GUID: the Gravity NSM input of FeMM was removed
+        public override Guid ComponentGuid => new Guid("dd9360b8-20ab-4a62-aa15-bbad93f0f9b6");
     }
 }

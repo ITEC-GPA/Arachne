@@ -395,7 +395,7 @@ namespace Arachne.Common.Models
         //            break;
         //        case SectionType.Generic:
         //            {
-        //                //equivalent circular section
+        //                //equivalent circular section, in model units like the other sections (FeMM scaled it by 0.001)
         //                ArcCurve border = new ArcCurve(new Circle(0.001 * System.Math.Sqrt(_property.SectionArea / System.Math.PI)));
         //                Brep[] breps = Brep.CreatePlanarBreps(border, tol);
         //                main_surface = breps[0];
@@ -662,8 +662,8 @@ namespace Arachne.Common.Models
                         break;
                     case SectionModel.SectionTypes.Generic:
                         {
-                            //equivalent circular section
-                            ArcCurve border = new ArcCurve(new Circle(0.001 * System.Math.Sqrt(_beamProperty.SectionArea / System.Math.PI)));
+                            //equivalent circular section, in model units like the other sections (FeMM scaled it by 0.001)
+                            ArcCurve border = new ArcCurve(new Circle(System.Math.Sqrt(_beamProperty.SectionArea / System.Math.PI)));
                             Brep[] breps = Brep.CreatePlanarBreps(border, tol);
                             if (breps != null)
                                 main_surfaces.Add(breps[0]);
@@ -1056,8 +1056,8 @@ namespace Arachne.Common.Models
                     break;
                 case SectionModel.SectionTypes.Generic:
                     {
-                        //equivalent circular section
-                        ArcCurve border = new ArcCurve(new Circle(0.001 * System.Math.Sqrt(sectionModel.SectionArea / System.Math.PI)));
+                        //equivalent circular section, in model units like the other sections (FeMM scaled it by 0.001)
+                        ArcCurve border = new ArcCurve(new Circle(System.Math.Sqrt(sectionModel.SectionArea / System.Math.PI)));
                         Brep[] breps = Brep.CreatePlanarBreps(border, tol);
                         if (breps != null)
                             main_surfaces.Add(breps[0]);

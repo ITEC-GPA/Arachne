@@ -54,25 +54,17 @@ namespace Arachne.Grasshopper.Components.Analysis
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
+        // The options of FeMM (gravity, pressure, iterations, tolerances, mesh) are given by the
+        // Solver Options component
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
             pManager.AddGenericParameter("Model", "M", "The FEM model", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Gravity", "G", "The gravity acceleration for self-weight calculation purpose", GH_ParamAccess.item, 0);
-            pManager.AddNumberParameter("Pressure", "P", "The normal pressure applied to the model", GH_ParamAccess.item, 0);
-            int i = pManager.AddGenericParameter("Pressure Load Case", "LC", "The load case used for the resulting pressure forces", GH_ParamAccess.item);
-            pManager[i].Optional = true;
-            i = pManager.AddIntegerParameter("Solver Type", "ST", "The type of solver to be used", GH_ParamAccess.item, 0);
+            int i = pManager.AddIntegerParameter("Solver Type", "ST", "The type of solver to be used", GH_ParamAccess.item, 0);
             Param_Integer mtParam = pManager[i] as Param_Integer;
             mtParam.AddNamedValue("Linear", 0);
             mtParam.AddNamedValue("Linear step by step", 1);
             mtParam.AddNamedValue("Non-Linear", 2);
-            pManager.AddIntegerParameter("Max Iter", "MI", "Max number of iterations in solution (only for Linear step by step and Non-Linear solution)", GH_ParamAccess.item, 20);
-            pManager.AddNumberParameter("Tolerance", "T", "Tolerance on relative error durign solution", GH_ParamAccess.item, 1.0E-4);
-            pManager.AddIntegerParameter("Max Iter,s", "MI,s", "Max number of iterations for the algebric solver", GH_ParamAccess.item, 0);
-            pManager.AddNumberParameter("ToleranceA,s", "T,s", "Tolerance for the algebric solver", GH_ParamAccess.item, 0);
-            pManager.AddNumberParameter("ToleranceB,s", "T,s", "Tolerance for the algebric solver", GH_ParamAccess.item, 0);
-            pManager.AddBooleanParameter("Create mesh", "CM", "Automatically create the plates and the mesh", GH_ParamAccess.item, true);
-            i = pManager.AddGenericParameter("Plate Property", "PP", "The property to assign to the generated plates. Create mesh must be set to true", GH_ParamAccess.item);
+            i = pManager.AddGenericParameter("Options", "O", "The solver options (Solver Options component). If not connected, the defaults", GH_ParamAccess.item);
             pManager[i].Optional = true;
             pManager.AddPlaneParameter("Plane", "P", "Plane of mesh generation", GH_ParamAccess.item, Plane.WorldXY);
             pManager.AddBooleanParameter("Auto Run", "AR", "Activate or disable the live update", GH_ParamAccess.item, false);
@@ -95,39 +87,27 @@ namespace Arachne.Grasshopper.Components.Analysis
         {
             Message = "";
             GH_Model model = null;
-            double gravity = 0;
-            double pressure = 0;
-            GH_LoadCase lc_pressure = null;
             int solverType = 0;
-            int maxIterNumber = 0;
-            double tolerance = 0;
-            int maxIterNumberSolver = 0;
-            double toleranceSolverA = 0;
-            double toleranceSolverB = 0;
-            bool makeMesh = true;
-            GH_PlateProperty pp = null;
+            GH_SolverOptions gh_options = null;
             bool autoRun = false;
             Plane plane = Plane.Unset;
 
             if (!DA.GetData("Model", ref model))
                 return;
-            DA.GetData("Gravity", ref gravity);
-            DA.GetData("Pressure", ref pressure);
-            DA.GetData("Pressure Load Case", ref lc_pressure);
-            DA.GetData(4, ref solverType);
-            DA.GetData(5, ref maxIterNumber);
-            DA.GetData(6, ref tolerance);
-            DA.GetData(7, ref maxIterNumberSolver);
-            DA.GetData(8, ref toleranceSolverA);
-            DA.GetData(9, ref toleranceSolverB);
-            DA.GetData(10, ref makeMesh);
-            DA.GetData(11, ref pp);
-            DA.GetData(12, ref plane);
+            DA.GetData(1, ref solverType);
+            if (!DA.GetData(2, ref gh_options) && Params.Input[2].SourceCount > 0)
+            {
+                // Connected but empty: the options were refused upstream, the defaults would hide it
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Input parameter Options failed to collect data");
+                return;
+            }
+            SolverOptionsModel options = gh_options?.Value ?? new SolverOptionsModel();
+            DA.GetData(3, ref plane);
             if (!DA.GetData("Auto Run", ref autoRun))
                 return;
 
             // If the user gives the pressures it must give also the load case
-            if (pressure != 0 && lc_pressure == null)
+            if (options.Pressure != 0 && options.PressureLoadCase == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Give the Load Case to assign at the pressure forces");
                 return;
@@ -137,8 +117,7 @@ namespace Arachne.Grasshopper.Components.Analysis
             {
                 try
                 {
-                    Solve(DA.Iteration, model, gravity, pressure, lc_pressure, solverType, maxIterNumber, tolerance,
-                        maxIterNumberSolver, toleranceSolverA, toleranceSolverB, makeMesh, pp, plane);
+                    Solve(DA.Iteration, model, solverType, options, plane);
                 }
                 finally
                 {
@@ -156,22 +135,24 @@ namespace Arachne.Grasshopper.Components.Analysis
             }
         }
 
-        private void Solve(int iteration, GH_Model model, double gravity, double pressure, GH_LoadCase lc_pressure, int solverType,
-            int maxIterNumber, double tolerance, int maxIterNumberSolver, double toleranceSolverA, double toleranceSolverB,
-            bool makeMesh, GH_PlateProperty pp, Plane plane)
+        private void Solve(int iteration, GH_Model model, int solverType, SolverOptionsModel options, Plane plane)
         {
             // A failed run does not leave the previous result on the outputs
             SetResult(iteration, null, null);
             try
             {
+                int maxIterNumber = options.MaxIterations;
+                double tolerance = options.Tolerance;
+                int maxIterNumberSolver = options.SolverMaxIterations;
+                double toleranceSolver = options.SolverTolerance;
+                bool makeMesh = options.CreateMesh;
+
                 if (solverType < 0 || solverType > 2)
                     throw new ArgumentException("Unknown solver type");
                 if (maxIterNumber < 1)
                     throw new ArgumentException("Max Iter must be at least 1");
-                if (toleranceSolverB != 0)
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "ToleranceB,s is not supported by the TensileLib in use and it is ignored: the algebric solver uses ToleranceA,s.");
 
-                Model ff_model = Common.Helpers.FormFindingHelper.AssemblyModel(model.Value, plane, solverType, gravity, pressure, makeMesh, out List<string> warnings);
+                Model ff_model = Common.Helpers.FormFindingHelper.AssemblyModel(model.Value, plane, solverType, options.Gravity, options.Pressure, makeMesh, out List<string> warnings);
                 foreach (string warning in warnings)
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, warning);
 
@@ -192,7 +173,7 @@ namespace Arachne.Grasshopper.Components.Analysis
                     int count = 0;
                     Solver.ResultCodes ret;
 
-                    ForceDensitySolver solver = new LinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolverA, maxIterNumberSolver);
+                    ForceDensitySolver solver = new LinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolver, maxIterNumberSolver);
 
                     do
                     {
@@ -248,9 +229,9 @@ namespace Arachne.Grasshopper.Components.Analysis
                 {
                     ForceDensitySolver solver;
                     if (solverType == 0)
-                        solver = new LinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolverA, maxIterNumberSolver);
+                        solver = new LinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolver, maxIterNumberSolver);
                     else
-                        solver = new NonLinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolverA, maxIterNumberSolver);
+                        solver = new NonLinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolver, maxIterNumberSolver);
 
                     Solver.ResultCodes ret = solver.SolveForceDensity();
 
@@ -274,7 +255,7 @@ namespace Arachne.Grasshopper.Components.Analysis
 
                     Vector3d p = new Vector3d(ff_node.PressureX, ff_node.PressureY, ff_node.PressureZ);
                     if (p.Length != 0)
-                        node.Loads.Add(new NodeForceLoadModel(lc_pressure.Value, p));
+                        node.Loads.Add(new NodeForceLoadModel(options.PressureLoadCase, p));
                 }
 
                 BeamModel[] beamsModel = result.Value.Beams.ToArray();
@@ -413,7 +394,7 @@ namespace Arachne.Grasshopper.Components.Analysis
                     }
                     else
                     {
-                        if (pp != null) // Add the plates to the model if it's required
+                        if (options.PlateProperty != null) // Add the plates to the model if it's required
                         {
                             PlateModel[] plates = new PlateModel[ff_model.Plates.Count];
 
@@ -441,7 +422,7 @@ namespace Arachne.Grasshopper.Components.Analysis
                                         new Point3d(ff_plate.Node3.X, ff_plate.Node3.Y, ff_plate.Node3.Z)
                                     };
                                 }
-                                PlateModel plate = new PlateModel(points, pp.Value)
+                                PlateModel plate = new PlateModel(points, options.PlateProperty)
                                 {
                                     PlateId = ff_plate.Id.ToString()
                                 };
@@ -489,8 +470,9 @@ namespace Arachne.Grasshopper.Components.Analysis
 
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.
+        /// New GUID: the options moved to the Solver Options component.
         /// </summary>
-        public override Guid ComponentGuid => new Guid("cb0c82d4-0d41-49c5-8f14-7897700e20be");
+        public override Guid ComponentGuid => new Guid("f4c3d571-98d3-4bc9-926e-b3315a1444f3");
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
     }

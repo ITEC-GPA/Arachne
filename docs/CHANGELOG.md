@@ -1,5 +1,27 @@
 # Registro delle modifiche
 
+## 0.3.0-rc.5 - 7 ottobre 2026: snellimento
+
+Dettagli e GUID in [PORTING.md](PORTING.md). I componenti con ingressi diversi hanno un GUID nuovo: Load Case, Plate Property e Form Find vanno ricollegati nelle definizioni esistenti.
+
+- **Pannelli:** Build Model, Decompose Model e Check Model passano da 06-Model a 09-Model, dopo attributi e carichi; il patterning passa a 13-Patterning, dopo l'analisi.
+- **Load Case:** tolto Gravity NSM. Dal modello sono stati tolti anche gli altri dati SAP sull'inerzia (gravità, accelerazioni, temperatura).
+- **Materiali:** tolto Table Material. Nuovo **Membrane Material**, con i valori della scheda tecnica:
+  - peso in g/m² e resistenze di ordito e trama in N/5cm;
+  - facoltativi: rigidezze E·t di ordito e trama e rigidezza a taglio G·t in kN/m, coefficiente di Poisson.
+  
+  Si collega a Plate Property come gli altri materiali.
+- **Plate Property:** Name, Thickness, Material. Tolti il tipo SAP (Shell-Thin, Membrane, Load Patch...) e il secondo spessore.
+- **Form Find:** restano Model, Solver Type, Plane e Auto Run. Gravity, Pressure, Pressure Load Case, Max Iter, Tolerance, Max Iter,s, Tolerance,s, Create mesh e Plate Property passano al nuovo componente **Solver Options**, con gli stessi predefiniti; senza Solver Options valgono i predefiniti. ToleranceB,s non c'è più: TensileLib usa una sola tolleranza algebrica.
+- **Sezioni:** restano tutte, perché servono anche all'anteprima delle aste.
+- **Bug di FeMM corretti** (PORTING.md, 33-36):
+  - l'anteprima della sezione Generic era 1000 volte troppo sottile;
+  - i dati interni di Plate Property si salvavano senza materiale e spessori e non si potevano rileggere;
+  - Custom Material con Kind = Rebar terminava con un'eccezione;
+  - la resistenza ultima a taglio del materiale leggeva e scriveva quella a trazione.
+- **Compilazione:** la proprietà `ArachneBin` sposta gli output fuori dal repository, per verificare una build mentre Rhino tiene aperto il plug-in in `bin`. ExampleWriter prende il plug-in compilato accanto a sé.
+- **Banco di prova:** 146 controlli in Rhino/Grasshopper (67 inventario, 30 form finding, 43 patterning, 6 reti) e 54 del motore ARAP. Nuove prove: predefiniti senza Solver Options, Membrane Material e salvataggio di Plate Property, anteprima della sezione Generic.
+
 ## 0.3.0-rc.4 - 7 ottobre 2026: solo bin
 
 - **Versione delle DLL:** 0.3.0.4. Il quarto numero segue la release candidate: prima tutte le rc avevano versione file 0.3.0.0.

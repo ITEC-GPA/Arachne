@@ -15,7 +15,7 @@ namespace Arachne.Grasshopper.Components.Models
         /// Initializes a new instance of the CheckModelComponent class.
         /// </summary>
         public CheckModelComponent()
-          : base("Check Model", "CkM", "Check a model before the form finding: supports, connectivity and force densities", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_MODEL)
+          : base("Check Model", "CkM", "Check a model before the form finding: supports, connectivity and force densities", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_MODEL_BUILD)
         {
         }
 
