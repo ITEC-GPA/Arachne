@@ -14,7 +14,8 @@ namespace Arachne.Grasshopper.Components.Attributes
         /// Initializes a new instance of the ForceDensityComponent class.
         /// </summary>
         public ForceDensityCableComponent()
-          : base("Fixed curvature cable", "FC", "Fix the chord and the arrow ratio in force densisty analysis", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_ATTRIBUTES)
+          // FCC: FeMM used FC, the nickname of Fixed compensation too
+          : base("Fixed curvature cable", "FCC", "Fix the chord and the arrow ratio in force densisty analysis", CategoryNameConstants.CATEGORY_ARACHNE, CategoryNameConstants.SUBCATEGORY_ATTRIBUTES)
         {
         }
 

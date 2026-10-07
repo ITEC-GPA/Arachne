@@ -10,6 +10,7 @@ Dettagli e GUID in [PORTING.md](PORTING.md). I componenti con ingressi diversi h
   - **ToleranceA,s e ToleranceB,s**, le due tolleranze di FeMM, di nuovo distinte: A per il gradiente coniugato e per i minimi quadrati di LSQR, B per il residuo di LSQR. Predefinite 1e-6, il valore di ALGLIB (FeMM: 0).
 - **Casi di carico:** il solutore applicava tutti i carichi. Il nuovo ingresso Load Cases di Solver Options sceglie i casi dei carichi nodali e sulle aste; vuoto: tutti.
 - **Mesh Pipe:** tolto.
+- **Fixed curvature cable:** nickname FCC; FC era anche quello di Fixed compensation.
 - **Load Case:** tolto Gravity NSM. Dal modello sono stati tolti anche gli altri dati SAP sull'inerzia (gravità, accelerazioni, temperatura).
 - **Materiali:** tolto Table Material. Nuovo **Membrane Material**, con i valori della scheda tecnica:
   - peso in g/m² e resistenze di ordito e trama in N/5cm;

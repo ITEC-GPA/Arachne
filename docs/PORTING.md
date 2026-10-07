@@ -62,7 +62,7 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 | 07-Attributes | Element Id (EI) | `Components/Attributes/ElementIdComponent.cs` | b21816ea-0ef6-4feb-a522-f9371f28faf6 | 92cb7203-eb55-4cc4-a322-8e4ccd2bed08 |
 | 07-Attributes | Fixed Axial Force (FAF) | `Components/Attributes/FixedAxialForceComponent.cs` | a88a3d74-f64d-4062-8e6b-4d5d50657b5b | b0574cd0-d4c8-44b1-a85c-1658dd4fbfae |
 | 07-Attributes | Fixed compensation (FC) | `Components/Attributes/FixedCompensationComponent.cs` | 7608ac1c-9e5a-4dbb-8806-dd6791a6aa35 | 2a20c8a1-9837-4b21-a0ec-70d22e92bb6e |
-| 07-Attributes | Fixed curvature cable (FC) | `Components/Attributes/ForceDensityCableComponent.cs` | 6ce47bc0-97a4-4f66-8358-a692c761e56e | 92d964b3-ad4d-4c30-a1c6-8e37ac0a7b85 |
+| 07-Attributes | Fixed curvature cable (FCC) | `Components/Attributes/ForceDensityCableComponent.cs` | 6ce47bc0-97a4-4f66-8358-a692c761e56e | 92d964b3-ad4d-4c30-a1c6-8e37ac0a7b85 |
 | 07-Attributes | Fixed Length (FL) | `Components/Attributes/FixedLengthComponent.cs` | 5d89f883-1bbe-4f2e-81bc-62227bd42f59 | cb4a245d-aec7-441d-b7a2-0e98aae9e065 |
 | 07-Attributes | Force Density (FD) | `Components/Attributes/ForceDensityComponent.cs` | 132f6d9d-8e99-4e36-bfed-ca3babd0e9c9 | 969824ee-693f-42be-977b-4f977b7af300 |
 | 07-Attributes | Keep Position (KP) | `Components/Attributes/KeepPositionComponent.cs` | 86d016cf-0229-4569-ad7f-fbe4393fea08 | a5502518-f224-4d21-a275-705cbc41eda5 |
@@ -184,6 +184,7 @@ Comportamento invariato rispetto a FeMM: Form Find (Linear e Non-Linear), Flatte
   - Plate Property: Name, Thickness e Material; tolti il tipo SAP (Shell-Thin, Membrane, Load Patch...) e il secondo spessore. Senza spessore l'anteprima della piastra è la superficie, come il Load Patch di FeMM;
   - Form Find: restano Model, Solver Type, Plane e Auto Run; le altre opzioni sono date da Solver Options. Se Options è collegato ma vuoto (per esempio una pressione senza caso di carico), il Form Find si ferma invece di usare i predefiniti;
   - Mesh Pipe: tolto;
+  - Fixed curvature cable: nickname FCC, perché FC era anche quello di Fixed compensation;
   - pannelli: Node, Beam e Plate restano in 06-Model; Build, Decompose e Check Model sono in 09-Model, dopo attributi e carichi; il patterning è in 13-Patterning, dopo l'analisi; Cable Net, Radial Cable Net e Compound Net, che generano la rete, sono in 14-Tools.
 - TensileLib 2.2 non modifica più le densità obiettivo delle aste (la densità trovata è `Beam.ForceDensity`): Linear step by step riparte a ogni passo dalle densità appena trovate, come prima.
 - Non-Linear: i pesi di Keep Position e delle Force Density ora hanno effetto. Nella TensileLib precedente il calcolo ricadeva quasi sempre su un metodo che li ignorava (vedere il registro di TensileLib). I pesi di Fixed Length e Fixed Axial Force contano quando questi vincoli non si possono soddisfare tutti insieme.
