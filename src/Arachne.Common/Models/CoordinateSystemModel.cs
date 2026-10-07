@@ -68,6 +68,34 @@ namespace Arachne.Common.Models
             _point2 = cs._point2;
         }
 
+        /// <summary>
+        /// The coordinate system of a plane: its origin, X and Y axes
+        /// </summary>
+        public static CoordinateSystemModel FromPlane(Plane plane, string name = "Plane")
+        {
+            return new CoordinateSystemModel(name)
+            {
+                _origin = plane.Origin,
+                _point1 = plane.Origin + plane.XAxis,
+                _point2 = plane.Origin + plane.YAxis
+            };
+        }
+
+        /// <summary>
+        /// The unit axes: X towards Point1, Z normal to the plane of the three points (right
+        /// hand from X to Point2), Y = Z x X. False if the three points do not define a plane.
+        /// </summary>
+        public bool GetAxes(out Vector3d xAxis, out Vector3d yAxis, out Vector3d zAxis)
+        {
+            xAxis = _point1 - _origin;
+            Vector3d second = _point2 - _origin;
+            zAxis = Vector3d.CrossProduct(xAxis, second);
+            yAxis = Vector3d.CrossProduct(zAxis, xAxis);
+            if (!(zAxis.Length > 1e-9 * xAxis.Length * second.Length))
+                return false;
+            return xAxis.Unitize() && yAxis.Unitize() && zAxis.Unitize();
+        }
+
         #region Serialization
         private string SERIALIZATION_RELEASE_NAME = "CoordinateSystemModel_SERIALIZATION_RELEASE"; //do not modify the name!
         private int SERIALIZATION_RELEASE = 1;

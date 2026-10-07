@@ -2,12 +2,17 @@
 
 ## 0.3.0-rc.5 - 7 ottobre 2026: snellimento
 
-Dettagli e GUID in [PORTING.md](PORTING.md). I componenti con ingressi diversi hanno un GUID nuovo: Load Case, Plate Property e Form Find vanno ricollegati nelle definizioni esistenti.
+Dettagli e GUID in [PORTING.md](PORTING.md). I componenti con ingressi diversi hanno un GUID nuovo: Load Case, Plate Property, Restraints e Form Find vanno ricollegati nelle definizioni esistenti.
 
 - **Pannelli:** Build Model, Decompose Model e Check Model passano da 06-Model a 09-Model, dopo attributi e carichi; il patterning passa a 13-Patterning, dopo l'analisi; Cable Net, Radial Cable Net e Compound Net, che generano la rete, passano a 14-Tools.
 - **TensileLib 2.3:**
   - **peso proprio delle piastre:** spessore × densità × gravità × area attuale, ricalcolato a ogni iterazione. Pesano le piastre in ingresso con la loro Plate Property e quelle generate dalle aste con il Plate Property di Solver Options. Per un Membrane Material vale il peso in g/m² della scheda. Le reazioni lo comprendono;
   - **ToleranceA,s e ToleranceB,s**, le due tolleranze di FeMM, di nuovo distinte: A per il gradiente coniugato e per i minimi quadrati di LSQR, B per il residuo di LSQR. Predefinite 1e-6, il valore di ALGLIB (FeMM: 0).
+- **Vincoli ruotati (TensileLib 2.4):** Restraints ha l'ingresso facoltativo Coordinate System. Con un piano, Tx, Ty e Tz agiscono lungo i suoi assi X, Y e la normale Z: un nodo può scorrere su una retta inclinata (Ty e Tz) o su un piano inclinato (solo Tz).
+  - La TensileLib risolve le coordinate legate dai vincoli obliqui con un unico sistema (Linear) o nella stessa jacobiana (Non-Linear). Con assi allineati a X, Y, Z il calcolo e il risultato sono quelli dei vincoli globali.
+  - Le reazioni sono lungo le direzioni vincolate.
+  - Check Model indica le direzioni in cui una parte non è vincolata, anche inclinate.
+  - Tolto l'ingresso Rotation (il form finding non usa le rotazioni); Transational diventa Translational.
 - **Casi di carico:** il solutore applicava tutti i carichi. Il nuovo ingresso Load Cases di Solver Options sceglie i casi dei carichi nodali e sulle aste; vuoto: tutti.
 - **Mesh Pipe:** tolto.
 - **Fixed curvature cable:** nickname FCC; FC era anche quello di Fixed compensation.
@@ -27,7 +32,10 @@ Dettagli e GUID in [PORTING.md](PORTING.md). I componenti con ingressi diversi h
   - Custom Material con Kind = Rebar terminava con un'eccezione;
   - la resistenza ultima a taglio del materiale leggeva e scriveva quella a trazione.
 - **Compilazione:** la proprietà `ArachneBin` sposta gli output fuori dal repository, per verificare una build mentre Rhino tiene aperto il plug-in in `bin`. ExampleWriter prende il plug-in compilato accanto a sé.
-- **Banco di prova:** 147 controlli in Rhino/Grasshopper (66 inventario, 32 form finding, 43 patterning, 6 reti) e 54 del motore ARAP. Nuove prove: predefiniti senza Solver Options, casi di carico, peso delle piastre (membrana e acciaio) bilanciato dalle reazioni, Membrane Material e salvataggio di Plate Property, anteprima della sezione Generic, Fixed compensation nella Compensation.
+- **Banco di prova:** 151 controlli in Rhino/Grasshopper (66 inventario, 36 form finding, 43 patterning, 6 reti) e 54 del motore ARAP. Nuove prove:
+  - predefiniti senza Solver Options, casi di carico, peso delle piastre (membrana e acciaio) bilanciato dalle reazioni;
+  - Membrane Material e salvataggio di Plate Property, anteprima della sezione Generic, Fixed compensation nella Compensation;
+  - vincoli lungo gli assi di un piano: nodo su un piano e su una retta inclinati con posizione e reazioni analitiche (Linear) e sul piano con la reazione lungo la normale (Non-Linear); piano ruotato attorno a Z uguale ai vincoli globali; Check Model con una parte vincolata solo in una direzione inclinata; salvataggio su file.
 
 ## 0.3.0-rc.4 - 7 ottobre 2026: solo bin
 

@@ -81,6 +81,17 @@ internal static class FormFindingChecks
         return restraints;
     }
 
+    // Restraints along the axes of a plane (inputs: 0 Node, 1 Translational, 2 Coordinate System)
+    internal static GH_Component Supports(Chain chain, IEnumerable<Point3d> points, bool tx, bool ty, bool tz, Plane? plane)
+    {
+        var restraints = chain.Canvas.Add(new NodeRestraintsComponent());
+        Canvas.Link(restraints, 0, Nodes(chain, points));
+        Canvas.Set<IGH_Goo>(restraints, 1, new GH_Boolean(tx), new GH_Boolean(ty), new GH_Boolean(tz));
+        if (plane.HasValue)
+            Canvas.Set(restraints, 2, new GH_Plane(plane.Value));
+        return restraints;
+    }
+
     internal static GH_Component NodeLoad(Chain chain, GH_Component nodes, Vector3d force)
     {
         var load = chain.Canvas.Add(new NodeLoadComponent());
@@ -756,6 +767,110 @@ internal static class FormFindingChecks
                 Check(!Valid(freePart) && Texts(freePart, 1).Any(e => e.EndsWith("has no restraint along X, Y, Z.")) && Parts(freePart) == 2, "Unsupported part: " + All(freePart));
                 Check(!Valid(noForce) && Texts(noForce, 1).Any(e => e.StartsWith("2 nodes have no beam that carries a force")) &&
                     Texts(noForce, 2).Any(w => w.StartsWith("1 beams have no force density")), "Beam without force: " + All(noForce));
+            }
+        });
+
+        // A node joined to the supports (0, 0, 0) with q = 1 and (4, 0, 2) with q = 3, loaded by
+        // (0, 0, -2): free, it would go to (3, 0, 1). The plane through (2, 1, 0) with X along
+        // (1, -1, 0) has the normal Z along (1, 1, 1).
+        var p0 = new Point3d(2, 1, 0);
+        var inclined = new Plane(p0, new Vector3d(1, -1, 0), new Vector3d(1, 1, -2));
+        GH_Component Pulled(Chain chain, bool tx, bool ty, bool tz, Plane? plane)
+        {
+            var anchor1 = new Point3d(0, 0, 0); var anchor2 = new Point3d(4, 0, 2);
+            var soft = ForceDensity(chain, Beams(chain, new[] { new Line(anchor1, p0) }), 1);
+            var stiff = ForceDensity(chain, Beams(chain, new[] { new Line(anchor2, p0) }), 3);
+            var load = NodeLoad(chain, Nodes(chain, new[] { p0 }), new Vector3d(0, 0, -2));
+            return Build(chain, soft, stiff, load, Supports(chain, new[] { anchor1, anchor2 }), Supports(chain, new[] { p0 }, tx, ty, tz, plane));
+        }
+
+        Test("Restraints along the axes of a plane: node on an inclined plane and on an inclined line, reactions along the restraints", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                // Plane: restrained along its normal only, the point (3, 0, 1) projected on it and
+                // the reaction -4/3 (1, 1, 1). Line along the X axis of the plane: (3, 0, 0), reaction (0, 0, -4).
+                var planeModel = Pulled(chain, false, false, true, inclined);
+                var onPlane = FormFind(chain, planeModel, 0, 100, 1e-10);
+                var onLine = FormFind(chain, Pulled(chain, false, true, true, inclined), 0, 100, 1e-10);
+                var nonLinear = FormFind(chain, Pulled(chain, false, false, true, inclined), 2, 100, 1e-10);
+                var check = Analysis(chain, new CheckModelComponent(), planeModel);
+                c.Solve();
+                Check(Canvas.Single<GH_Boolean>(check, 0).Value, "Check Model: " + string.Join(" | ", Canvas.Out(check, 1)));
+                foreach (var (ff, expected, reaction, what) in new[] {
+                    (onPlane, new Point3d(8.0 / 3, -1.0 / 3, 2.0 / 3), new Vector3d(-4.0 / 3, -4.0 / 3, -4.0 / 3), "Plane"),
+                    (onLine, new Point3d(3, 0, 0), new Vector3d(0, 0, -4), "Line") })
+                {
+                    var node = Solved(ff).Nodes.Single(n => n.Loads.OfType<NodeForceLoadModel>().Any());
+                    Check(node.Position.DistanceTo(expected) < 1e-6, $"{what}: node at {node.Position}, expected {expected}");
+                    var result = node.Results.OfType<NodeReactResultModel>().Single().Force;
+                    Check((result - reaction).Length < 1e-6, $"{what}: reaction {result}, expected {reaction}");
+                    var total = Solved(ff).Nodes.SelectMany(n => n.Results.OfType<NodeReactResultModel>()).Aggregate(Vector3d.Zero, (sum, r) => sum + r.Force);
+                    Check((total - new Vector3d(0, 0, 2)).Length < 1e-6, $"{what}: total reaction {total}");
+                }
+                // Non-linear: on the plane, with the reaction along its normal
+                var moved = Solved(nonLinear).Nodes.Single(n => n.Loads.OfType<NodeForceLoadModel>().Any());
+                Check(Math.Abs((moved.Position - p0) * inclined.ZAxis) < 1e-9, "Non-linear: off the plane " + moved.Position);
+                var force = moved.Results.OfType<NodeReactResultModel>().Single().Force;
+                Check(Vector3d.CrossProduct(force, inclined.ZAxis).Length < 1e-6 * force.Length && force.Length > 0.1, "Non-linear: reaction " + force);
+            }
+        });
+
+        Test("Restraints along a plane turned about Z: the same result as along Z without plane", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                // The middle node is held along Z only and moves in the plane XY
+                GH_Component Find(Plane? plane)
+                {
+                    var beams = ForceDensity(chain, Beams(chain, new[] { new Line(a, m), new Line(m, b2) }), 2);
+                    var load = NodeLoad(chain, Nodes(chain, new[] { m }), new Vector3d(0.5, 0.25, -4));
+                    return FormFind(chain, Build(chain, beams, load, Supports(chain, new[] { a, b2 }), Supports(chain, new[] { m }, false, false, true, plane)), 0, 100, 1e-10);
+                }
+                var global = Find(null);
+                var turned = Find(new Plane(m, new Vector3d(Math.Cos(0.5), Math.Sin(0.5), 0), new Vector3d(-Math.Sin(0.5), Math.Cos(0.5), 0)));
+                c.Solve();
+                var first = Solved(global).Nodes.Select(n => n.Position).ToList();
+                var second = Solved(turned).Nodes.Select(n => n.Position).ToList();
+                Check(first.Count == 3 && first.Zip(second, (p, q) => p == q).All(same => same), "Different positions");
+                Check(first.Any(p => Math.Abs(p.Y) > 0.01), "The middle node did not move in the plane XY");
+            }
+        });
+
+        Test("Check Model: a part restrained only along an inclined direction can move along the others", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c); var (lines, border) = SaddleGrid(2, 4000, 1000);
+                // Normal of the plane along (1, 0, 1): the part can move along (1, 0, -1) and Y
+                var plane = new Plane(Point3d.Origin, new Vector3d(1, 0, -1), Vector3d.YAxis);
+                var check = Analysis(chain, new CheckModelComponent(), Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border, false, false, true, plane)));
+                c.Solve();
+                var errors = Canvas.Out(check, 1).Select(text => text.ToString()).ToList();
+                Check(!Canvas.Single<GH_Boolean>(check, 0).Value && errors.Any(e => e.EndsWith("has no restraint along (0.707, 0, -0.707), Y.")), "Errors: " + string.Join(" | ", errors));
+            }
+        });
+
+        Test("Restraints with a plane survive a file round trip", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                var restraints = Supports(chain, new[] { p0 }, false, true, true, inclined);
+                c.Solve();
+                var node = Canvas.Single<GH_Node>(restraints);
+                var chunk = new GH_LooseChunk("check");
+                Check(node.Write(chunk.CreateChunk("node")), "Write failed");
+                var read = new GH_LooseChunk("check"); read.Deserialize_Binary(chunk.Serialize_Binary());
+                var restored = new GH_Node();
+                Check(restored.Read(read.FindChunk("node")), "Read failed");
+                var before = NodeRestraintAttributeModel.GetRestraint(node.Value);
+                var after = NodeRestraintAttributeModel.GetRestraint(restored.Value);
+                Check(after != null && after.Equals(before) && !after.Tx && after.Ty && after.Tz && after.CoordinateSystem != null, "Restored " + after);
+                var axes = after.Axes();
+                Check((axes[2] - inclined.ZAxis).Length < 1e-12 && (axes[0] - inclined.XAxis).Length < 1e-12, "Axes " + string.Join(", ", axes));
             }
         });
 

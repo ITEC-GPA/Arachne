@@ -95,11 +95,13 @@ internal static class InventoryChecks
 
     // FeMM components whose inputs were reworked on purpose: the inputs are the ones listed here,
     // the outputs are still compared with FeMM. Plate Property has one thickness and no SAP shell
-    // type; the options of the Form Find are given by the Solver Options component.
+    // type; the options of the Form Find are given by the Solver Options component; Restraints
+    // have no rotations (the form finding does not use them) and can act along the axes of a plane.
     private static readonly Dictionary<string, string[]> ReworkedInputs = new Dictionary<string, string[]>
     {
         { "PlatePropertyComponent", new[] { "Name", "Thickness", "Material" } },
         { "FormFindComponent", new[] { "Model", "Solver Type", "Options", "Plane", "Auto Run" } },
+        { "NodeRestraintsComponent", new[] { "Node", "Translational", "Coordinate System" } },
     };
 
     private static void CompareParameters(GH_Component component, string source)

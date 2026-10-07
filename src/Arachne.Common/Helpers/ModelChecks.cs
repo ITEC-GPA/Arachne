@@ -191,19 +191,56 @@ namespace Arachne.Common.Helpers
 
                 foreach (List<int> part in parts.Values)
                 {
-                    List<string> axes = new List<string>();
-                    if (!part.Any(Tx))
-                        axes.Add("X");
-                    if (!part.Any(Ty))
-                        axes.Add("Y");
-                    if (!part.Any(Tz))
-                        axes.Add("Z");
-                    if (axes.Count > 0)
-                        report.Errors.Add($"The part with node {nodes[part[0]].NodeId} ({part.Count} nodes) has no restraint along {string.Join(", ", axes)}.");
+                    // The part can move along the directions that no restraint holds; with the
+                    // axes of a plane they can be inclined
+                    List<Vector3d> free = FreeDirections(part.Where(i => restraints[i] != null).SelectMany(i => restraints[i].RestrainedDirections()));
+                    if (free.Count > 0)
+                        report.Errors.Add($"The part with node {nodes[part[0]].NodeId} ({part.Count} nodes) has no restraint along {string.Join(", ", free.Select(Name))}.");
                 }
             }
 
             return report;
+        }
+
+        private const double DirectionTolerance = 1e-9;
+
+        /// <summary>
+        /// An orthonormal basis of the directions perpendicular to all the restrained ones:
+        /// X, Y and Z when they are among them, in this order
+        /// </summary>
+        private static List<Vector3d> FreeDirections(IEnumerable<Vector3d> restrained)
+        {
+            // Gram-Schmidt on the restrained directions, then on X, Y, Z
+            List<Vector3d> basis = new List<Vector3d>();
+            void Add(Vector3d direction)
+            {
+                foreach (Vector3d other in basis)
+                    direction -= other * (direction * other);
+                if (direction.Length > DirectionTolerance)
+                {
+                    direction.Unitize();
+                    basis.Add(direction);
+                }
+            }
+            foreach (Vector3d direction in restrained)
+                Add(direction);
+            int restrainedCount = basis.Count;
+            foreach (Vector3d axis in new[] { Vector3d.XAxis, Vector3d.YAxis, Vector3d.ZAxis })
+                Add(axis);
+            return basis.Skip(restrainedCount).ToList();
+        }
+
+        // X, Y, Z or the components of an inclined direction
+        private static string Name(Vector3d direction)
+        {
+            string[] names = { "X", "Y", "Z" };
+            for (int i = 0; i < 3; i++)
+            {
+                if (Math.Abs(Math.Abs(direction[i]) - 1) <= DirectionTolerance)
+                    return names[i];
+            }
+            string Component(double value) => (Math.Abs(value) < 5e-4 ? 0 : value).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+            return $"({Component(direction.X)}, {Component(direction.Y)}, {Component(direction.Z)})";
         }
 
         private static string List(List<string> ids)

@@ -81,9 +81,14 @@ namespace Arachne.Common.Helpers
                     ff_node.Tx = restraint.Tx;
                     ff_node.Ty = restraint.Ty;
                     ff_node.Tz = restraint.Tz;
-                    ff_node.Rx = restraint.Rx;
-                    ff_node.Ry = restraint.Ry;
-                    ff_node.Rz = restraint.Rz;
+                    // Restraints along the axes of a plane (TensileLib 2.4)
+                    if (restraint.CoordinateSystem != null)
+                    {
+                        if (restraint.CoordinateSystem.GetAxes(out Vector3d xAxis, out Vector3d yAxis, out _))
+                            ff_node.SetRestraintAxes(ToGpc(xAxis), ToGpc(yAxis));
+                        else
+                            log.Add($"The coordinate system of the restraints of node {node.NodeId} has no axes: the global axes are used.");
+                    }
                 }
                 IEnumerable<NodeForceLoadModel> forces = node.Loads.Where(l => l.GetType() == typeof(NodeForceLoadModel)).Cast<NodeForceLoadModel>().Where(Applies).ToList();
 
@@ -437,8 +442,9 @@ namespace Arachne.Common.Helpers
         /// The forces that the supports exert on a solved model, in the order of
         /// <see cref="Model.Nodes"/>. At a restrained node the reaction balances the beam
         /// forces and the loads the solver applied to the node: node forces, self-weight of
-        /// beams and plates, beam loads and pressure. Only the restrained directions are kept;
-        /// the nodes without translational restraints get null.
+        /// beams and plates, beam loads and pressure. Only the part along the restrained
+        /// directions is kept (the axes of the restraints, global or of a plane); the nodes
+        /// without translational restraints get null.
         /// </summary>
         public static Vector3d?[] ComputeReactions(Model ff_model)
         {
@@ -471,7 +477,7 @@ namespace Arachne.Common.Helpers
                 Node node = nodes[i];
                 if (!node.Tx && !node.Ty && !node.Tz)
                     continue;
-                reactions[i] = new Vector3d(node.Tx ? -sums[i].X : 0, node.Ty ? -sums[i].Y : 0, node.Tz ? -sums[i].Z : 0);
+                reactions[i] = ToRhino(node.RestrainedPart(ToGpc(-sums[i])));
             }
             return reactions;
         }
@@ -481,18 +487,18 @@ namespace Arachne.Common.Helpers
             return new Vector3d(v.X, v.Y, v.Z);
         }
 
+        private static GPC.Geometry.Vector3d ToGpc(Vector3d v)
+        {
+            return new GPC.Geometry.Vector3d(v.X, v.Y, v.Z);
+        }
+
         /// <summary>
         /// Converts a vector given in <paramref name="cs"/> into global coordinates.
         /// A null coordinate system is the global one.
         /// </summary>
         private static Vector3d ToGlobal(CoordinateSystemModel cs, Vector3d v)
         {
-            if (cs == null)
-                return v;
-            Vector3d e1 = cs.Point1 - cs.Origin;
-            Vector3d e3 = Vector3d.CrossProduct(e1, cs.Point2 - cs.Origin);
-            Vector3d e2 = Vector3d.CrossProduct(e3, e1);
-            if (!e1.Unitize() || !e2.Unitize() || !e3.Unitize())
+            if (cs == null || !cs.GetAxes(out Vector3d e1, out Vector3d e2, out Vector3d e3))
                 return v;
             return e1 * v.X + e2 * v.Y + e3 * v.Z;
         }

@@ -27,16 +27,39 @@ namespace Arachne.Common.Models
             set => _scale = value;
         }
 
+        // The rotations of FeMM are not kept: the form finding does not use them
         public class AttributeData : IEquatable<AttributeData>
         {
             public bool Tx { get; set; }
             public bool Ty { get; set; }
             public bool Tz { get; set; }
-            public bool Rx { get; set; }
-            public bool Ry { get; set; }
-            public bool Rz { get; set; }
-            public Vector3d TransationalDisplacement { get; set; }
-            public Vector3d RotationDisplacement { get; set; }
+
+            /// <summary>
+            /// The axes of the restraints: X, Y and Z of the coordinate system (of a plane).
+            /// Null: the global axes.
+            /// </summary>
+            public CoordinateSystemModel CoordinateSystem { get; set; }
+
+            /// <summary>
+            /// The unit vectors along which Tx, Ty and Tz act: the axes of the coordinate
+            /// system, or the global axes if there is none (or it does not define a plane)
+            /// </summary>
+            public Vector3d[] Axes()
+            {
+                if (CoordinateSystem != null && CoordinateSystem.GetAxes(out Vector3d x, out Vector3d y, out Vector3d z))
+                    return new[] { x, y, z };
+                return new[] { Vector3d.XAxis, Vector3d.YAxis, Vector3d.ZAxis };
+            }
+
+            /// <summary>
+            /// The unit vectors of the restrained directions
+            /// </summary>
+            public IEnumerable<Vector3d> RestrainedDirections()
+            {
+                Vector3d[] axes = Axes();
+                bool[] restrained = { Tx, Ty, Tz };
+                return axes.Where((axis, i) => restrained[i]);
+            }
 
             public override bool Equals(object obj)
             {
@@ -46,9 +69,7 @@ namespace Arachne.Common.Models
             public bool Equals(AttributeData other)
             {
                 return other != null && Tx == other.Tx && Ty == other.Ty && Tz == other.Tz &&
-                    Rx == other.Rx && Ry == other.Ry && Rz == other.Rz &&
-                    TransationalDisplacement.Equals(other.TransationalDisplacement) && 
-                    RotationDisplacement.Equals(other.RotationDisplacement);
+                    EqualityComparer<CoordinateSystemModel>.Default.Equals(CoordinateSystem, other.CoordinateSystem);
             }
 
             public override int GetHashCode()
@@ -57,11 +78,7 @@ namespace Arachne.Common.Models
                 hashCode = hashCode * -1521134295 + Tx.GetHashCode();
                 hashCode = hashCode * -1521134295 + Ty.GetHashCode();
                 hashCode = hashCode * -1521134295 + Tz.GetHashCode();
-                hashCode = hashCode * -1521134295 + Rx.GetHashCode();
-                hashCode = hashCode * -1521134295 + Ry.GetHashCode();
-                hashCode = hashCode * -1521134295 + Rz.GetHashCode();
-                hashCode = hashCode * -1521134295 + EqualityComparer<Vector3d>.Default.GetHashCode(TransationalDisplacement);
-                hashCode = hashCode * -1521134295 + EqualityComparer<Vector3d>.Default.GetHashCode(RotationDisplacement);
+                hashCode = hashCode * -1521134295 + EqualityComparer<CoordinateSystemModel>.Default.GetHashCode(CoordinateSystem);
                 return hashCode;
             }
         }
@@ -70,25 +87,17 @@ namespace Arachne.Common.Models
 
         public NodeRestraintAttributeModel()
         {
-            _value = new AttributeData()
-            {
-                TransationalDisplacement = Vector3d.Zero,
-                RotationDisplacement = Vector3d.Zero
-            };
+            _value = new AttributeData();
         }
 
-        public NodeRestraintAttributeModel(bool tx, bool ty, bool tz, bool rx, bool ry, bool rz)
+        public NodeRestraintAttributeModel(bool tx, bool ty, bool tz, CoordinateSystemModel coordinateSystem = null)
         {
             _value = new AttributeData()
             {
                 Tx = tx,
                 Ty = ty,
                 Tz = tz,
-                Rx = rx,
-                Ry = ry,
-                Rz = rz,
-                TransationalDisplacement = Vector3d.Zero,
-                RotationDisplacement = Vector3d.Zero
+                CoordinateSystem = coordinateSystem
             };
         }
 
@@ -104,11 +113,7 @@ namespace Arachne.Common.Models
                 Tx = attr.Value.Tx,
                 Ty = attr.Value.Ty,
                 Tz = attr.Value.Tz,
-                Rx = attr.Value.Rx,
-                Ry = attr.Value.Ry,
-                Rz = attr.Value.Rz,
-                TransationalDisplacement = attr.Value.TransationalDisplacement,
-                RotationDisplacement = attr.Value.RotationDisplacement
+                CoordinateSystem = attr.Value.CoordinateSystem != null ? new CoordinateSystemModel(attr.Value.CoordinateSystem) : null
             };
         }
 
@@ -121,25 +126,28 @@ namespace Arachne.Common.Models
             if (node != null)
             {
                 double lr = DrawingHelper.GetScaleFactor(display.Viewport, node.Position) * Scale;
+                // Along the axes of the restraints
+                Vector3d[] axes = _value.Axes();
                 if (_value.Tx)
-                    display.DrawLine(node.Position, node.Position + new Vector3d(lr, 0, 0), Color.Magenta);
+                    display.DrawLine(node.Position, node.Position + axes[0] * lr, Color.Magenta);
                 if (_value.Ty)
-                    display.DrawLine(node.Position, node.Position + new Vector3d(0, lr, 0), Color.Magenta);
+                    display.DrawLine(node.Position, node.Position + axes[1] * lr, Color.Magenta);
                 if (_value.Tz)
-                    display.DrawLine(node.Position, node.Position + new Vector3d(0, 0, lr), Color.Magenta);
-                if (_value.Rx)
-                    display.DrawLine(node.Position, node.Position - new Vector3d(lr, 0, 0), Color.White);
-                if (_value.Ry)
-                    display.DrawLine(node.Position, node.Position - new Vector3d(0, lr, 0), Color.White);
-                if (_value.Rz)
-                    display.DrawLine(node.Position, node.Position - new Vector3d(0, 0, lr), Color.White);
+                    display.DrawLine(node.Position, node.Position + axes[2] * lr, Color.Magenta);
             }
+        }
+
+        public override string ToString()
+        {
+            string text = "Restraints " + (_value.Tx ? "Tx " : "") + (_value.Ty ? "Ty " : "") + (_value.Tz ? "Tz " : "");
+            return text + (_value.CoordinateSystem == null ? "(global axes)" : $"(axes of {_value.CoordinateSystem.Name})");
         }
 
         #region Serialization
 
         private string SERIALIZATION_RELEASE_NAME = "NodeRestraintAttributeModel_SERIALIZATION_RELEASE"; //do not modify the name!
-        private int SERIALIZATION_RELEASE = 1;
+        // 2: no rotations, coordinate system of the restraints
+        private int SERIALIZATION_RELEASE = 2;
 
 		protected NodeRestraintAttributeModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
@@ -158,11 +166,8 @@ namespace Arachne.Common.Models
                 Tx = info.GetBoolean("Tx"),
                 Ty = info.GetBoolean("Ty"),
                 Tz = info.GetBoolean("Tz"),
-                Rx = info.GetBoolean("Rx"),
-                Ry = info.GetBoolean("Ry"),
-                Rz = info.GetBoolean("Rz"),
-                //TransationalDisplacement = (Vector3d)info.GetValue("TransationalDisplacement", typeof(Vector3d)),
-                //RotationDisplacement = (Vector3d)info.GetValue("RotationDisplacement", typeof(Vector3d))
+                // Release 1 had the rotations (Rx, Ry, Rz): they are not read
+                CoordinateSystem = savedRelease >= 2 ? (CoordinateSystemModel)info.GetValue("CoordinateSystem", typeof(CoordinateSystemModel)) : null
             };
         }
 
@@ -173,11 +178,7 @@ namespace Arachne.Common.Models
             info.AddValue("Tx", _value.Tx);
             info.AddValue("Ty", _value.Ty);
             info.AddValue("Tz", _value.Tz);
-            info.AddValue("Rx", _value.Rx);
-            info.AddValue("Ry", _value.Ry);
-            info.AddValue("Rz", _value.Rz);
-            //info.AddValue("TransationalDisplacement", _value.TransationalDisplacement, typeof(Vector3d));
-            //info.AddValue("RotationDisplacement", _value.RotationDisplacement, typeof(Vector3d));
+            info.AddValue("CoordinateSystem", _value.CoordinateSystem, typeof(CoordinateSystemModel));
         }
 
         #endregion

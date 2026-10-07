@@ -2,7 +2,7 @@
 
 Plug-in Grasshopper per il form finding e il patterning di tele e tensostrutture. Contiene i componenti di FeMM dedicati a questi due temi, con gli stessi ingressi e uscite tranne lo snellimento (dati SAP tolti, opzioni del Form Find in Solver Options); i GUID sono nuovi, così i due plug-in si possono caricare insieme. Sono corretti i bug trovati durante il trasferimento ([dettagli](docs/PORTING.md)). Componenti nuovi: Membrane Material, Solver Options, Check Model, Beam Forces, Support Reactions e Panel Distortion.
 
-**Versione:** 0.3.0-rc.5 (DLL 0.3.0.5). Si lavora in N e mm. Motore di form finding: TensileLib 2.3 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)).
+**Versione:** 0.3.0-rc.5 (DLL 0.3.0.5). Si lavora in N e mm. Motore di form finding: TensileLib 2.4 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)).
 
 ## Struttura
 
@@ -54,7 +54,8 @@ Note d'uso, come in FeMM:
 - **Fusione dei nodi:** due nodi più vicini di 0.001 (unità del modello) vengono uniti con attributi e carichi. FeMM leggeva questa tolleranza dalle opzioni del suo plug-in Rhino.
 - **Form Find:** calcola con il pulsante **Run** oppure con Auto Run = True. Gravità, pressione, casi di carico, iterazioni, tolleranze e mesh si danno con Solver Options; senza, valgono i predefiniti. Load Cases sceglie i casi dei carichi nodali e sulle aste da applicare (vuoto: tutti).
 - **Peso proprio:** con Gravity diversa da 0 pesano le aste (area × densità della sezione) e le piastre con una Plate Property (spessore × densità; per un Membrane Material il peso in g/m² della scheda). Le piastre generate dalle aste prendono il Plate Property di Solver Options. La pressione richiede un Load Case, a cui vengono assegnati i carichi nodali risultanti; una pressione positiva agisce secondo la normale dell'ingresso Plane (+Z con il piano predefinito). I solutori Linear e Non-Linear pubblicano il risultato anche al limite di iterazioni, con un avviso. Linear step by step si ferma invece con un errore.
-- **Risultati:** il modello calcolato contiene le forze assiali delle aste (pre-carichi, come in FeMM) e, se il calcolo converge, le reazioni dei vincoli. Beam Forces e Support Reactions le estraggono.
+- **Vincoli:** Restraints vincola le traslazioni lungo X, Y, Z oppure, con un piano nell'ingresso Coordinate System, lungo gli assi X e Y del piano e la sua normale Z. Per esempio, un nodo che scorre su una retta inclinata è vincolato in Y e Z con l'asse X del piano lungo la retta; un nodo su un piano inclinato è vincolato solo in Z. Le rotazioni di FeMM non ci sono più, perché il form finding non le usa.
+- **Risultati:** il modello calcolato contiene le forze assiali delle aste (pre-carichi, come in FeMM) e, se il calcolo converge, le reazioni dei vincoli, solo nelle direzioni vincolate. Beam Forces e Support Reactions le estraggono.
 - **Carichi sulle aste:** solo forze, uniformi o trapezie, in un sistema globale o in un Coordinate System; sono ripartite sui nodi con la regola della leva e restano alla stessa frazione della lunghezza quando l'asta si allunga.
 - **Filtri:** Node, Beam e Plate Filter cercano per ID gli identificativi assegnati con Element Id.
 - **Cable Net:** Warp, Weft e Restraint edges sono alberi con un ramo per cavo. Appiattirli prima di Beam.
