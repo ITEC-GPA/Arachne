@@ -12,5 +12,6 @@ $source=(Resolve-Path -LiteralPath $ArapSourceDir).Path
 $includes=(Resolve-Path -LiteralPath $IglIncludeDir).Path
 & $msbuild (Join-Path $projectRoot 'native\Arachne.IGL.vcxproj') -t:Rebuild -p:Configuration=Release -p:Platform=x64 "-p:ArapSourceDir=$source" "-p:IglIncludeDir=$includes" -v:minimal
 if($LASTEXITCODE -ne 0){throw 'Native ARAP build failed.'}
-$provenance=[ordered]@{Source=$source;Includes=$includes;SourceSHA256=(Get-FileHash -LiteralPath (Join-Path $source 'mm_arap.cpp')).Hash;HeaderSHA256=(Get-FileHash -LiteralPath (Join-Path $source 'mm_arap.h')).Hash;BinarySHA256=(Get-FileHash -LiteralPath (Join-Path $projectRoot 'artifacts\native\Release\Arachne.IGL.dll')).Hash}
-$provenance | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $projectRoot 'artifacts\native\Release\NATIVE-BUILD.json') -Encoding utf8
+$output=Join-Path $projectRoot 'bin\Arachne.IGL\Release'
+$provenance=[ordered]@{Source=$source;Includes=$includes;SourceSHA256=(Get-FileHash -LiteralPath (Join-Path $source 'mm_arap.cpp')).Hash;HeaderSHA256=(Get-FileHash -LiteralPath (Join-Path $source 'mm_arap.h')).Hash;BinarySHA256=(Get-FileHash -LiteralPath (Join-Path $output 'Arachne.IGL.dll')).Hash}
+$provenance | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'NATIVE-BUILD.json') -Encoding utf8

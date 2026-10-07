@@ -2,7 +2,7 @@
 
 Plug-in Grasshopper per il form finding e il patterning di tele e tensostrutture. Contiene i componenti di FeMM dedicati a questi due temi. Ingressi e uscite sono identici a FeMM; i GUID sono nuovi, così i due plug-in si possono caricare insieme. Sono corretti i bug trovati durante il trasferimento ([dettagli](docs/PORTING.md)). Quattro componenti nuovi leggono i risultati: Check Model, Beam Forces, Support Reactions e Panel Distortion.
 
-**Versione:** 0.3.0-rc.3. Si lavora in N e mm. Motore di form finding: TensileLib 2.2 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)).
+**Versione:** 0.3.0-rc.4 (DLL 0.3.0.4). Si lavora in N e mm. Motore di form finding: TensileLib 2.2 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)).
 
 ## Struttura
 
@@ -84,16 +84,16 @@ Prerequisiti: Windows x64, SDK .NET 8 o successivo, .NET Framework 4.8 Developer
 .\scripts\build.ps1 -RhinoTests
 ```
 
-Lo script compila tutti i progetti in `bin/<progetto>/<configurazione>/<framework>` ed esegue i test del motore ARAP. Con `-RhinoTests` avvia Rhino senza finestra ed esegue le verifiche Grasshopper:
+Gli output della compilazione stanno nella cartella `bin` alla radice, in `bin/<progetto>/<configurazione>/<framework>`; i file intermedi restano nella cartella `obj` di ogni progetto, perché contengono una copia del `.gha`. Lo script esegue i test del motore ARAP. Con `-RhinoTests` avvia Rhino senza finestra ed esegue le verifiche Grasshopper:
 
 - ingressi e uscite di ogni componente confrontati con i sorgenti FeMM;
 - GUID e icone;
 - form finding su casi analitici;
 - patterning e reti.
 
-Infine raccoglie il plug-in in `artifacts/<configurazione>/Arachne`: copiare l'intera cartella nelle Libraries di Grasshopper.
+Il plug-in è la cartella `bin/Arachne.Grasshopper/Release/net48`: `.gha` e DLL necessarie, con `DEPENDENCIES.json` (versioni e SHA-256) e `BUILD.json` (commit e verifiche eseguite, scritto solo se tutte le verifiche passano). Per installarlo, copiare la cartella nelle Libraries di Grasshopper.
 
-Se Grasshopper carica il plug-in dalla cartella `bin`, chiudere Rhino prima di compilare e compilare solo in Release. Grasshopper cerca i `.gha` anche nelle sottocartelle, quindi una build Debug aggiungerebbe una seconda copia del plug-in.
+Se Grasshopper carica il plug-in dalla cartella `bin`, chiudere Rhino prima di compilare e compilare solo in Release. Grasshopper cerca i `.gha` anche nelle sottocartelle, quindi sotto `bin` deve essercene uno solo: una build Debug ne aggiungerebbe un secondo. Per lo stesso motivo ExampleWriter non copia il `.gha` nella sua cartella e lo carica da `bin/Arachne.Grasshopper`.
 
 Percorsi predefiniti, modificabili con proprietà MSBuild o parametri dello script:
 
@@ -105,6 +105,6 @@ Percorsi predefiniti, modificabili con proprietà MSBuild o parametri dello scri
 | RhinoSystemDir | `C:/Program Files/Rhino 8/System` |
 | GrasshopperDir | `C:/Program Files/Rhino 8/Plug-ins/Grasshopper` |
 
-Altri script: `scripts/build-examples.ps1` rigenera gli esempi e `docs/ICONS.svg`; `scripts/build-arap.ps1` compila solo il motore ARAP. Per le icone dei nuovi componenti aggiungere il disegno in `tools/Arachne.ExampleWriter/IconArtwork.cs` ed eseguire ExampleWriter con `--icons`.
+Altri script: `scripts/build-examples.ps1` rigenera gli esempi e `docs/ICONS.svg`; `scripts/build-arap.ps1` compila solo il motore ARAP; `scripts/build-native.ps1` ricompila in `bin/Arachne.IGL/Release` la vecchia DLL nativa, usata solo per i confronti facoltativi del motore ARAP. Per le icone dei nuovi componenti aggiungere il disegno in `tools/Arachne.ExampleWriter/IconArtwork.cs` ed eseguire ExampleWriter con `--icons`.
 
 Vedere anche [architettura](docs/ARCHITECTURE.md) e [registro modifiche](docs/CHANGELOG.md).

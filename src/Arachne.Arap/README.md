@@ -6,9 +6,9 @@ Motore ARAP autonomo in C#, target **.NET Standard 2.0**, con tipi geometrici di
 
 Dalla radice del repository: `./scripts/build-arap.ps1`. Richiede SDK .NET, Developer Pack .NET Framework 4.8 per l'eseguibile di test e le due DLL GPC locali. I parametri GpcGeometryPath e GpcUtilitiesPath permettono di specificarle. Il solo progetto `src/Arachne.Arap/Arachne.Arap.csproj` compila anche senza il test runner Windows.
 
-La soluzione `Arachne.Arap.sln` esclude completamente il plugin e il motore FEM. La cartella di distribuzione contiene Arachne.Arap.dll, GPCGeometry.dll e GPCUtilities.dll; copiarle insieme. `-CompareNative` e facoltativo e richiede la vecchia DLL x64 soltanto per i confronti.
+La soluzione `Arachne.Arap.sln` esclude completamente il plugin e il motore FEM. Per usare la libreria copiare insieme Arachne.Arap.dll, GPCGeometry.dll e GPCUtilities.dll. `-CompareNative` e facoltativo e richiede la vecchia DLL x64 (`bin/Arachne.IGL/Release`) soltanto per i confronti.
 
-Gli output di compilazione sono centralizzati nella cartella `bin` alla radice del repository: `bin/Arachne.Arap/Release/netstandard2.0` per la libreria e `bin/Arachne.Arap.Tests/Release/net48` per i test. La stessa impostazione vale per Debug e per la compilazione da Visual Studio.
+Gli output di compilazione sono centralizzati nella cartella `bin` alla radice del repository: `bin/Arachne.Arap/Release/netstandard2.0` per la libreria, con `BUILD.json` e `DEPENDENCIES.json`, e `bin/Arachne.Arap.Tests/Release/net48` per i test; i file intermedi restano nella cartella `obj` di ogni progetto. La stessa impostazione vale per la compilazione da Visual Studio.
 
 ```csharp
 using Arachne.Arap;

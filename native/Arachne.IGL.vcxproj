@@ -7,8 +7,8 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup>
     <TargetName>Arachne.IGL</TargetName>
-    <OutDir>$(MSBuildThisFileDirectory)..\artifacts\native\Release\</OutDir>
-    <IntDir>$(MSBuildThisFileDirectory)..\artifacts\native\obj\</IntDir>
+    <OutDir>$(MSBuildThisFileDirectory)..\bin\Arachne.IGL\Release\</OutDir>
+    <IntDir>$(MSBuildThisFileDirectory)..\bin\Arachne.IGL\obj\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup><ClCompile><WarningLevel>Level3</WarningLevel><Optimization>MaxSpeed</Optimization><RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary><LanguageStandard>stdcpp17</LanguageStandard><AdditionalIncludeDirectories>$(IglIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories><PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile><Link><SubSystem>Windows</SubSystem></Link></ItemDefinitionGroup>
   <ItemGroup><ClCompile Include="$(ArapSourceDir)\mm_arap.cpp" /><ClInclude Include="$(ArapSourceDir)\mm_arap.h" /></ItemGroup>

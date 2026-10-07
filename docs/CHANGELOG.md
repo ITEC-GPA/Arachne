@@ -1,5 +1,18 @@
 # Registro delle modifiche
 
+## 0.3.0-rc.4 - 7 ottobre 2026: solo bin
+
+- **Versione delle DLL:** 0.3.0.4. Il quarto numero segue la release candidate: prima tutte le rc avevano versione file 0.3.0.0.
+- **Compilazione:** in radice resta solo la cartella `bin`.
+  - Niente più `artifacts`: il plug-in è `bin/Arachne.Grasshopper/Release/net48`, con `DEPENDENCIES.json` e `BUILD.json`. Lo stesso vale per il motore ARAP autonomo in `bin/Arachne.Arap/Release/netstandard2.0`.
+  - La vecchia DLL nativa per i confronti ARAP si compila in `bin/Arachne.IGL/Release`.
+  - `BUILD.json` è scritto solo se tutte le verifiche passano.
+- **Un solo `.gha` sotto `bin`:** Grasshopper cerca i plug-in in tutte le sottocartelle di `bin`.
+  - Si compila solo in Release: una build Debug aggiungerebbe una seconda copia.
+  - ExampleWriter non copia più il `.gha` nella sua cartella: lo carica da `bin/Arachne.Grasshopper`.
+  - I file intermedi restano nelle cartelle `obj` dei progetti, perché contengono anche loro una copia del `.gha`.
+- **Pulizia:** tolti le build Debug, gli output del vecchio Arachne.Core, i pacchetti 0.1 e 0.2 e i log di verifica della prima versione.
+
 ## 0.3.0-rc.3 - 7 ottobre 2026: TensileLib 2.2
 
 - **TensileLib 2.2.0.0** (`../tensilelib`, branch `claude/tensilelib-fixes`): le correzioni che Arachne applicava nel FormFindingHelper sono ora nella libreria, e sono stati tolti gli aggiramenti lato Arachne:
