@@ -266,8 +266,41 @@ internal static class FormFindingChecks
                 c.Solve();
                 var model = Solved(ff);
                 var loads = model.Nodes.SelectMany(n => n.Loads.OfType<NodeForceLoadModel>()).ToList();
-                Check(loads.Count > 0 && loads.All(l => l.LoadCase.Name == "Wind"), "Pressure loads " + loads.Count);
+                Check(loads.Count > 0 && loads.All(l => l.LoadCase.Name == "Wind" && l is NodePressureLoadModel), "Pressure loads " + loads.Count);
                 Check(Canvas.Single<GH_Mesh>(ff, 1).Value.Faces.Count == 16, "Mesh faces");
+            }
+        });
+
+        Test("A form found model found again: the pressure is not applied twice and its forces are replaced", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c); var (lines, border) = SaddleGrid(4, 10000, 2000);
+                var wind = c.Add(new LoadCaseComponent()); Canvas.Set(wind, 0, new GH_String("Wind"));
+                var build = Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border));
+                GH_Component Find(GH_Component model, bool pressure)
+                {
+                    var ff = FormFind(chain, model, 0, 100, 1e-10);
+                    if (pressure) { Canvas.Set(Options(ff), 1, new GH_Number(1e-4)); Canvas.Link(Options(ff), 2, wind); }
+                    return ff;
+                }
+                var plain = Find(build, false);
+                var pressed = Find(build, true);
+                var again = Find(pressed, true);
+                var relaxed = Find(pressed, false);
+                c.Solve();
+                double Gap(GH_Component first, GH_Component second)
+                    => Solved(first).Nodes.Zip(Solved(second).Nodes, (p, q) => p.Position.DistanceTo(q.Position)).Max();
+                List<NodePressureLoadModel> Pressure(GH_Component ff) => Solved(ff).Nodes.SelectMany(n => n.Loads.OfType<NodePressureLoadModel>()).ToList();
+                // Found again with the same pressure: the same shape, one pressure force per node
+                Check(Gap(again, pressed) < 1e-3, "Shape found again moved by " + Gap(again, pressed) + " mm");
+                Check(Solved(again).Nodes.All(n => n.Loads.OfType<NodePressureLoadModel>().Count() <= 1) && Pressure(again).Count == Pressure(pressed).Count,
+                    $"Pressure forces {Pressure(again).Count}, first form finding {Pressure(pressed).Count}");
+                Check(Math.Abs(Pressure(again).Sum(l => l.Value.Z) - Pressure(pressed).Sum(l => l.Value.Z)) < 1e-6 * Pressure(pressed).Sum(l => l.Value.Z), "Different pressure resultant");
+                Check(again.RuntimeMessages(GH_RuntimeMessageLevel.Remark).Any(m => m.Contains("pressure forces of a previous form finding")), "No remark");
+                // Found again without pressure: the shape without pressure and no pressure forces
+                Check(Gap(relaxed, plain) < 1e-3 && Pressure(relaxed).Count == 0, $"Without pressure: moved by {Gap(relaxed, plain)} mm, {Pressure(relaxed).Count} pressure forces");
+                Check(Gap(pressed, plain) > 1, "The pressure did not change the shape");
             }
         });
 

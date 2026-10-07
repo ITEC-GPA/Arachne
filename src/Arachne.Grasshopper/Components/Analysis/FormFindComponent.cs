@@ -246,7 +246,10 @@ namespace Arachne.Grasshopper.Components.Analysis
                 // Create a deep copy of the model where to add the results
                 GH_Model result = (GH_Model)model.Duplicate();
 
-                // Update the model with the FF results
+                // Update the model with the FF results. The pressure becomes nodal forces in its
+                // load case, as in FeMM, marked as a result: the forces of a previous form finding,
+                // computed on the previous shape, are replaced, and a new form finding does not
+                // apply them again
                 NodeModel[] nodeArray = result.Value.Nodes.ToArray();
                 for (int i = 0; i < nodeArray.Length; i++)
                 {
@@ -254,9 +257,14 @@ namespace Arachne.Grasshopper.Components.Analysis
                     Node ff_node = ff_model.Nodes.ElementAt(i);
                     node.Position = new Point3d(ff_node.X, ff_node.Y, ff_node.Z);
 
+                    for (int k = node.Loads.Count - 1; k >= 0; k--)
+                    {
+                        if (node.Loads[k] is NodePressureLoadModel)
+                            node.Loads.RemoveAt(k);
+                    }
                     Vector3d p = new Vector3d(ff_node.PressureX, ff_node.PressureY, ff_node.PressureZ);
                     if (p.Length != 0)
-                        node.Loads.Add(new NodeForceLoadModel(options.PressureLoadCase, p));
+                        node.Loads.Add(new NodePressureLoadModel(options.PressureLoadCase, p));
                 }
 
                 BeamModel[] beamsModel = result.Value.Beams.ToArray();

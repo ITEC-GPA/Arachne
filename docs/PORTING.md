@@ -169,6 +169,10 @@ Sezioni, materiali e proprietà:
 35. Custom Material con Kind = Rebar terminava con un'eccezione non gestita. Rebar, tipo SAP, non è più nell'elenco.
 36. Materiale: la resistenza ultima a taglio leggeva e scriveva quella a trazione.
 
+Form finding, trovato in seguito:
+
+37. Pressione contata due volte: il Form Find salva la pressione nel modello calcolato come carichi nodali nel suo caso di carico, come FeMM. Se quel modello passava a un altro Form Find, quei carichi venivano applicati come carichi fissi, in aggiunta alla pressione ricalcolata. Inoltre, a ogni nuovo calcolo se ne aggiungevano altri. Ora sono un tipo di carico a sé (`NodePressureLoadModel`, sempre nel caso scelto per la pressione): un nuovo Form Find non li applica, segnalandolo, e li sostituisce con quelli della nuova forma, o li toglie se non c'è pressione.
+
 Comportamento invariato rispetto a FeMM: Form Find (Linear e Non-Linear), Flattening e Compensation pubblicano il risultato anche quando raggiungono il limite di iterazioni, con un avviso. Linear step by step, invece, termina con errore e senza risultato. Node, Beam e Plate Filter cercano per ID solo gli identificativi assegnati con Element Id, non la numerazione automatica.
 
 ## Adattamenti

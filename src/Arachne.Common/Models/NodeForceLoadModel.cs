@@ -122,7 +122,8 @@ namespace Arachne.Common.Models
 
         public bool Equals(NodeForceLoadModel other)
         {
-            return !(other is null) && LoadCase == other.LoadCase && Value.Equals(other.Value);
+            // A force of the pressure found by the Form Find is not a load given by the user
+            return !(other is null) && GetType() == other.GetType() && LoadCase == other.LoadCase && Value.Equals(other.Value);
         }
 
         public override bool Equals(object obj)

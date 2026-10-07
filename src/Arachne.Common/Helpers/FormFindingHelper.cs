@@ -55,6 +55,7 @@ namespace Arachne.Common.Helpers
                     new GPC.Geometry.Vector3d(plane.Normal.X, plane.Normal.Y, plane.Normal.Z));
 
             Dictionary<(double, double, double), Node> pointNodeAssociation = new Dictionary<(double, double, double), Node>();
+            bool previousPressure = false;
 
             // Nodes created for beam ends or plate vertices are registered too, so elements
             // sharing a point not defined as a model node share the same solver node.
@@ -90,6 +91,10 @@ namespace Arachne.Common.Helpers
                             log.Add($"The coordinate system of the restraints of node {node.NodeId} has no axes: the global axes are used.");
                     }
                 }
+                // The forces of the pressure found by a previous form finding are results, not
+                // loads: the pressure of the options acts on the new shape
+                if (node.Loads.Any(l => l is NodePressureLoadModel))
+                    previousPressure = true;
                 IEnumerable<NodeForceLoadModel> forces = node.Loads.Where(l => l.GetType() == typeof(NodeForceLoadModel)).Cast<NodeForceLoadModel>().Where(Applies).ToList();
 
                 if (forces.Count() > 0)
@@ -427,6 +432,8 @@ namespace Arachne.Common.Helpers
                 log.Add("The plates have a weight but Gravity is 0: the self weight is not applied.");
             foreach (LoadCaseModel lc in loadCases.Where(lc => !usedLoadCases.Contains(lc)))
                 log.Add($"No node or beam load in the load case {lc.Name}.");
+            if (previousPressure)
+                log.Add("The pressure forces of a previous form finding are not applied: the Pressure of the Solver Options acts on the new shape.");
             return ff_model;
         }
 

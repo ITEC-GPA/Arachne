@@ -16,7 +16,7 @@ flowchart TD
 
 Porting di FeMM.Common limitato a ciò che serve al form finding:
 
-- `Models`: modello FEM (`ModelModel`, nodi, aste, piastre), attributi (vincoli, pesi, ID), carichi (nodali, sulle aste, pre-carico), attributi di form finding (`ForceDensityModel`, `FixedLengthModel`, `FixedAxialForceModel`), casi di carico, reazioni (`NodeReactResultModel`), proprietà, sezioni e materiali.
+- `Models`: modello FEM (`ModelModel`, nodi, aste, piastre), attributi (vincoli, anche lungo gli assi di un piano, pesi, ID), carichi (nodali, sulle aste, pre-carico, forze della pressione trovate dal form finding), attributi di form finding (`ForceDensityModel`, `FixedLengthModel`, `FixedAxialForceModel`), casi di carico, reazioni (`NodeReactResultModel`), proprietà, sezioni e materiali.
 - `Helpers/FormFindingHelper`: converte il modello FEM nel modello TensileLib (nodi, aste, piastre, carichi, obiettivi), calcola le reazioni e genera mesh da reti di curve.
 - `Helpers/ModelChecks`: controlli di Check Model (vincoli per parte e direzione, aste senza forza, valori non validi).
 - `Helpers/ModelHelper`: conversioni di unità tramite GPCUtilities (ex Maffeis.Utilities).
@@ -45,8 +45,8 @@ TensileLib risolve il modello con il centro nell'origine e poi lo riporta al suo
 
 - le posizioni calcolate;
 - il pre-carico di trazione sulle aste con Force Density, Fixed Axial Force o Fixed Length;
-- i carichi nodali della pressione nel caso di carico indicato;
-- le reazioni dei vincoli, se il calcolo converge;
+- i carichi nodali della pressione nel caso di carico indicato (`NodePressureLoadModel`: un nuovo Form Find non li applica e li sostituisce);
+- le reazioni dei vincoli, solo nelle direzioni vincolate, se il calcolo converge;
 - la mesh delle piastre.
 
 Beam Forces e Support Reactions leggono pre-carichi e reazioni dal modello; Check Model usa `ModelChecks` prima del calcolo.
@@ -56,7 +56,7 @@ Beam Forces e Support Reactions leggono pre-carichi e reazioni dal modello; Chec
 `tools/Arachne.ExampleWriter` avvia Rhino 8 in-process senza finestra e usa i componenti in documenti Grasshopper reali:
 
 - `InventoryChecks`: GUID, icone e confronto di ingressi e uscite con i sorgenti FeMM;
-- `FormFindingChecks`: form finding su casi analitici in N/mm, unione dei rami, carichi sulle aste, reazioni, peso proprio in N/mm e in SI, pressione, predefiniti senza Solver Options, casi di carico, peso delle piastre bilanciato dalle reazioni, modelli lontani dall'origine, Check Model, filtri, Membrane Material e Plate Property, anteprima delle sezioni, serializzazione;
+- `FormFindingChecks`: form finding su casi analitici in N/mm, unione dei rami, carichi sulle aste, reazioni, vincoli lungo gli assi di un piano, peso proprio in N/mm e in SI, pressione anche ricalcolata, predefiniti senza Solver Options, casi di carico, peso delle piastre bilanciato dalle reazioni, modelli lontani dall'origine, Check Model, filtri, Membrane Material e Plate Property, anteprima delle sezioni, serializzazione;
 - `PatterningChecks`: sviluppo e compensazione dei pannelli, ARAP, decompensazione, strumenti sulle mesh e Panel Distortion, con valori attesi (lati, aree, distanze); una prova unica verifica che nessun componente modifichi la mesh in ingresso;
 - `NetworkChecks`: reti di cavi rettangolari, radiali e composte, con il numero di cavi, di pezzi di perimetro e di punti interni, con e senza tolleranza di corrispondenza.
 
