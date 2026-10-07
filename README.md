@@ -2,7 +2,7 @@
 
 Plug-in Grasshopper per il form finding e il patterning di tele e tensostrutture. Contiene i componenti di FeMM dedicati a questi due temi, con gli stessi ingressi e uscite tranne lo snellimento (dati SAP tolti, opzioni del Form Find in Solver Options); i GUID sono nuovi, così i due plug-in si possono caricare insieme. Sono corretti i bug trovati durante il trasferimento ([dettagli](docs/PORTING.md)). Componenti nuovi: Membrane Material, Solver Options, Check Model, Beam Forces, Support Reactions e Panel Distortion.
 
-**Versione:** 0.3.0-rc.5 (DLL 0.3.0.5). Si lavora in N e mm. Motore di form finding: TensileLib 2.4 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)).
+**Versione:** 0.3.0-rc.5 (DLL 0.3.0.5). Si lavora in N e mm. Motore di form finding: TensileLib 2.5 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)).
 
 ## Struttura
 

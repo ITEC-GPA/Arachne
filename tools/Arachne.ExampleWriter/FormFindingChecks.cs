@@ -163,6 +163,14 @@ internal static class FormFindingChecks
 
     private static double PreLoad(BeamModel beam) => beam.Loads.OfType<BeamPreLoadModel>().Single().Value;
 
+    // An attribute that records the element it is added to (AttributeModel.UpdateElement)
+    private sealed class ProbeAttributeModel : AttributeModel
+    {
+        public ElementModel Element;
+        public override string Description => "Probe";
+        public override void UpdateElement(ElementModel element) => Element = element;
+    }
+
     internal static int Run()
     {
         passed = failed = 0;
@@ -883,6 +891,30 @@ internal static class FormFindingChecks
                 c.Solve();
                 var errors = Canvas.Out(check, 1).Select(text => text.ToString()).ToList();
                 Check(!Canvas.Single<GH_Boolean>(check, 0).Value && errors.Any(e => e.EndsWith("has no restraint along (0.707, 0, -0.707), Y.")), "Errors: " + string.Join(" | ", errors));
+            }
+        });
+
+        Test("An attribute added to an element read from a file or copied reaches the element", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                var supports = Supports(chain, new[] { a });
+                var beams = ForceDensity(chain, Beams(chain, new[] { new Line(a, m) }), 1);
+                c.Solve();
+                var node = Canvas.Single<GH_Node>(supports);
+                var chunk = new GH_LooseChunk("check");
+                Check(node.Write(chunk.CreateChunk("node")), "Write failed");
+                var read = new GH_LooseChunk("check"); read.Deserialize_Binary(chunk.Serialize_Binary());
+                var restored = new GH_Node();
+                Check(restored.Read(read.FindChunk("node")), "Read failed");
+                var beam = (BeamModel)SerializationHelper.FromBytes<object>(SerializationHelper.ToBytes(Canvas.Single<GH_Beam>(beams).Value));
+                foreach (var (what, element) in new (string, ElementModel)[] { ("node read from a file", restored.Value), ("copied node", new NodeModel(node.Value)), ("beam read from bytes", beam) })
+                {
+                    var attribute = new ProbeAttributeModel();
+                    element.Attributes.Add(attribute);
+                    Check(ReferenceEquals(attribute.Element, element), what + ": the attribute did not reach its element");
+                }
             }
         });
 

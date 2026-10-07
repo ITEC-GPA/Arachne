@@ -7,7 +7,7 @@ I componenti di Arachne sono quelli di FeMM, con **gli stessi ingressi e le stes
 - le correzioni dei bug elencate più sotto;
 - gli ingressi tolti di proposito (definizioni SAP e carichi non gestiti dal form finding, vedi Adattamenti), elencati anche nel banco di prova;
 - lo snellimento: Table Material e Mesh Pipe tolti, Plate Property con un solo spessore e senza tipo, le opzioni del Form Find nel componente Solver Options, Restraints senza rotazioni e con i vincoli lungo gli assi di un piano, Build, Decompose e Check Model nel pannello 09-Model, il patterning dopo l'analisi (13-Patterning), le reti di cavi in 14-Tools;
-- gli adattamenti alla TensileLib 2.4 (repository `../tensilelib`), al motore ARAP C# e all'assenza del plug-in Rhino di FeMM;
+- gli adattamenti alla TensileLib 2.5 (repository `../tensilelib`), al motore ARAP C# e all'assenza del plug-in Rhino di FeMM;
 - sei componenti nuovi di Arachne, elencati a parte.
 
 Si lavora in N e mm: Build Model ha come predefinito Nmm (come FeMM), le sezioni sono nelle unità del modello e la gravità di Solver Options, in N/mm, vale 9806.65 mm/s².
@@ -21,7 +21,7 @@ I GUID sono nuovi, così FeMM e Arachne possono essere caricati insieme. Le defi
 | FeMM.Common: modelli (Models), helper e geometria usati dal form finding | `src/Arachne.Common` |
 | FeMM.Grasshopper: data type, attributi grafici, componenti | `src/Arachne.Grasshopper` |
 | MaffeisIGL (ARAP nativo, libigl) | `src/Arachne.Arap`, motore C# riscritto |
-| TensileLib 2.0.6 (NuGet, non più disponibile) | TensileLib 2.4.0.0 da `../tensilelib` |
+| TensileLib 2.0.6 (NuGet, non più disponibile) | TensileLib 2.5.0.0 da `../tensilelib` |
 
 Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino, plug-in FeMM.Rhino e risultati delle analisi FEM (resta solo il modello delle reazioni, `NodeReactResultModel`, usato dal form finding). Di conseguenza:
 
@@ -169,9 +169,11 @@ Sezioni, materiali e proprietà:
 35. Custom Material con Kind = Rebar terminava con un'eccezione non gestita. Rebar, tipo SAP, non è più nell'elenco.
 36. Materiale: la resistenza ultima a taglio leggeva e scriveva quella a trazione.
 
-Form finding, trovato in seguito:
+Trovati in seguito:
 
 37. Pressione contata due volte: il Form Find salva la pressione nel modello calcolato come carichi nodali nel suo caso di carico, come FeMM. Se quel modello passava a un altro Form Find, quei carichi venivano applicati come carichi fissi, in aggiunta alla pressione ricalcolata. Inoltre, a ogni nuovo calcolo se ne aggiungevano altri. Ora sono un tipo di carico a sé (`NodePressureLoadModel`, sempre nel caso scelto per la pressione): un nuovo Form Find non li applica, segnalandolo, e li sostituisce con quelli della nuova forma, o li toglie se non c'è pressione.
+38. Piastre generate: mancava una faccia accanto a un nodo con un albero, un puntone o uno strallo, quindi su quella cella non c'erano pressione, peso e mesh. Il controllo che scarta i cicli che racchiudono altri nodi proiettava sul piano della faccia anche l'estremo dell'asta appesa. Corretto in TensileLib 2.5, che genera inoltre le piastre fino a 130 volte più in fretta sulle reti triangolate (20.000 triangoli da 105 s a 0,8 s), con le stesse facce.
+39. Attributi: un attributo aggiunto a un elemento letto da file, o a un nodo copiato, non riceveva il suo elemento, perché l'evento non veniva ricollegato. Oggi lo usa solo la rastremazione delle aste, che non ha un componente; corretto per i componenti futuri.
 
 Comportamento invariato rispetto a FeMM: Form Find (Linear e Non-Linear), Flattening e Compensation pubblicano il risultato anche quando raggiungono il limite di iterazioni, con un avviso. Linear step by step, invece, termina con errore e senza risultato. Node, Beam e Plate Filter cercano per ID solo gli identificativi assegnati con Element Id, non la numerazione automatica.
 

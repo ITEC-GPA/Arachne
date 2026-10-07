@@ -75,6 +75,15 @@ namespace Arachne.Common.Models
             _results = (ObservableCollection<ResultModel>)info.GetValue("Results", typeof(ObservableCollection<ResultModel>));
         }
 
+        // The handlers of the events are not serialized: an attribute added to an element read
+        // from a file (or deep copied) did not reach the element
+        [OnDeserialized]
+        private void OnDeserialized(StreamingContext context)
+        {
+            if (_attributes != null)
+                _attributes.CollectionChanged += Attributes_CollectionChanged;
+        }
+
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
         {

@@ -6,7 +6,7 @@ flowchart TD
   GH --> ARAP[Arachne.Arap · motore ARAP C#]
   GH --> RHINO[RhinoCommon e Grasshopper]
   COMMON --> RHINO
-  COMMON --> TL[TensileLib 2.4 · form finding e flattening]
+  COMMON --> TL[TensileLib 2.5 · form finding e flattening]
   COMMON --> GPC[GPCGeometry e GPCUtilities]
   GH --> TL
   ARAP --> GPC
