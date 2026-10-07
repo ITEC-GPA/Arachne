@@ -11,7 +11,13 @@
   Corretti inoltre: pesi del Non-Linear, membrane con cavi lunghi, direzioni delle curvature, pressioni azzerate dal Linear al limite di iterazioni, codice 7 dei solutori algebrici e tempi di generazione piastre e del Non-Linear. Dettagli nel registro di TensileLib.
 - **Flattening:** Tolerance,s = 0 riprende il significato di FeMM; il caso dei pannelli curvi è risolto in TensileLib.
 - **Linear step by step:** riparte a ogni passo dalle densità appena trovate, come prima: TensileLib 2.2 non le scrive più negli obiettivi delle aste.
-- **Banco di prova:** 140 controlli in Rhino/Grasshopper, tutti superati con la nuova TensileLib.
+- **Mesh Clean:** non modifica più la mesh in ingresso (bug di FeMM, vedi PORTING.md n. 32).
+- **Banco di prova:** riscritte le prove del patterning, delle reti di cavi e del motore ARAP ereditate dalla prima versione:
+  - ogni prova controlla un valore atteso (lati, aree, numero di cavi, di pezzi di perimetro e di punti) invece della sola assenza di errori; la prova delle reti stampava un conteggio fisso;
+  - una sola prova verifica che tutti i componenti con una mesh in ingresso la lascino invariata, leggendo i dati del parametro e non una copia: così è emerso il bug di Mesh Clean;
+  - le prove ARAP sono raggruppate per argomento (invarianti, vincoli, mesh non valide, perimetro, convergenza, concorrenza) con nomi che dicono il risultato atteso.
+
+  Totale: 144 controlli in Rhino/Grasshopper (68 inventario, 27 form finding, 43 patterning, 6 reti) e 54 del motore ARAP, tutti superati.
 
 ## 0.3.0-rc.2 - 6 ottobre 2026: N/mm, snellimento, risultati
 

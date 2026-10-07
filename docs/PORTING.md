@@ -158,6 +158,7 @@ Patterning e strumenti:
 29. Mesh Remap, DecompensationDescriptorExt, Deform ARAP, Cable Net, Radial Cable Net e Compound Net: con dati incompatibili proseguivano e fallivano più avanti. Erano già stati corretti nella prima versione di Arachne; le correzioni sono mantenute.
 30. Flattening: con Tolerance,s = 0, il valore predefinito di FeMM, il solutore ai minimi quadrati può fermarsi solo per errori di arrotondamento, che la TensileLib trattava come mancata convergenza: ogni pannello curvo finiva con "Solver not converged". Corretto in TensileLib 2.2, che accetta il punto migliore trovato; la tolleranza mantiene il significato di FeMM.
 31. Node Filter e Plate Filter: l'ingresso Units non aveva un valore predefinito (Beam Filter sì, 2), quindi il filtro non faceva nulla finché Units non veniva collegato. Ora il predefinito è 2 (Nmm). L'ingresso resta per compatibilità: la tolleranza viene dalle impostazioni di Arachne.
+32. Mesh Clean: saldava e ripuliva direttamente la mesh in ingresso, che Grasshopper condivide con i componenti a monte; dopo il calcolo anche la sorgente aveva i vertici coincidenti fusi (su un caso di prova da 8 a 7 vertici). Ora lavora su una copia.
 
 Comportamento invariato rispetto a FeMM: Form Find (Linear e Non-Linear), Flattening e Compensation pubblicano il risultato anche quando raggiungono il limite di iterazioni, con un avviso. Linear step by step, invece, termina con errore e senza risultato. Node, Beam e Plate Filter cercano per ID solo gli identificativi assegnati con Element Id, non la numerazione automatica.
 

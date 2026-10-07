@@ -58,7 +58,8 @@ namespace Arachne.Grasshopper.Components.Patterning
             DA.GetData(2, ref area);
             DA.GetData(3, ref angle);
 
-            var cleaned = CleanMesh(mesh.Value, len, area, angle);
+            // On a copy: the input mesh is shared with the upstream components (FeMM welded it in place)
+            var cleaned = CleanMesh(mesh.Value.DuplicateMesh(), len, area, angle);
 
             DA.SetData(0, new GH_Mesh(cleaned));
         }

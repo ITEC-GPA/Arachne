@@ -57,6 +57,9 @@ Beam Forces e Support Reactions leggono pre-carichi e reazioni dal modello; Chec
 
 - `InventoryChecks`: GUID, icone e confronto di ingressi e uscite con i sorgenti FeMM;
 - `FormFindingChecks`: form finding su casi analitici in N/mm, unione dei rami, carichi sulle aste, reazioni, peso proprio in N/mm e in SI, pressione, modelli lontani dall'origine, Check Model, filtri, serializzazione;
-- `PatterningChecks` e `NetworkChecks`: sviluppo dei pannelli, Panel Distortion, ARAP e reti di cavi.
+- `PatterningChecks`: sviluppo e compensazione dei pannelli, ARAP, decompensazione, strumenti sulle mesh e Panel Distortion, con valori attesi (lati, aree, distanze); una prova unica verifica che nessun componente modifichi la mesh in ingresso;
+- `NetworkChecks`: reti di cavi rettangolari, radiali e composte, con il numero di cavi, di pezzi di perimetro e di punti interni, con e senza tolleranza di corrispondenza.
+
+Il motore ARAP ha una suite propria, `tests/Arachne.Arap.Tests` (54 controlli), con il confronto facoltativo con la DLL nativa della prima versione.
 
 Gli esempi in `examples/` vengono generati dallo stesso strumento, riaperti e ricalcolati.
