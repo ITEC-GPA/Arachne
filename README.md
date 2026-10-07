@@ -91,7 +91,9 @@ Lo script compila tutti i progetti in `bin/<progetto>/<configurazione>/<framewor
 - form finding su casi analitici;
 - patterning e reti.
 
-Infine raccoglie il plug-in in `artifacts/<configurazione>/Arachne`: copiare l'intera cartella nelle Libraries di Grasshopper. Se Rhino carica il plug-in dalla cartella `bin`, chiuderlo prima di compilare in Release. In alternativa usare `-Configuration Debug`.
+Infine raccoglie il plug-in in `artifacts/<configurazione>/Arachne`: copiare l'intera cartella nelle Libraries di Grasshopper.
+
+Se Grasshopper carica il plug-in dalla cartella `bin`, chiudere Rhino prima di compilare e compilare solo in Release. Grasshopper cerca i `.gha` anche nelle sottocartelle, quindi una build Debug aggiungerebbe una seconda copia del plug-in.
 
 Percorsi predefiniti, modificabili con proprietà MSBuild o parametri dello script:
 
