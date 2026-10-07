@@ -6,7 +6,7 @@ I componenti di Arachne sono quelli di FeMM, con **gli stessi ingressi e le stes
 
 - le correzioni dei bug elencate più sotto;
 - gli ingressi tolti di proposito (definizioni SAP e carichi non gestiti dal form finding, vedi Adattamenti), elencati anche nel banco di prova;
-- gli adattamenti alla TensileLib 2.1 (repository `../tensilelib`), al motore ARAP C# e all'assenza del plug-in Rhino di FeMM;
+- gli adattamenti alla TensileLib 2.2 (repository `../tensilelib`), al motore ARAP C# e all'assenza del plug-in Rhino di FeMM;
 - quattro componenti nuovi di Arachne, elencati a parte.
 
 Si lavora in N e mm: Build Model ha come predefinito Nmm (come FeMM), le sezioni sono nelle unità del modello e la gravità del Form Find, in N/mm, vale 9806.65 mm/s².
@@ -20,7 +20,7 @@ I GUID sono nuovi, così FeMM e Arachne possono essere caricati insieme. Le defi
 | FeMM.Common: modelli (Models), helper e geometria usati dal form finding | `src/Arachne.Common` |
 | FeMM.Grasshopper: data type, attributi grafici, componenti | `src/Arachne.Grasshopper` |
 | MaffeisIGL (ARAP nativo, libigl) | `src/Arachne.Arap`, motore C# riscritto |
-| TensileLib 2.0.6 (NuGet, non più disponibile) | TensileLib 2.1.0.0 da `../tensilelib` |
+| TensileLib 2.0.6 (NuGet, non più disponibile) | TensileLib 2.2.0.0 da `../tensilelib` |
 
 Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino, plug-in FeMM.Rhino e risultati delle analisi FEM (resta solo il modello delle reazioni, `NodeReactResultModel`, usato dal form finding). Di conseguenza:
 
@@ -129,10 +129,10 @@ Form finding:
 11. Carichi distribuiti trapezi: la risultante era applicata a metà campata invece che nel baricentro.
 12. Carichi "Projected": erano trattati come non proiettati. Le componenti in un sistema di riferimento diverso da Global erano lette come globali.
 13. Schemi di carico distribuito non gestiti, momenti e assi locali: erano ignorati in silenzio. Ora i componenti di carico creano solo i carichi che il form finding gestisce (vedi Adattamenti).
-14. Carichi sulle aste: la TensileLib li ripartisce sui nodi a ogni iterazione dividendo la distanza misurata sulla geometria iniziale per la lunghezza corrente; un'asta che si allunga spostava il carico (su un caso di prova il nodo riceveva quasi tre volte il carico). Ora i carichi diventano forze sui nodi, ripartite con la regola della leva sulla geometria di ingresso.
-15. Pressione: la TensileLib la applica secondo il verso di percorrenza delle piastre generate, che dipende dall'ordine delle aste. Invertendo l'ordine la pressione cambiava verso. Ora le piastre di ogni parte sono orientate in modo che una pressione positiva agisca secondo la normale del piano Plane del Form Find (+Z con il piano predefinito).
-16. Convergenza: la TensileLib misura l'errore rispetto alla norma delle coordinate, quindi lontano dall'origine (coordinate di cantiere in mm) le iterazioni si fermavano troppo presto. Ora il modello è risolto centrato nell'origine e poi riportato al suo posto; i nodi vincolati tornano esattamente alle coordinate di ingresso.
-17. Generazione delle piastre: se la prima asta non stava su una maglia chiusa (uno strallo, un'antenna, un cavo che collega due reti) la TensileLib non generava nessuna piastra, quindi né mesh né pressione. Ora queste aste sono escluse dalla generazione e ogni parte della rete è generata per conto suo.
+14. Carichi sulle aste: la TensileLib li ripartiva sui nodi a ogni iterazione dividendo la distanza misurata sulla geometria iniziale per la lunghezza corrente; un'asta che si allunga spostava il carico (su un caso di prova il nodo riceveva quasi tre volte il carico). Corretto in TensileLib 2.2: il carico resta alla stessa frazione della lunghezza.
+15. Pressione: la TensileLib la applicava secondo il verso di percorrenza delle piastre generate, che dipendeva dall'ordine delle aste; invertendo l'ordine la pressione cambiava verso. Corretto in TensileLib 2.2: le piastre di ogni parte sono orientate in modo che una pressione positiva agisca secondo la normale del piano Plane del Form Find (+Z con il piano predefinito), come la 2.0.5.3, che la spingeva sempre verso +Z.
+16. Convergenza e precisione: tolleranze relative alle coordinate davano, lontano dall'origine (coordinate di cantiere in mm), iterazioni interrotte troppo presto ed errori crescenti con la distanza. Corretto in TensileLib 2.2: il modello è risolto centrato nell'origine e poi riportato al suo posto; i nodi vincolati tornano esattamente alle coordinate di ingresso.
+17. Generazione delle piastre: se la prima asta non stava su una maglia chiusa (uno strallo, un'antenna, un cavo che collega due reti) la TensileLib non generava nessuna piastra, quindi né mesh né pressione, e generava solo la prima rete di un modello con reti separate. Corretto in TensileLib 2.2, insieme alle facce di 7-9 aste, al contorno delle reti piccole e ai tempi (10.000 nodi in meno di un secondo).
 
 Modello:
 
@@ -156,7 +156,7 @@ Patterning e strumenti:
 27. Decompensation: interpolava sul parametro della polilinea invece che sulla lunghezza e modificava i descrittori condivisi.
 28. Remesh: il bordo semplificato perdeva un angolo quando questo era il primo vertice della polilinea; un pannello rettangolare diventava un triangolo. Inoltre il componente non si poteva creare senza un documento Rhino aperto.
 29. Mesh Remap, DecompensationDescriptorExt, Deform ARAP, Cable Net, Radial Cable Net e Compound Net: con dati incompatibili proseguivano e fallivano più avanti. Erano già stati corretti nella prima versione di Arachne; le correzioni sono mantenute.
-30. Flattening: con Tolerance,s = 0, il valore predefinito di FeMM, il solutore ai minimi quadrati può fermarsi solo per errori di arrotondamento, che la TensileLib tratta come mancata convergenza: ogni pannello curvo finiva con "Solver not converged". Ora 0 vuol dire tolleranza automatica (1e-6).
+30. Flattening: con Tolerance,s = 0, il valore predefinito di FeMM, il solutore ai minimi quadrati può fermarsi solo per errori di arrotondamento, che la TensileLib trattava come mancata convergenza: ogni pannello curvo finiva con "Solver not converged". Corretto in TensileLib 2.2, che accetta il punto migliore trovato; la tolleranza mantiene il significato di FeMM.
 31. Node Filter e Plate Filter: l'ingresso Units non aveva un valore predefinito (Beam Filter sì, 2), quindi il filtro non faceva nulla finché Units non veniva collegato. Ora il predefinito è 2 (Nmm). L'ingresso resta per compatibilità: la tolleranza viene dalle impostazioni di Arachne.
 
 Comportamento invariato rispetto a FeMM: Form Find (Linear e Non-Linear), Flattening e Compensation pubblicano il risultato anche quando raggiungono il limite di iterazioni, con un avviso. Linear step by step, invece, termina con errore e senza risultato. Node, Beam e Plate Filter cercano per ID solo gli identificativi assegnati con Element Id, non la numerazione automatica.
@@ -164,8 +164,9 @@ Comportamento invariato rispetto a FeMM: Form Find (Linear e Non-Linear), Flatte
 ## Adattamenti
 
 - Ingressi tolti di proposito: Build Model non ha più Load Combinations, Named sets e Staged constructions; Beam Distributed Load non ha più P1 e P2. Beam Distributed Load accetta solo i carichi uniformi e trapezi; senza Coordinate System il carico è globale (in FeMM era nel sistema locale dell'asta, che il form finding non gestisce). Lo stesso vale per Beam Point Load.
-- TensileLib 2.1: i solutori accettano una sola tolleranza algebrica. L'ingresso ToleranceB,s resta, ma viene ignorato con un avviso. Non esiste più l'opzione CreateMesh del motore.
-- Senza piastre in ingresso, le piastre vengono generate dalle aste per ogni parte della rete (bug 15 e 17).
+- TensileLib 2.2: i solutori accettano una sola tolleranza algebrica. L'ingresso ToleranceB,s resta, ma viene ignorato con un avviso. Non esiste più l'opzione CreateMesh del motore: senza piastre in ingresso, le piastre vengono generate dalle aste per ogni parte della rete.
+- TensileLib 2.2 non modifica più le densità obiettivo delle aste (la densità trovata è `Beam.ForceDensity`): Linear step by step riparte a ogni passo dalle densità appena trovate, come prima.
+- Non-Linear: i pesi di Keep Position e delle Force Density ora hanno effetto. Nella TensileLib precedente il calcolo ricadeva quasi sempre su un metodo che li ignorava (vedere il registro di TensileLib). I pesi di Fixed Length e Fixed Axial Force contano quando questi vincoli non si possono soddisfare tutti insieme.
 - Il Form Find salva nel modello le reazioni dei vincoli (`NodeReactResultModel` di FeMM, caso "Form Finding"), calcolate dall'equilibrio dei nodi vincolati con le forze delle aste e i carichi applicati dal solutore (carichi nodali e delle aste, peso proprio, pressione). Sono salvate solo se il calcolo converge e sono sostituite a ogni nuovo form finding. Le legge Support Reactions.
 - Flattening ARAP e Deform ARAP usano il motore C# di `Arachne.Arap`. Quando non converge, il motore non restituisce la mesh (FeMM la pubblicava con un avviso); il componente mostra il motivo.
 - Remesh compare nel pannello 09-Patterning, come in FeMM, anche se il sorgente era nella cartella Tools.

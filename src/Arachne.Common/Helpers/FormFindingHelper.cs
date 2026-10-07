@@ -83,17 +83,6 @@ namespace Arachne.Common.Helpers
 
             List<Curve> lineCurves = new List<Curve>(modelModel.Beams.Count);
             Dictionary<(int, int), Beam> nodesBeamsAss = new Dictionary<(int, int), Beam>();
-            // The beam loads become forces on the end nodes, shared with the lever rule on the
-            // input geometry. TensileLib shares them again at every iteration dividing the
-            // input distance by the current length, so a beam that changes length moved its load.
-            Dictionary<Node, Vector3d> beamLoadForces = new Dictionary<Node, Vector3d>();
-            void AddBeamLoad(Node from, Node to, Vector3d force, double ratio)
-            {
-                beamLoadForces.TryGetValue(from, out Vector3d f1);
-                beamLoadForces[from] = f1 + force * (1 - ratio);
-                beamLoadForces.TryGetValue(to, out Vector3d f2);
-                beamLoadForces[to] = f2 + force * ratio;
-            }
             for (int j = 0; j < modelModel.Beams.Count; j++)
             {
                 BeamModel beam = modelModel.Beams[j];
@@ -139,7 +128,8 @@ namespace Arachne.Common.Helpers
                     //double fd = gh_beam.Value.ForceDensities.Sum(i => i.Value);
                     //double fd = gh_beam.Value.Loads.Where(l => l.GetType() == typeof(ForceDensityModel)).Sum(i => i.Value);
 
-                    // Loads: each load is applied as its resultant force on the beam. The load
+                    // Loads: each load is applied as its resultant force on the beam, at its distance
+                    // from the first node (TensileLib keeps it as a fraction of the length). The load
                     // components create only forces, uniform or keystone, in a global coordinate system.
                     for (int i = 0; i < beam.Loads.Count; i++)
                     {
@@ -150,7 +140,7 @@ namespace Arachne.Common.Helpers
                         if (load is BeamPointLoadModel pl && pl.PointLoadType == BeamPointLoadModel.LoadType.Force)
                         {
                             Vector3d p = ToGlobal(pl.Value.CoordinateSystem, pl.Value.P);
-                            AddBeamLoad(node1, node2, p, pl.Value.A);
+                            ff_beam.AddLoad(p.X, p.Y, p.Z, v.Length * pl.Value.A);
                         }
                         else if (load is BeamDistributedLoadModel dl && dl.DistributedLoadType == BeamDistributedLoadModel.LoadType.Force)
                         {
@@ -209,7 +199,8 @@ namespace Arachne.Common.Helpers
                                 q *= Math.Sqrt(Math.Max(0, 1 - cos * cos));
                             }
 
-                            AddBeamLoad(node1, node2, direction * q, d / v.Length);
+                            Vector3d p = direction * q;
+                            ff_beam.AddLoad(p.X, p.Y, p.Z, d);
                         }
                     }
 
@@ -283,12 +274,6 @@ namespace Arachne.Common.Helpers
                 {
 
                 }
-            }
-
-            foreach (KeyValuePair<Node, Vector3d> share in beamLoadForces)
-            {
-                GPC.Geometry.Vector3d force = share.Key.NodeForce;
-                share.Key.SetForce(force.X + share.Value.X, force.Y + share.Value.Y, force.Z + share.Value.Z);
             }
 
             if (createMesh)
@@ -392,287 +377,11 @@ namespace Arachne.Common.Helpers
             ff_model.Pressure = pressure;
             ff_model.Gravity = gravity;
             ff_model.Plane = mmPlane;
-            // TensileLib 2.1 has no CreateMesh switch: without plates the solver always
-            // generates them from the beams, here done for every part of the net.
+            // TensileLib 2.2 has no CreateMesh switch: without plates the solver generates them
+            // from the beams, for every part of the net, oriented along the normal of the plane.
             if (ff_model.Plates.Count == 0)
-            {
-                GeneratePlatesForConnectedParts(ff_model);
-                OrientPlates(ff_model, plane == Plane.Unset ? Vector3d.ZAxis : plane.Normal);
-            }
+                ff_model.GeneratePlatesFromBeams();
             return ff_model;
-        }
-
-        /// <summary>
-        /// TensileLib pushes the pressure along the winding of the plates, and the winding of the
-        /// generated plates depends on the first beam of the walk. The plates of every part are
-        /// turned so that a positive pressure acts along the normal of the generation plane.
-        /// </summary>
-        private static void OrientPlates(Model model, Vector3d normal)
-        {
-            List<Plate> plates = model.Plates.ToList();
-            if (plates.Count == 0)
-                return;
-
-            // Parts: plates sharing a node
-            Dictionary<int, int> parent = new Dictionary<int, int>();
-            int Root(int id)
-            {
-                if (!parent.ContainsKey(id))
-                    parent.Add(id, id);
-                while (parent[id] != id)
-                {
-                    parent[id] = parent[parent[id]];
-                    id = parent[id];
-                }
-                return id;
-            }
-            foreach (Plate plate in plates)
-            {
-                Node[] nodes = PlateNodes(plate);
-                for (int i = 1; i < nodes.Length; i++)
-                {
-                    int a = Root(nodes[0].Id);
-                    int b = Root(nodes[i].Id);
-                    if (a != b)
-                        parent[a] = b;
-                }
-            }
-
-            Dictionary<int, double> flux = new Dictionary<int, double>();
-            foreach (Plate plate in plates)
-            {
-                int root = Root(plate.Node1.Id);
-                flux.TryGetValue(root, out double value);
-                flux[root] = value + AreaVector(plate) * normal;
-            }
-
-            List<Plate> oriented = new List<Plate>(plates.Count);
-            foreach (Plate plate in plates)
-            {
-                if (flux[Root(plate.Node1.Id)] >= 0)
-                {
-                    oriented.Add(plate);
-                    continue;
-                }
-                // The first node is kept, so a quad is still split on the same diagonal
-                Node[] nodes = PlateNodes(plate);
-                Node[] reversed = new[] { nodes[0] }.Concat(nodes.Skip(1).Reverse()).ToArray();
-                Beam[] beams = plate.Beams.Reverse().ToArray();
-                oriented.Add(new Plate(reversed, beams, model.Plane) { Id = plate.Id });
-            }
-            model.Plates.Clear();
-            model.Plates.AddRange(oriented);
-        }
-
-        private static Node[] PlateNodes(Plate plate)
-        {
-            return plate.PlateType == Plate.PlateTypes.Quad4
-                ? new[] { plate.Node1, plate.Node2, plate.Node3, plate.Node4 }
-                : new[] { plate.Node1, plate.Node2, plate.Node3 };
-        }
-
-        // Twice the area vector, with the split on the Node1-Node3 diagonal used for the pressure
-        private static Vector3d AreaVector(Plate plate)
-        {
-            Point3d p1 = new Point3d(plate.Node1.X, plate.Node1.Y, plate.Node1.Z);
-            Point3d p2 = new Point3d(plate.Node2.X, plate.Node2.Y, plate.Node2.Z);
-            Point3d p3 = new Point3d(plate.Node3.X, plate.Node3.Y, plate.Node3.Z);
-            Vector3d area = Vector3d.CrossProduct(p2 - p1, p3 - p1);
-            if (plate.PlateType == Plate.PlateTypes.Quad4)
-            {
-                Point3d p4 = new Point3d(plate.Node4.X, plate.Node4.Y, plate.Node4.Z);
-                area += Vector3d.CrossProduct(p3 - p1, p4 - p1);
-            }
-            return area;
-        }
-
-        /// <summary>
-        /// TensileLib walks the faces from the first beam only: no plate is generated for the
-        /// other disconnected nets, nor at all when the first beam is on no closed mesh (a mast,
-        /// a backstay). The beams on no cycle are left out and every remaining part of the net
-        /// is generated on its own.
-        /// </summary>
-        private static void GeneratePlatesForConnectedParts(Model model)
-        {
-            List<Node> nodes = model.Nodes.ToList();
-            List<Beam> beams = model.Beams.Where(b => b.Node1.Id != b.Node2.Id).ToList();
-            Dictionary<int, int> index = new Dictionary<int, int>(nodes.Count);
-            for (int i = 0; i < nodes.Count; i++)
-                index.Add(nodes[i].Id, i);
-            List<(int a, int b)> edges = beams.Select(b => (index[b.Node1.Id], index[b.Node2.Id])).ToList();
-            HashSet<int> bridges = Bridges(nodes.Count, edges);
-
-            // Parts of the net once the bridges are removed
-            List<int>[] adjacency = new List<int>[nodes.Count];
-            for (int i = 0; i < nodes.Count; i++)
-                adjacency[i] = new List<int>();
-            for (int e = 0; e < edges.Count; e++)
-            {
-                if (bridges.Contains(e))
-                    continue;
-                adjacency[edges[e].a].Add(e);
-                adjacency[edges[e].b].Add(e);
-            }
-            int[] part = Enumerable.Repeat(-1, nodes.Count).ToArray();
-            int parts = 0;
-            for (int start = 0; start < nodes.Count; start++)
-            {
-                if (part[start] >= 0 || adjacency[start].Count == 0)
-                    continue;
-                Queue<int> queue = new Queue<int>();
-                queue.Enqueue(start);
-                part[start] = parts;
-                while (queue.Count > 0)
-                {
-                    int n = queue.Dequeue();
-                    foreach (int e in adjacency[n])
-                    {
-                        int next = edges[e].a == n ? edges[e].b : edges[e].a;
-                        if (part[next] < 0)
-                        {
-                            part[next] = parts;
-                            queue.Enqueue(next);
-                        }
-                    }
-                }
-                parts++;
-            }
-
-            if (parts == 1 && bridges.Count == 0)
-            {
-                model.GeneratePlatesFromBeams();
-                return;
-            }
-
-            Dictionary<(int, int), Beam> beamsByNodes = new Dictionary<(int, int), Beam>();
-            for (int e = 0; e < edges.Count; e++)
-            {
-                if (!beamsByNodes.ContainsKey((edges[e].a, edges[e].b))) beamsByNodes.Add((edges[e].a, edges[e].b), beams[e]);
-                if (!beamsByNodes.ContainsKey((edges[e].b, edges[e].a))) beamsByNodes.Add((edges[e].b, edges[e].a), beams[e]);
-            }
-            for (int p = 0; p < parts; p++)
-            {
-                Model local = new Model { Plane = model.Plane };
-                Dictionary<int, int> localIds = new Dictionary<int, int>();
-                Dictionary<int, int> globalIndexes = new Dictionary<int, int>();
-                for (int i = 0; i < nodes.Count; i++)
-                {
-                    if (part[i] != p)
-                        continue;
-                    int localId = local.AddNewNode(nodes[i].X, nodes[i].Y, nodes[i].Z);
-                    localIds.Add(i, localId);
-                    globalIndexes.Add(localId, i);
-                }
-                for (int e = 0; e < edges.Count; e++)
-                    if (!bridges.Contains(e) && part[edges[e].a] == p)
-                        local.AddNewBeam(localIds[edges[e].a], localIds[edges[e].b], model.Plane);
-                if (local.Beams.Count < 3)
-                    continue;
-
-                local.GeneratePlatesFromBeams();
-
-                foreach (Plate plate in local.Plates)
-                {
-                    List<int> ids = PlateNodes(plate).Select(n => globalIndexes[n.Id]).ToList();
-                    List<Beam> boundary = new List<Beam>();
-                    for (int i = 0; i < ids.Count; i++)
-                        if (beamsByNodes.TryGetValue((ids[i], ids[(i + 1) % ids.Count]), out Beam beam))
-                            boundary.Add(beam);
-                    model.Plates.Add(new Plate(ids.Select(i => nodes[i]).ToArray(), boundary.ToArray(), model.Plane)
-                    {
-                        Id = model.Plates.Count + 1,
-                    });
-                }
-            }
-        }
-
-        /// <summary>
-        /// The edges on no cycle (Tarjan), as indexes of <paramref name="edges"/>.
-        /// </summary>
-        private static HashSet<int> Bridges(int count, List<(int a, int b)> edges)
-        {
-            List<(int to, int edge)>[] adjacency = new List<(int, int)>[count];
-            for (int i = 0; i < count; i++)
-                adjacency[i] = new List<(int, int)>();
-            for (int e = 0; e < edges.Count; e++)
-            {
-                adjacency[edges[e].a].Add((edges[e].b, e));
-                adjacency[edges[e].b].Add((edges[e].a, e));
-            }
-
-            HashSet<int> bridges = new HashSet<int>();
-            int[] discovery = new int[count];
-            int[] low = new int[count];
-            int time = 0;
-            // Iterative depth first search: node, edge from the parent, next adjacency to visit
-            Stack<(int node, int parentEdge, int next)> stack = new Stack<(int, int, int)>();
-            for (int start = 0; start < count; start++)
-            {
-                if (discovery[start] != 0)
-                    continue;
-                discovery[start] = low[start] = ++time;
-                stack.Push((start, -1, 0));
-                while (stack.Count > 0)
-                {
-                    (int node, int parentEdge, int next) = stack.Pop();
-                    if (next < adjacency[node].Count)
-                    {
-                        stack.Push((node, parentEdge, next + 1));
-                        (int to, int edge) = adjacency[node][next];
-                        if (edge == parentEdge)
-                            continue;
-                        if (discovery[to] == 0)
-                        {
-                            discovery[to] = low[to] = ++time;
-                            stack.Push((to, edge, 0));
-                        }
-                        else
-                            low[node] = Math.Min(low[node], discovery[to]);
-                    }
-                    else if (parentEdge >= 0)
-                    {
-                        int parentNode = edges[parentEdge].a == node ? edges[parentEdge].b : edges[parentEdge].a;
-                        low[parentNode] = Math.Min(low[parentNode], low[node]);
-                        if (low[node] > discovery[parentNode])
-                            bridges.Add(parentEdge);
-                    }
-                }
-            }
-            return bridges;
-        }
-
-        /// <summary>
-        /// TensileLib measures the convergence relative to the norm of the node coordinates, so
-        /// far from the origin (site coordinates in mm) the iterations stop too early. The model
-        /// is solved with the centre of its bounding box on the origin and then moved back.
-        /// </summary>
-        public sealed class OriginShift
-        {
-            private readonly List<(Node node, Point3d input)> _input;
-            private readonly Vector3d _offset;
-
-            /// <summary>
-            /// Moves the model to the origin.
-            /// </summary>
-            public OriginShift(Model model)
-            {
-                _input = model.Nodes.Select(n => (n, new Point3d(n.X, n.Y, n.Z))).ToList();
-                _offset = _input.Count > 0 ? new Vector3d(new BoundingBox(_input.Select(i => i.input)).Center) : Vector3d.Zero;
-                foreach ((Node node, Point3d input) in _input)
-                    node.Position = new GPC.Geometry.Point3d(input.X - _offset.X, input.Y - _offset.Y, input.Z - _offset.Z);
-            }
-
-            /// <summary>
-            /// Moves the solved model back. The restrained coordinates get exactly their input value.
-            /// </summary>
-            public void Restore()
-            {
-                foreach ((Node node, Point3d input) in _input)
-                    node.Position = new GPC.Geometry.Point3d(
-                        node.Tx ? input.X : node.X + _offset.X,
-                        node.Ty ? input.Y : node.Y + _offset.Y,
-                        node.Tz ? input.Z : node.Z + _offset.Z);
-            }
         }
 
         /// <summary>

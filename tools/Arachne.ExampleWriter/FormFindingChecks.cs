@@ -319,11 +319,12 @@ internal static class FormFindingChecks
                 c.Solve();
                 Check(!Canvas.HasErrors(keystone) && !Canvas.HasErrors(projected), Canvas.Messages(keystone) + Canvas.Messages(projected));
                 var ff = FormFindingHelper.AssemblyModel(Canvas.Single<GH_Model>(build).Value, Plane.WorldXY, 0, 0, 0, true, out _);
-                double Fz(Point3d point) => ff.Nodes.Single(n => new Point3d(n.X, n.Y, n.Z).DistanceTo(point) < 1e-9).NodeForce.Z;
-                // Keystone 1 -> 3 on 1 mm: resultant 2 at 7/12 of the span, shared with the lever rule
-                Check(Math.Abs(Fz(a) + 2 * 5.0 / 12) < 1e-9 && Math.Abs(Fz(m) + 2 * 7.0 / 12) < 1e-9, $"Keystone shares {Fz(a)}, {Fz(m)}");
+                var k = ff.Beams.Single(x => Math.Abs(x.Length - 1) < 1e-9);
+                var p = ff.Beams.Single(x => Math.Abs(x.Length - Math.Sqrt(2)) < 1e-9);
+                // Keystone 1 -> 3 on 1 mm: resultant 2 at 7/12 of the span
+                Check(Math.Abs(k.Load.Z + 2) < 1e-9 && Math.Abs(k.LoadPos - 7.0 / 12) < 1e-9, $"Keystone {k.Load.Z} at {k.LoadPos}");
                 // Uniform 1 on the horizontal projection of a beam at 45 degrees: resultant 1 at the middle
-                Check(Math.Abs(Fz(b2) + 0.5) < 1e-9 && Math.Abs(Fz(new Point3d(3, 0, 1)) + 0.5) < 1e-9, $"Projected shares {Fz(b2)}, {Fz(new Point3d(3, 0, 1))}");
+                Check(Math.Abs(p.Load.Z + 1) < 1e-9 && Math.Abs(p.LoadPos - Math.Sqrt(2) / 2) < 1e-9, $"Projected {p.Load.Z} at {p.LoadPos}");
             }
         });
 

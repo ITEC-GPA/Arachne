@@ -6,7 +6,7 @@ flowchart TD
   GH --> ARAP[Arachne.Arap · motore ARAP C#]
   GH --> RHINO[RhinoCommon e Grasshopper]
   COMMON --> RHINO
-  COMMON --> TL[TensileLib 2.1 · form finding e flattening]
+  COMMON --> TL[TensileLib 2.2 · form finding e flattening]
   COMMON --> GPC[GPCGeometry e GPCUtilities]
   GH --> TL
   ARAP --> GPC
@@ -17,7 +17,7 @@ flowchart TD
 Porting di FeMM.Common limitato a ciò che serve al form finding:
 
 - `Models`: modello FEM (`ModelModel`, nodi, aste, piastre), attributi (vincoli, pesi, ID), carichi (nodali, sulle aste, pre-carico), attributi di form finding (`ForceDensityModel`, `FixedLengthModel`, `FixedAxialForceModel`), casi di carico, reazioni (`NodeReactResultModel`), proprietà, sezioni e materiali.
-- `Helpers/FormFindingHelper`: converte il modello FEM nel modello TensileLib (nodi, aste, piastre, carichi, obiettivi), calcola le reazioni e genera mesh da reti di curve. Contiene anche le correzioni ai difetti della TensileLib: carichi delle aste come forze nodali, piastre generate per parti e orientate, modello risolto centrato nell'origine (`OriginShift`).
+- `Helpers/FormFindingHelper`: converte il modello FEM nel modello TensileLib (nodi, aste, piastre, carichi, obiettivi), calcola le reazioni e genera mesh da reti di curve.
 - `Helpers/ModelChecks`: controlli di Check Model (vincoli per parte e direzione, aste senza forza, valori non validi).
 - `Helpers/ModelHelper`: conversioni di unità tramite GPCUtilities (ex Maffeis.Utilities).
 - `Geometry/Shapes`: forme generiche delle sezioni, su GPCGeometry (ex Maffeis.Geometry).
@@ -41,7 +41,7 @@ Form Find costruisce a ogni esecuzione il modello TensileLib (`FormFindingHelper
 - **Linear step by step**: ciclo esterno che corregge le densità fino a lunghezze e forze fisse;
 - **Non-Linear**: obiettivi pesati.
 
-Prima del calcolo il modello TensileLib viene spostato con il centro nell'origine e dopo riportato al suo posto. Il risultato è una copia del modello in ingresso con:
+TensileLib risolve il modello con il centro nell'origine e poi lo riporta al suo posto. Il risultato è una copia del modello in ingresso con:
 
 - le posizioni calcolate;
 - il pre-carico di trazione sulle aste con Force Density, Fixed Axial Force o Fixed Length;

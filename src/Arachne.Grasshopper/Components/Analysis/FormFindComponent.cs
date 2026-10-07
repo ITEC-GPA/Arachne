@@ -175,9 +175,6 @@ namespace Arachne.Grasshopper.Components.Analysis
                 foreach (string warning in warnings)
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, warning);
 
-                // Solved around the origin: TensileLib's convergence depends on the distance from it
-                var shift = new Common.Helpers.FormFindingHelper.OriginShift(ff_model);
-
                 // The reactions are stored only for an equilibrium configuration
                 bool converged = true;
                 if (solverType == 1)
@@ -203,6 +200,11 @@ namespace Arachne.Grasshopper.Components.Analysis
                         count++;
 
                         ret = solver.SolveForceDensity();
+
+                        // The next steps go on from the force densities just found, as TensileLib did
+                        // before 2.2: now the solver keeps them apart from the targets
+                        foreach (Beam beam in ff_model.Beams)
+                            beam.TargetForceDensity = beam.ForceDensity;
 
                         for (int i = 0; i < fixedLengthBeam.Count; i++)
                         {
@@ -258,7 +260,6 @@ namespace Arachne.Grasshopper.Components.Analysis
                         converged = false;
                     }
                 }
-                shift.Restore();
 
                 // Create a deep copy of the model where to add the results
                 GH_Model result = (GH_Model)model.Duplicate();

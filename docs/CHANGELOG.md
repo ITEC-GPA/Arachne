@@ -1,5 +1,18 @@
 # Registro delle modifiche
 
+## 0.3.0-rc.3 - 7 ottobre 2026: TensileLib 2.2
+
+- **TensileLib 2.2.0.0** (`../tensilelib`, branch `claude/tensilelib-fixes`): le correzioni che Arachne applicava nel FormFindingHelper sono ora nella libreria, e sono stati tolti gli aggiramenti lato Arachne:
+  - carichi sulle aste fermi quando l'asta si allunga;
+  - pressione orientata secondo il piano;
+  - modello risolto centrato nell'origine;
+  - piastre generate per ogni parte della rete.
+  
+  Corretti inoltre: pesi del Non-Linear, membrane con cavi lunghi, direzioni delle curvature, pressioni azzerate dal Linear al limite di iterazioni, codice 7 dei solutori algebrici e tempi di generazione piastre e del Non-Linear. Dettagli nel registro di TensileLib.
+- **Flattening:** Tolerance,s = 0 riprende il significato di FeMM; il caso dei pannelli curvi è risolto in TensileLib.
+- **Linear step by step:** riparte a ogni passo dalle densità appena trovate, come prima: TensileLib 2.2 non le scrive più negli obiettivi delle aste.
+- **Banco di prova:** 140 controlli in Rhino/Grasshopper, tutti superati con la nuova TensileLib.
+
 ## 0.3.0-rc.2 - 6 ottobre 2026: N/mm, snellimento, risultati
 
 Dettagli e GUID in [PORTING.md](PORTING.md).

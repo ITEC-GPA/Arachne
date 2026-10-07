@@ -8,17 +8,11 @@ namespace Arachne.Grasshopper.Services
 {
     internal static class FlatteningService
     {
-        internal const double AutomaticSolverTolerance = 1e-6;
-
         internal static void GetFlattenedMesh(Mesh mesh, double borderWeigth, int max_iter, double tol, double epsS, int maxIterSolver, out Solver.ResultCodes ret, out Mesh flat)
         {
             if(mesh==null || !mesh.IsValid || mesh.Faces.Count==0)throw new ArgumentException("A valid non-empty mesh is required.");
             Arachne.Common.Helpers.Validation.Positive(borderWeigth,"Border weight");Arachne.Common.Helpers.Validation.Positive(max_iter,"Iterations");
             Arachne.Common.Helpers.Validation.Positive(tol,"Tolerance");Arachne.Common.Helpers.Validation.NonNegative(maxIterSolver,"Algebraic iterations");Arachne.Common.Helpers.Validation.NonNegative(epsS,"Algebraic tolerance");
-            // With a zero tolerance the least squares solver can only stop on rounding errors, which
-            // TensileLib reports as not converged: every curved panel failed with the FeMM default.
-            if (epsS == 0)
-                epsS = AutomaticSolverTolerance;
             // The input mesh is not modified
             mesh = mesh.DuplicateMesh();
             mesh.Faces.ConvertQuadsToTriangles();
