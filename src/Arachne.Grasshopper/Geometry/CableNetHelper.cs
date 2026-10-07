@@ -11,8 +11,8 @@ namespace Arachne.Grasshopper.Geometry
 	{
         private static void ValidateInputs(List<Curve> fixedEdges, List<Curve> freeEdges, List<Curve> perimeter, double tolerance, double matching)
         {
-            Arachne.Core.Validation.Positive(tolerance, "Tolerance");
-            Arachne.Core.Validation.NonNegative(matching, "Matching tolerance");
+            Arachne.Common.Helpers.Validation.Positive(tolerance, "Tolerance");
+            Arachne.Common.Helpers.Validation.NonNegative(matching, "Matching tolerance");
             if (fixedEdges == null || freeEdges == null || perimeter == null || perimeter.Count == 0)
                 throw new ArgumentException("A closed perimeter is required.");
             if (fixedEdges.Count + freeEdges.Count == 0) throw new ArgumentException("Boundary curves are required.");
@@ -746,7 +746,7 @@ namespace Arachne.Grasshopper.Geometry
 			out List<Point3d> restrain, out List<Point3d> notRestrain, out List<Point3d> internalPoint, double tolerance, double matchingTol)
 		{
             ValidateInputs(fixBorders, freeCables, perimeter, tolerance, matchingTol);
-            Arachne.Core.Validation.Positive(warpStep, "Warp step"); Arachne.Core.Validation.Positive(weftStep, "Weft step");
+            Arachne.Common.Helpers.Validation.Positive(warpStep, "Warp step"); Arachne.Common.Helpers.Validation.Positive(weftStep, "Weft step");
             if (!refPlane.IsValid) throw new ArgumentException("Invalid plane.");
             fixBorders = fixBorders.ConvertAll(c => c.DuplicateCurve()); freeCables = freeCables.ConvertAll(c => c.DuplicateCurve());
 			if (matchingTol > 0)
@@ -1039,8 +1039,11 @@ namespace Arachne.Grasshopper.Geometry
 				}
 			}
 
-			// Match internal points
-			if (matchingTol > 0)
+			// Coincident projected grid/border points must always use the real 3D border.
+            // Otherwise equal sorting keys can leave an outside grid point between
+            // a boundary intersection and its first interior neighbour, losing a cable.
+            double gridMatchTolerance = Math.Max(tolerance, matchingTol);
+			if (gridMatchTolerance > 0)
 			{
 				// Match warp grid points
 				for (int i = 0; i < warpNum; ++i)
@@ -1049,7 +1052,7 @@ namespace Arachne.Grasshopper.Geometry
 					{
 						for (int t = 0; t < warpIntersections[i].Count; ++t)
 						{
-							if (Math.Abs(warpIntersections[i][t].local.Y - gridPts[i, j].local.Y) < matchingTol)
+							if (Math.Abs(warpIntersections[i][t].local.Y - gridPts[i, j].local.Y) <= gridMatchTolerance)
 							{
 								gridPts[i, j] = warpIntersections[i][t];
 								break;
@@ -1065,7 +1068,7 @@ namespace Arachne.Grasshopper.Geometry
 					{
 						for (int t = 0; t < weftIntersections[j].Count; ++t)
 						{
-							if (Math.Abs(weftIntersections[j][t].local.X - gridPts[i, j].local.X) < matchingTol)
+							if (Math.Abs(weftIntersections[j][t].local.X - gridPts[i, j].local.X) <= gridMatchTolerance)
 							{
 								gridPts[i, j] = weftIntersections[j][t];
 								break;
@@ -1082,7 +1085,7 @@ namespace Arachne.Grasshopper.Geometry
 				{
 					if (gridPts[i, j].isins && !gridPts[i, j].isborder)
 					{
-						internalPoint.Add(gridPts[i, j].world);
+						if (!Contains(internalPoint, gridPts[i, j].world, tolerance)) internalPoint.Add(gridPts[i, j].world);
 					}
 				}
 			}
@@ -1480,7 +1483,7 @@ namespace Arachne.Grasshopper.Geometry
 		{
 			ValidateInputs(fixBorders, freeBorders, perimeter, tolerance, matchingTol);
 			if (radialSubd < 3) throw new ArgumentException("Radial divisions must be at least 3.");
-			Arachne.Core.Validation.Positive(radialStep, "Radial step");
+			Arachne.Common.Helpers.Validation.Positive(radialStep, "Radial step");
 			if (!refPlane.IsValid) throw new ArgumentException("Invalid plane.");
 			fixBorders = fixBorders.ConvertAll(c => c.DuplicateCurve());
 			freeBorders = freeBorders.ConvertAll(c => c.DuplicateCurve());
@@ -1587,7 +1590,6 @@ namespace Arachne.Grasshopper.Geometry
 						evPt.warpOrder = new Point3d(evPt.local.X, evPt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 						var vec = refPlane.ClosestPoint(refInters[n]) - refPlane.Origin;
 						var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-						if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 						evPt.weftOrder = currAngle;
 						evPt.isins = true;
 						evPt.isborder = true;
@@ -1632,7 +1634,6 @@ namespace Arachne.Grasshopper.Geometry
 					evPt.warpOrder = new Point3d(evPt.local.X, evPt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 					var vec = refPlane.ClosestPoint(refInters[n]) - refPlane.Origin;
 					var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-					if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 					evPt.weftOrder = currAngle;
 					evPt.isins = true;
 					evPt.isborder = true;
@@ -1668,7 +1669,6 @@ namespace Arachne.Grasshopper.Geometry
 						netpt.warpOrder = new Point3d(netpt.local.X, netpt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 						var vec = refPlane.ClosestPoint(netpt.world) - refPlane.Origin;
 						var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-						if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 						netpt.weftOrder = currAngle;
 						lineEndings.Add(netpt);
 					}
@@ -1680,7 +1680,6 @@ namespace Arachne.Grasshopper.Geometry
 						netpt.warpOrder = new Point3d(netpt.local.X, netpt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 						var vec = refPlane.ClosestPoint(netpt.world) - refPlane.Origin;
 						var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-						if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 						netpt.weftOrder = currAngle;
 						lineEndings.Add(netpt);
 					}
@@ -1707,7 +1706,6 @@ namespace Arachne.Grasshopper.Geometry
 						netpt.warpOrder = new Point3d(netpt.local.X, netpt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 						var vec = refPlane.ClosestPoint(netpt.world) - refPlane.Origin;
 						var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-						if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 						netpt.weftOrder = currAngle;
 						lineEndings.Add(netpt);
 					}
@@ -1719,7 +1717,6 @@ namespace Arachne.Grasshopper.Geometry
 						netpt.warpOrder = new Point3d(netpt.local.X, netpt.local.Y, 0).DistanceTo(new Point3d(0, 0, 0));
 						var vec = refPlane.ClosestPoint(netpt.world) - refPlane.Origin;
 						var currAngle = Vector3d.VectorAngle(refPlane.YAxis, vec, refPlane.Normal);
-						if (currAngle < Math.PI && Vector3d.CrossProduct(refPlane.YAxis, vec) * refPlane.Normal < Math.PI) { currAngle = Math.PI * 2 - currAngle; }
 						netpt.weftOrder = currAngle;
 						lineEndings.Add(netpt);
 					}
@@ -1812,8 +1809,9 @@ namespace Arachne.Grasshopper.Geometry
 				}
 			}
 
-			// Match internal points
-			if (matchingTol > 0)
+			// Resolve coincident grid/border points even when optional snapping is off.
+            double gridMatchTolerance = Math.Max(tolerance, matchingTol);
+			if (gridMatchTolerance > 0)
 			{
 				// Match warp grid points
 				for (int i = 0; i < warpNum; ++i)
@@ -1824,7 +1822,7 @@ namespace Arachne.Grasshopper.Geometry
 						{
                             var pta = new Point3d(warpIntersections[i][t].local.X, warpIntersections[i][t].local.Y, 0.0);
                             var ptb = new Point3d(gridPts[i, j].local.X, gridPts[i, j].local.Y, 0.0);
-                            if (pta.DistanceTo(ptb) < matchingTol)
+                            if (pta.DistanceTo(ptb) <= gridMatchTolerance)
                             {
 								gridPts[i, j] = warpIntersections[i][t];
 								break;
@@ -1842,7 +1840,7 @@ namespace Arachne.Grasshopper.Geometry
 						{
 							var pta = new Point3d(weftIntersections[j][t].local.X, weftIntersections[j][t].local.Y, 0.0);
 							var ptb = new Point3d(gridPts[i, j].local.X, gridPts[i, j].local.Y, 0.0);
-                            if (pta.DistanceTo(ptb) < matchingTol)
+                            if (pta.DistanceTo(ptb) <= gridMatchTolerance)
 							{
 								gridPts[i, j] = weftIntersections[j][t];
 								break;
@@ -1859,7 +1857,7 @@ namespace Arachne.Grasshopper.Geometry
 				{
 					if (gridPts[i, j].isins && !gridPts[i, j].isborder)
 					{
-						internalPoint.Add(gridPts[i, j].world);
+						if (!Contains(internalPoint, gridPts[i, j].world, tolerance)) internalPoint.Add(gridPts[i, j].world);
 					}
 				}
 			}

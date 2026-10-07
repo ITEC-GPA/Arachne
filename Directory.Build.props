@@ -2,12 +2,20 @@
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
-    <Version>0.1.0</Version>
+    <Version>0.3.0-rc.4</Version>
+    <!-- The fourth number follows the release candidate, so the file version of the DLLs changes too -->
+    <AssemblyVersion>0.3.0.4</AssemblyVersion>
+    <FileVersion>0.3.0.4</FileVersion>
     <Authors>GPC</Authors>
     <ArachneRoot>$(MSBuildThisFileDirectory)</ArachneRoot>
+    <!-- Outputs in the repository's root bin, bin\<project>\<configuration>. The intermediates stay
+         in the obj folder of each project: Grasshopper loads every .gha it finds under bin, and obj
+         holds a copy of the plug-in. -->
+    <BaseOutputPath Condition="'$(MSBuildProjectExtension)' == '.csproj'">$(ArachneRoot)bin\$(MSBuildProjectName)\</BaseOutputPath>
     <GpcGeometryPath Condition="'$(GpcGeometryPath)' == ''">$(ArachneRoot)..\Geometry\GPCGeometry\bin\Release\netstandard2.0\GPCGeometry.dll</GpcGeometryPath>
     <GpcUtilitiesPath Condition="'$(GpcUtilitiesPath)' == ''">$(ArachneRoot)..\Utilities\GPCUtilities\bin\Release\netstandard2.0\GPCUtilities.dll</GpcUtilitiesPath>
-    <TensileLibPath Condition="'$(TensileLibPath)' == ''">$(ArachneRoot)lib\TensileLib.dll</TensileLibPath>
+    <TensileLibPath Condition="'$(TensileLibPath)' == ''">$(ArachneRoot)..\tensilelib\TensileLib\bin\Release\TensileLib.dll</TensileLibPath>
+    <NativeIglPath Condition="'$(NativeIglPath)' == ''">$(ArachneRoot)bin\Arachne.IGL\Release\Arachne.IGL.dll</NativeIglPath>
     <RhinoSystemDir Condition="'$(RhinoSystemDir)' == ''">C:\Program Files\Rhino 8\System</RhinoSystemDir>
     <GrasshopperDir Condition="'$(GrasshopperDir)' == ''">C:\Program Files\Rhino 8\Plug-ins\Grasshopper</GrasshopperDir>
     <NuGetAudit>false</NuGetAudit>

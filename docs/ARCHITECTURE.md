@@ -1,35 +1,65 @@
-# Architettura iniziale
-
-Arachne.Core usa GPCGeometry per punti, vettori e piani e GPCUtilities per le conversioni di unità. Non dipende da Rhino, Grasshopper, SAP o Straus. Arachne.Grasshopper converte la geometria Rhino nel modello Core e visualizza gli esiti. I generatori di reti rimangono nel progetto Grasshopper perché utilizzano intersezioni, curve, mesh e Brep di Rhino.
+# Architettura
 
 ```mermaid
 flowchart TD
-  GH[Arachne.Grasshopper · interfaccia e geometria Rhino] --> CORE[Arachne.Core · modello e controlli]
+  GH[Arachne.Grasshopper · componenti, data type, parametri] --> COMMON[Arachne.Common · modello FEM e FormFindingHelper]
+  GH --> ARAP[Arachne.Arap · motore ARAP C#]
   GH --> RHINO[RhinoCommon e Grasshopper]
-  CORE --> GPC[GPCGeometry e GPCUtilities]
-  CORE --> A[Adattatore TensileFormFindingSolver]
-  A -->|DLL presente alla compilazione| TL[TensileLib · calcolo numerico]
-  A -->|DLL assente| M[DependencyMissing · nessun risultato numerico]
+  COMMON --> RHINO
+  COMMON --> TL[TensileLib 2.2 · form finding e flattening]
+  COMMON --> GPC[GPCGeometry e GPCUtilities]
+  GH --> TL
+  ARAP --> GPC
 ```
 
-## Dati
+## Arachne.Common
 
-- `Cable`: estremi, obiettivo di ricerca di forma, vincoli opzionali, area, densità e forze concentrate.
-- `NodeCondition`: punto, vincoli traslazionali, forza e pesi XYZ non lineari.
-- `FormModel`: nodi unificati, cavi con indici di connessione e facce opzionali triangolari/quadrangolari.
-- `SolverSettings`: tipo di calcolo, limiti e tolleranze, pressione, gravità e piano.
-- `FormResult`: stato, messaggi, numero di chiamate al solutore, coordinate, forze, densità di forza e facce.
+Porting di FeMM.Common limitato a ciò che serve al form finding:
 
-ModelBuilder registra immediatamente ogni nodo nuovo nella tabella spaziale. La fusione usa una tolleranza geometrica; le condizioni devono corrispondere agli estremi dei cavi, quindi un punto appoggiato nel mezzo di un cavo richiede prima la suddivisione del cavo. Cavi duplicati o collassati e facce degeneri vengono rifiutati. I valori in ingresso vengono copiati, senza modificare i cavi a monte.
+- `Models`: modello FEM (`ModelModel`, nodi, aste, piastre), attributi (vincoli, pesi, ID), carichi (nodali, sulle aste, pre-carico), attributi di form finding (`ForceDensityModel`, `FixedLengthModel`, `FixedAxialForceModel`), casi di carico, reazioni (`NodeReactResultModel`), proprietà, sezioni e materiali.
+- `Helpers/FormFindingHelper`: converte il modello FEM nel modello TensileLib (nodi, aste, piastre, carichi, obiettivi), calcola le reazioni e genera mesh da reti di curve.
+- `Helpers/ModelChecks`: controlli di Check Model (vincoli per parte e direzione, aste senza forza, valori non validi).
+- `Helpers/ModelHelper`: conversioni di unità tramite GPCUtilities (ex Maffeis.Utilities).
+- `Geometry/Shapes`: forme generiche delle sezioni, su GPCGeometry (ex Maffeis.Geometry).
 
-## Calcolo
+I modelli sono serializzabili in binario (.NET Framework 4.8). Lo stesso formato serve per i dati interni dei parametri Grasshopper e per le copie profonde.
 
-L'adattatore ricostruisce un modello TensileLib a ogni richiesta. Per il modo Linear iterative usa un ciclo esterno limitato e aggiorna le densità rispetto a lunghezza e forza prescritte. Gli esiti non riconosciuti, le eccezioni e la mancata convergenza non producono geometria di risultato. I messaggi della preparazione vengono mantenuti.
+## Arachne.Grasshopper
 
-La cancellazione è verificata prima e dopo ogni chiamata a TensileLib: non interrompe una singola chiamata interna già avviata. La prima interfaccia Grasshopper esegue il calcolo in modo sincrono con un booleano Run; l'esecuzione asincrona con pulsante di annullamento è un'estensione futura.
+- `DataTypes`: wrapper Grasshopper dei modelli (`GH_Model`, `GH_Node`, `GH_Beam`, `GH_Plate`, proprietà, sezioni, materiali, casi di carico). Ogni nodo, asta e piastra ha un GUID. Build Model unisce gli elementi con lo stesso GUID e poi i nodi coincidenti entro la tolleranza delle impostazioni (`Settings`, 0.001).
+- `Components`: un file per componente, nelle cartelle FeMM (Analysis, Attributes, Definitions, ElementProperties, Loads, Materials, Models, Parameters, Patterning, Sections, Tools).
+- `ComponentAttributes`: pulsante Run di Form Find e immagini dei componenti di carico.
+- `Services`: algoritmi di Compensation, Decompensation e Flattening separati dai componenti.
+- `Geometry`: generatori Cable Net (CableNetHelper) e geodetiche su mesh.
+- `Helpers/ARAPHelper`: conversione tra mesh Rhino e motore `Arachne.Arap`.
 
-## Confini della prima versione
+## Form Find
 
-Il progetto contiene l'interfaccia dei tre modi osservati in FeMM, non una reimplementazione matematica di TensileLib. Finché la DLL manca, il ramo dell'adattatore numerico è escluso dalla compilazione. La generazione automatica delle facce da parte del motore, le convenzioni della pressione, i pesi e il comportamento di convergenza devono essere confrontati con la DLL reale.
+Form Find costruisce a ogni esecuzione il modello TensileLib (`FormFindingHelper.AssemblyModel`) e chiama il solutore scelto:
 
-Flattening, geodetiche, compensazione dei pannelli 2D, verifiche di resistenza e scambio con programmi FEM non appartengono a questo primo nucleo. La compensazione della lunghezza dei singoli cavi è invece inclusa in Cable Constraints.
+- **Linear**: densità di forza lineare;
+- **Linear step by step**: ciclo esterno che corregge le densità fino a lunghezze e forze fisse;
+- **Non-Linear**: obiettivi pesati.
+
+TensileLib risolve il modello con il centro nell'origine e poi lo riporta al suo posto. Il risultato è una copia del modello in ingresso con:
+
+- le posizioni calcolate;
+- il pre-carico di trazione sulle aste con Force Density, Fixed Axial Force o Fixed Length;
+- i carichi nodali della pressione nel caso di carico indicato;
+- le reazioni dei vincoli, se il calcolo converge;
+- la mesh delle piastre.
+
+Beam Forces e Support Reactions leggono pre-carichi e reazioni dal modello; Check Model usa `ModelChecks` prima del calcolo.
+
+## Verifiche
+
+`tools/Arachne.ExampleWriter` avvia Rhino 8 in-process senza finestra e usa i componenti in documenti Grasshopper reali:
+
+- `InventoryChecks`: GUID, icone e confronto di ingressi e uscite con i sorgenti FeMM;
+- `FormFindingChecks`: form finding su casi analitici in N/mm, unione dei rami, carichi sulle aste, reazioni, peso proprio in N/mm e in SI, pressione, modelli lontani dall'origine, Check Model, filtri, serializzazione;
+- `PatterningChecks`: sviluppo e compensazione dei pannelli, ARAP, decompensazione, strumenti sulle mesh e Panel Distortion, con valori attesi (lati, aree, distanze); una prova unica verifica che nessun componente modifichi la mesh in ingresso;
+- `NetworkChecks`: reti di cavi rettangolari, radiali e composte, con il numero di cavi, di pezzi di perimetro e di punti interni, con e senza tolleranza di corrispondenza.
+
+Il motore ARAP ha una suite propria, `tests/Arachne.Arap.Tests` (54 controlli), con il confronto facoltativo con la DLL nativa della prima versione.
+
+Gli esempi in `examples/` vengono generati dallo stesso strumento, riaperti e ricalcolati.

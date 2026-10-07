@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations"><ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration></ItemGroup>
+  <PropertyGroup Label="Globals"><ProjectGuid>{A1527EC7-6C90-48D5-8AF2-96B6CFB08F17}</ProjectGuid><Keyword>Win32Proj</Keyword><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration"><ConfigurationType>DynamicLibrary</ConfigurationType><PlatformToolset>v143</PlatformToolset><UseDebugLibraries>false</UseDebugLibraries></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <TargetName>Arachne.IGL</TargetName>
+    <OutDir>$(MSBuildThisFileDirectory)..\bin\Arachne.IGL\Release\</OutDir>
+    <IntDir>$(MSBuildThisFileDirectory)..\bin\Arachne.IGL\obj\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup><ClCompile><WarningLevel>Level3</WarningLevel><Optimization>MaxSpeed</Optimization><RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary><LanguageStandard>stdcpp17</LanguageStandard><AdditionalIncludeDirectories>$(IglIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories><PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile><Link><SubSystem>Windows</SubSystem></Link></ItemDefinitionGroup>
+  <ItemGroup><ClCompile Include="$(ArapSourceDir)\mm_arap.cpp" /><ClInclude Include="$(ArapSourceDir)\mm_arap.h" /></ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CheckNativeInputs" BeforeTargets="PrepareForBuild"><Error Condition="!Exists('$(ArapSourceDir)\mm_arap.cpp')" Text="Set ArapSourceDir to the local ARAP source folder." /><Error Condition="!Exists('$(IglIncludeDir)\igl\arap.h')" Text="Set IglIncludeDir to the local libigl/Eigen include folder." /></Target>
+</Project>

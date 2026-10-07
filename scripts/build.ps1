@@ -3,39 +3,52 @@ param(
     [string]$GpcGeometryPath,
     [string]$GpcUtilitiesPath,
     [string]$TensileLibPath,
+    [string]$NativeIglPath,
     [string]$RhinoSystemDir,
     [string]$GrasshopperDir,
-    [switch]$RequireTensile
+    [switch]$RhinoTests
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $projectRoot
 try {
     $properties = @()
-    foreach ($key in @('GpcGeometryPath','GpcUtilitiesPath','TensileLibPath','RhinoSystemDir','GrasshopperDir')) {
+    foreach ($key in @('GpcGeometryPath','GpcUtilitiesPath','TensileLibPath','NativeIglPath','RhinoSystemDir','GrasshopperDir')) {
         $value = Get-Variable -Name $key -ValueOnly
         if ($value) { $properties += "-p:${key}=$value" }
     }
-    $tensilePath = if ($TensileLibPath) { $TensileLibPath } else { Join-Path $projectRoot 'lib\TensileLib.dll' }
-    if ($RequireTensile -and !(Test-Path -LiteralPath $tensilePath)) { throw "TensileLib non trovata: $tensilePath" }
+    $tensilePath = if ($TensileLibPath) { $TensileLibPath } else { Join-Path $projectRoot '..\tensilelib\TensileLib\bin\Release\TensileLib.dll' }
+    if (!(Test-Path -LiteralPath $tensilePath)) { throw "TensileLib non trovata: $tensilePath" }
+    # The plug-in is the output folder itself; its build record is written only when every check passes
+    $pluginDir = Join-Path $projectRoot "bin\Arachne.Grasshopper\$Configuration\net48"
+    $buildRecord = Join-Path $pluginDir 'BUILD.json'
+    if (Test-Path -LiteralPath $buildRecord) { Remove-Item -LiteralPath $buildRecord }
     & dotnet restore Arachne.sln --configfile NuGet.Config @properties
     if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
     & dotnet build Arachne.sln -c $Configuration --no-restore @properties
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-    & dotnet "tests\Arachne.Core.Tests\bin\$Configuration\net8.0\Arachne.Core.Tests.dll"
-    if ($LASTEXITCODE -ne 0) { throw 'Core checks failed.' }
-    $sourceDir = Join-Path $projectRoot "src\Arachne.Grasshopper\bin\$Configuration\net48"
-    $destination = Join-Path $projectRoot "artifacts\$Configuration\Arachne"
-    New-Item -ItemType Directory -Force -Path $destination | Out-Null
-    $files = @('Arachne.Grasshopper.gha','Arachne.Core.dll','GPCGeometry.dll','GPCUtilities.dll','MathNet.Numerics.dll','System.Drawing.Common.dll')
-    if (Test-Path -LiteralPath $tensilePath) { $files += 'TensileLib.dll' }
-    foreach ($name in $files) { Copy-Item -LiteralPath (Join-Path $sourceDir $name) -Destination $destination -Force }
-    # A previous complete build must not leave a stale solver in a skeleton package.
-    $packagedTensile = Join-Path $destination 'TensileLib.dll'
-    if (!(Test-Path -LiteralPath $tensilePath) -and (Test-Path -LiteralPath $packagedTensile)) { Remove-Item -LiteralPath $packagedTensile }
-    $status = if (Test-Path -LiteralPath $tensilePath) { 'TensileLib included; numerical validation still required.' } else { 'TensileLib missing. Geometry/model components available; no equilibrium calculation.' }
-    Set-Content -LiteralPath (Join-Path $destination 'BUILD-STATUS.txt') -Value $status -Encoding utf8
-    Write-Host "Plugin: $destination"
-    Write-Host $status
+    & "bin\Arachne.Arap.Tests\$Configuration\net48\Arachne.Arap.Tests.exe"
+    if ($LASTEXITCODE -ne 0) { throw 'Managed ARAP checks failed.' }
+    if($RhinoTests) {
+        $rhinoDir=if($RhinoSystemDir){$RhinoSystemDir}else{'C:\Program Files\Rhino 8\System'}
+        $ghDir=if($GrasshopperDir){$GrasshopperDir}else{'C:\Program Files\Rhino 8\Plug-ins\Grasshopper'}
+        # Components, FeMM inputs/outputs, form finding and patterning, in a headless Rhino
+        & "bin\Arachne.ExampleWriter\$Configuration\net48\Arachne.ExampleWriter.exe" $projectRoot $rhinoDir $ghDir --tests-only
+        if($LASTEXITCODE -ne 0){throw 'Rhino/Grasshopper checks failed.'}
+    }
+    $files = @('Arachne.Grasshopper.gha','Arachne.Common.dll','Arachne.Arap.dll','GPCGeometry.dll','GPCUtilities.dll','MathNet.Numerics.dll','System.Drawing.Common.dll','TensileLib.dll','alglibnet2.dll')
+    $manifest = foreach ($name in $files) {
+        $binaryPath = Join-Path $pluginDir $name
+        [pscustomobject]@{
+            File = $name
+            Version = [Reflection.AssemblyName]::GetAssemblyName($binaryPath).Version.ToString()
+            SHA256 = (Get-FileHash -LiteralPath $binaryPath -Algorithm SHA256).Hash
+            Bytes = (Get-Item -LiteralPath $binaryPath).Length
+        }
+    }
+    $manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $pluginDir 'DEPENDENCIES.json') -Encoding utf8
+    $revision = & (Join-Path $PSScriptRoot 'Get-Revision.ps1')
+    [pscustomobject]@{ArachneCommit=$revision;RhinoChecksPerformed=[bool]$RhinoTests;ManagedArapChecksPerformed=$true;BuiltUtc=[DateTime]::UtcNow.ToString('o');Framework='net48';Platform='Windows x64';ArapEngine='Managed C# netstandard2.0'} | ConvertTo-Json | Set-Content -LiteralPath $buildRecord -Encoding utf8
+    Write-Host "Plugin: $pluginDir"
 }
 finally { Pop-Location }

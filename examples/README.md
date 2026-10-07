@@ -1,19 +1,17 @@
-# Primo esempio di ricerca di forma
+# Esempi Grasshopper
 
-`01_SaddleNet.gh` è il documento binario Grasshopper; `01_SaddleNet.ghx` è lo stesso schema in formato XML. Installare prima il plugin Arachne con tutte le DLL raccolte da `scripts/build.ps1`.
+Ogni esempio è disponibile in formato binario (`.gh`) e XML (`.ghx`). Installare prima il plug-in Arachne con tutte le DLL raccolte da `scripts/build.ps1`.
 
-Il documento contiene 9 oggetti e 10 collegamenti. Usare Demo Saddle Net per modificare la discretizzazione, la luce e la quota dei vertici. Cable applica una densità uniforme di 1 N/m; Node Conditions blocca il bordo. Model assembla la rete, mentre Solver Settings e il booleano Run controllano Form Find.
+| File | Contenuto |
+| --- | --- |
+| [01_SaddleNet.gh](01_SaddleNet.gh) | Sella 10 x 10 m con 4 x 4 campi e bordo vincolato, quote ±2 m agli angoli, coordinate in mm. Comprende:<br>• Beam con Beam Property (Cable, sezione piena D 10 mm, acciaio) e Force Density 1 N/mm nel caso di carico FF;<br>• Node con Restraints;<br>• Build Model in N/mm, Check Model e Form Find lineare;<br>• Beam Forces (tiri in N) e Support Reactions. |
+| [02_Patterning.gh](02_Patterning.gh) | Pannello inclinato: Flattening e, in alternativa, Flattening ARAP; Compensation 2% / 1%, Borders, OrderBorders, descrittori neutri, Decompensation e Line-Up. |
+| [03_CableNet.gh](03_CableNet.gh) | Cable Net su un perimetro a sella 12 x 8 m, maglia 1 x 1 m, coordinate in mm. Ordito con q = 2 N/mm, trama con q = 1 N/mm, linee di bordo vincolate; Form Find lineare con mesh. |
 
-I valori predefiniti producono una rete 10 x 10 m, discretizzata in 4 x 4 celle, con quote agli angoli pari a +2 e -2 m. Il peso proprio e la pressione sono disattivati. Le coordinate interne sono inizialmente a quota zero; il file non contiene una forma di equilibrio precalcolata.
+Negli esempi 01 e 03 Form Find ha **Auto Run** collegato a un interruttore attivo: il calcolo parte all'apertura. Disattivarlo per lavorare con il pulsante Run.
 
-Il file è salvato con Run=False. Senza TensileLib si può già verificare la costruzione del modello. Run=True segnala la dipendenza mancante. Il motore deve essere aggiunto e verificato prima di usare il risultato della ricerca di forma.
+Nel 03 gli ingressi delle Beam e l'ingresso Elements di Build Model sono appiattiti: le uscite di Cable Net sono alberi con un ramo per cavo.
 
-Per rigenerare l'esempio da sorgente, da PowerShell nella radice Arachne:
+Gli esempi vengono generati da `scripts/build-examples.ps1` (`tools/Arachne.ExampleWriter`). Il generatore calcola ogni definizione, la salva nei due formati, la riapre e la ricalcola. Controlla anche che Form Find produca modello e mesh senza errori. Per l'esempio 02 confronta l'area compensata con `2*sqrt(5)*0.98*0.99` e verifica i quattro bordi decompensati.
 
-```powershell
-dotnet build tools/Arachne.ExampleWriter/Arachne.ExampleWriter.csproj -c Release
-$env:PATH = 'C:\Program Files\Rhino 8\System;' + $env:PATH
-& tools/Arachne.ExampleWriter/bin/Release/net48/Arachne.ExampleWriter.exe $PWD.Path 'C:\Program Files\Rhino 8\System' 'C:\Program Files\Rhino 8\Plug-ins\Grasshopper'
-```
-
-Il generatore richiede un'installazione Rhino utilizzabile e inizializza il runtime senza finestra. La registrazione del plugin è limitata al suo processo; non installa il plugin nelle Libraries. Utilizza il caricatore interno di Grasshopper solo per la verifica dell'archivio, quindi potrebbe richiedere adeguamenti con versioni diverse di Grasshopper.
+I descrittori di decompensazione seguono la convenzione FeMM: ingresso 0 = scala 1, ingresso 0.02 = scala 0.98. Non sono le percentuali intere di Compensation e non calcolano automaticamente l'inversa della compensazione.

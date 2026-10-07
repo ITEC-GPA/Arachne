@@ -1,86 +1,110 @@
 # Arachne
 
-Primo progetto Grasshopper dedicato alla ricerca di forma di reti di cavi e membrane, estratto dal percorso di form finding di FeMM. Il modello usa **metri, newton, chilogrammi e secondi**. SAP, Straus, ETABS e il modello FEM generale di FeMM non sono dipendenze di Arachne.
+Plug-in Grasshopper per il form finding e il patterning di tele e tensostrutture. Contiene i componenti di FeMM dedicati a questi due temi. Ingressi e uscite sono identici a FeMM; i GUID sono nuovi, così i due plug-in si possono caricare insieme. Sono corretti i bug trovati durante il trasferimento ([dettagli](docs/PORTING.md)). Quattro componenti nuovi leggono i risultati: Check Model, Beam Forces, Support Reactions e Panel Distortion.
 
-**Stato:** il progetto compila con le DLL locali GPCGeometry e GPCUtilities. Il motore TensileLib non è ancora disponibile: i componenti geometrici e di modellazione sono utilizzabili, mentre Form Find restituisce `DependencyMissing` e non produce una forma calcolata. L'adattatore TensileLib è predisposto sui metodi osservati in FeMM, ma il suo ramo di codice non è ancora compilato né validato con la DLL reale.
+**Versione:** 0.3.0-rc.4 (DLL 0.3.0.4). Si lavora in N e mm. Motore di form finding: TensileLib 2.2 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)).
 
 ## Struttura
 
 ```text
 Arachne.sln
+Arachne.Arap.sln             Soluzione autonoma del motore ARAP e dei suoi test
 src/
-  Arachne.Core/           Modello, validazione, controllo iterazioni, adattatore TensileLib
-  Arachne.Grasshopper/    Componenti .gha e generatori geometrici derivati da FeMM
-tests/Arachne.Core.Tests/ Controlli eseguibili senza Rhino e senza TensileLib
-tools/Arachne.ExampleWriter/ Generatore del documento di esempio, mediante Rhino
-examples/                Primo schema Grasshopper
-lib/                     Posizione prevista per TensileLib.dll
-scripts/build.ps1         Compilazione, controlli e raccolta del plugin
-docs/                    Architettura e note sulle correzioni
+  Arachne.Common/            Modello FEM e helper di FeMM.Common usati dal form finding
+  Arachne.Grasshopper/       Componenti, data type e parametri (.gha)
+  Arachne.Arap/              Motore ARAP C# netstandard2.0
+tests/Arachne.Arap.Tests/    Verifiche numeriche del motore ARAP
+tools/Arachne.ExampleWriter/ Verifiche in Rhino/Grasshopper senza finestra, esempi e icone
+examples/                    Definizioni GH e GHX
+scripts/                     Compilazione, verifiche, pacchetto ed esempi
+docs/                        Provenienza, architettura, ARAP, registro modifiche
 ```
 
-## Primo schema
+## Flusso di lavoro
 
-Aprire [01_SaddleNet.gh](examples/01_SaddleNet.gh) dopo aver caricato il plugin. È disponibile anche la versione XML [01_SaddleNet.ghx](examples/01_SaddleNet.ghx). Entrambe contengono componenti collegati, con Run disattivato.
+È quello di FeMM: gli elementi del modello ricevono gli attributi di form finding, Build Model li assembla e Form Find calcola la forma.
 
 ```mermaid
 flowchart LR
-  D[Demo Saddle Net] -->|Lines| C[Cable]
-  D -->|Supports| N[Node Conditions]
-  D -->|Faces| M[Model]
-  C --> M
-  N --> M
-  M --> FF[Form Find]
-  S[Solver Settings] --> FF
-  R[Run boolean] --> FF
-  FF --> O[Nodes · Cables · Mesh · Forces · Status · Log]
+  MAT[Material] --> BP[Beam Property]
+  SEC[Section] --> BP
+  BP --> B[Beam]
+  LC[Load Case] --> FD
+  B --> FD[Force Density / Fixed Length / Fixed Axial Force / ...]
+  N[Node] --> R[Restraints / Keep Position / Node Load]
+  FD --> BM[Build Model]
+  R --> BM
+  PL[Plate + Plate Property] --> BM
+  BM --> CK[Check Model]
+  BM --> FF[Form Find]
+  FF --> OUT[Model · Mesh]
+  OUT --> RES[Beam Forces · Support Reactions]
+  OUT --> PAT[Patterning: Flattening, Compensation, Borders, ...]
+  PAT --> PD[Panel Distortion]
 ```
 
-Nel caso dimostrativo, collegare tutti i bordi della rete a Node Conditions con X, Y e Z bloccati. Usare Target = 1 N/m in Cable e il solutore Linear. La rete predefinita ha 25 nodi, 40 cavi, 16 facce e 16 nodi di bordo vincolati. Le quote del bordo definiscono una sella; i nodi interni partono da quota zero. Impostare **Run = False** durante la preparazione.
+Note d'uso, come in FeMM:
 
-Con TensileLib assente, Run = True deve dare `DependencyMissing`, con geometria di risultato vuota. La geometria iniziale resta visibile dall'uscita Model. I tipi intermedi sono dati transitori ricalcolati dai componenti: usare i collegamenti, non copie internalizzate del modello o dei cavi.
+- **Unità:** si lavora in N e mm, il predefinito di Build Model (Nmm). Le dimensioni delle sezioni sono nelle unità del modello (mm), le densità di forza in N/mm e la gravità del Form Find, se si vuole il peso proprio, vale 9806.65 mm/s². Le tolleranze di Form Find sono relative; TensileLib risolve il modello centrato nell'origine, quindi le coordinate di cantiere non peggiorano la convergenza né la precisione.
+- **Rami:** collegare a Build Model tutti gli elementi in un'unica lista, appiattendo l'ingresso Elements se arrivano da percorsi diversi. Gli elementi con lo stesso GUID (per esempio una Beam passata da Force Density e da Fixed Length) vengono uniti.
+- **Fusione dei nodi:** due nodi più vicini di 0.001 (unità del modello) vengono uniti con attributi e carichi. FeMM leggeva questa tolleranza dalle opzioni del suo plug-in Rhino.
+- **Form Find:** calcola con il pulsante **Run** oppure con Auto Run = True. La pressione richiede un Load Case, a cui vengono assegnati i carichi nodali risultanti; una pressione positiva agisce secondo la normale dell'ingresso Plane (+Z con il piano predefinito). I solutori Linear e Non-Linear pubblicano il risultato anche al limite di iterazioni, con un avviso. Linear step by step si ferma invece con un errore.
+- **Risultati:** il modello calcolato contiene le forze assiali delle aste (pre-carichi, come in FeMM) e, se il calcolo converge, le reazioni dei vincoli. Beam Forces e Support Reactions le estraggono.
+- **Carichi sulle aste:** solo forze, uniformi o trapezie, in un sistema globale o in un Coordinate System; sono ripartite sui nodi con la regola della leva sulla geometria di ingresso.
+- **Filtri:** Node, Beam e Plate Filter cercano per ID gli identificativi assegnati con Element Id.
+- **Cable Net:** Warp, Weft e Restraint edges sono alberi con un ramo per cavo. Appiattirli prima di Beam.
 
 ## Componenti
 
-| Gruppo | Componenti |
-|---|---|
-| 0 Geometry | Demo Saddle Net, Cable Net, Radial Cable Net, Compound Net |
-| 1 Model | Cable, Cable Constraints, Cable Load, Node Conditions, Model |
-| 2 Form Finding | Solver Settings, Form Find |
+| Pannello | Componenti |
+| --- | --- |
+| 01-Parameters | CoordinateSystem |
+| 02-Materials | Aluminium, Concrete, Custom Material, Steel, Table Material |
+| 03-Sections | Angle, Brep, C, Generic, Hollow Circle, Hollow Rect, I, Solid Circle, Solid Rect, T, Section Geometric Property |
+| 04-Definitions | Load Case, Group |
+| 05-Properties | Beam Property, Plate Property |
+| 06-Model | Node, Beam, Plate, Build Model, Decompose Model, *Check Model* |
+| 07-Attributes | Force Density, Fixed curvature cable, Membrane type, Fixed Length, Fixed Axial Force, Fixed compensation, Keep Position, Restraints, Element Id |
+| 08-Loads | Node Load, Beam Point Load, Beam Distributed Load |
+| 09-Patterning | Cable Net, Radial Cable Net, Compound Net, Borders, OrderBorders, Compensation, Decompensation, DecompensationDescriptor, DecompensationDescriptorExt, Flattening, Flattening ARAP, Deform ARAP, Geodesic Offsets, Line-Up, Mesh Clean, Mesh Divide, Mesh Geodesic, Mesh Pipe, Mesh Remap, Remesh, Split Mesh On Curves, Subdivide Mesh, Unweld Mesh, *Panel Distortion* |
+| 12-Analysis | Form Find, *Beam Forces*, *Support Reactions* |
+| 14-Tools | Curve2Mesh, Node Filter, Beam Filter, Plate Filter |
 
-Cable espone densità di forza, forza nel cavo, membrana e curvatura; distingue trama e ordito e consente pesi non lineari. Cable Constraints gestisce lunghezza, forza assiale e compensazione percentuale. Cable Load applica una forza concentrata in una frazione della lunghezza: per carichi distribuiti serve fornire la risultante e la posizione corretta. Node Conditions unisce vincoli, forze nodali e pesi per mantenere la posizione. Per caricare un nodo libero disattivare i tre vincoli.
+In corsivo i componenti nuovi di Arachne, che non esistono in FeMM. La tabella con sorgente FeMM e GUID di ogni componente è in [PORTING.md](docs/PORTING.md); le icone sono in [ICONS.svg](docs/ICONS.svg).
 
-Le coordinate e la tolleranza di Model devono essere in metri: non viene eseguita una conversione automatica dalle unità del documento Rhino. Area e densità dei cavi servono al peso proprio; la massa superficiale di una membrana non è ancora un ingresso dedicato.
+## Esempi
 
-Per una rete ottenuta con i generatori FeMM, unire le linee di trama, ordito e bordo necessarie alla topologia, senza duplicati. Appiattire gli ingressi di Model se si desidera un solo modello. Nei generatori è richiesto un perimetro chiuso. Compound Net usa rami `{0}`, `{1}`, ... per le diverse porzioni di rete.
+[01_SaddleNet](examples/01_SaddleNet.gh) (sella con vincoli al bordo, con Check Model, Beam Forces e Support Reactions), [02_Patterning](examples/02_Patterning.gh) (sviluppo, compensazione, bordi e decompensazione di un pannello) e [03_CableNet](examples/03_CableNet.gh) (rete generata da Cable Net). Ogni file esiste anche in GHX. Vedere [examples/README.md](examples/README.md).
 
-## Compilazione
+## Compilazione e verifiche
 
-Prerequisiti di questa prima configurazione: Windows, SDK .NET 8 o successivo, Rhino 8 installato, DLL GPC locali. Il plugin usa il target `net48`; la compilazione non certifica il caricamento nelle diverse modalità runtime di Rhino.
+Prerequisiti: Windows x64, SDK .NET 8 o successivo, .NET Framework 4.8 Developer Pack, Rhino 8, DLL Release di GPCGeometry, GPCUtilities e TensileLib nei repository adiacenti.
 
 ```powershell
-.\scripts\build.ps1
+.\scripts\build.ps1 -RhinoTests
 ```
 
-Il plugin e le sue dipendenze vengono raccolti in `artifacts/Release/Arachne`. Copiare l'intera cartella nelle Libraries di Grasshopper e riavviare Rhino. Il progetto non esegue installazioni automatiche nelle cartelle di Rhino. Le DLL locali usate nella prima compilazione sono GPCGeometry 2.1.0.3 e GPCUtilities 2.0.0.8.
+Gli output della compilazione stanno nella cartella `bin` alla radice, in `bin/<progetto>/<configurazione>/<framework>`; i file intermedi restano nella cartella `obj` di ogni progetto, perché contengono una copia del `.gha`. Lo script esegue i test del motore ARAP. Con `-RhinoTests` avvia Rhino senza finestra ed esegue le verifiche Grasshopper:
 
-I percorsi predefiniti, modificabili tramite proprietà MSBuild o parametri dello script, sono:
+- ingressi e uscite di ogni componente confrontati con i sorgenti FeMM;
+- GUID e icone;
+- form finding su casi analitici;
+- patterning e reti.
+
+Il plug-in è la cartella `bin/Arachne.Grasshopper/Release/net48`: `.gha` e DLL necessarie, con `DEPENDENCIES.json` (versioni e SHA-256) e `BUILD.json` (commit e verifiche eseguite, scritto solo se tutte le verifiche passano). Per installarlo, copiare la cartella nelle Libraries di Grasshopper.
+
+Se Grasshopper carica il plug-in dalla cartella `bin`, chiudere Rhino prima di compilare e compilare solo in Release. Grasshopper cerca i `.gha` anche nelle sottocartelle, quindi sotto `bin` deve essercene uno solo: una build Debug ne aggiungerebbe un secondo. Per lo stesso motivo ExampleWriter non copia il `.gha` nella sua cartella e lo carica da `bin/Arachne.Grasshopper`.
+
+Percorsi predefiniti, modificabili con proprietà MSBuild o parametri dello script:
 
 | Proprietà | Percorso rispetto alla cartella Arachne |
-|---|---|
+| --- | --- |
 | GpcGeometryPath | `../Geometry/GPCGeometry/bin/Release/netstandard2.0/GPCGeometry.dll` |
 | GpcUtilitiesPath | `../Utilities/GPCUtilities/bin/Release/netstandard2.0/GPCUtilities.dll` |
-| TensileLibPath | `lib/TensileLib.dll` |
+| TensileLibPath | `../tensilelib/TensileLib/bin/Release/TensileLib.dll` |
 | RhinoSystemDir | `C:/Program Files/Rhino 8/System` |
 | GrasshopperDir | `C:/Program Files/Rhino 8/Plug-ins/Grasshopper` |
 
-## Quando arriva TensileLib
+Altri script: `scripts/build-examples.ps1` rigenera gli esempi e `docs/ICONS.svg`; `scripts/build-arap.ps1` compila solo il motore ARAP; `scripts/build-native.ps1` ricompila in `bin/Arachne.IGL/Release` la vecchia DLL nativa, usata solo per i confronti facoltativi del motore ARAP. Per le icone dei nuovi componenti aggiungere il disegno in `tools/Arachne.ExampleWriter/IconArtwork.cs` ed eseguire ExampleWriter con `--icons`.
 
-1. Copiare `TensileLib.dll` in `lib`, oppure indicare `-TensileLibPath` allo script.
-2. Compilare con `.\scripts\build.ps1 -RequireTensile`. La presenza della DLL attiva il ramo reale dell'adattatore: eventuali incompatibilità devono emergere in compilazione.
-3. Verificare le dipendenze e le firme effettive della DLL. Il progetto FeMM usava TensileLib 2.0.6 con tipi `Maffeis.Geometry`. Questa versione di Arachne usa **GPC.Geometry**: rinominare una DLL non rende compatibili le due identità. Se TensileLib richiede MaffeisGeometry, servirà una build di TensileLib per GPC oppure una revisione esplicita dell'integrazione.
-4. Eseguire confronti numerici con FeMM: rete a densità costante, carichi nodali, lunghezza/forza imposta, membrana, pressione e peso proprio. I controlli attuali non sostituiscono questi confronti.
-
-Ulteriori dipendenze transitive della DLL si potranno verificare solo quando sarà disponibile. Non sono stati creati solutori sostitutivi o DLL fittizie.
-
-Per i dettagli vedere [architettura](docs/ARCHITECTURE.md) e [porting e correzioni](docs/PORTING.md).
+Vedere anche [architettura](docs/ARCHITECTURE.md) e [registro modifiche](docs/CHANGELOG.md).
