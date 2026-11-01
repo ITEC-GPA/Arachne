@@ -21,7 +21,7 @@ I GUID sono nuovi, così FeMM e Arachne possono essere caricati insieme. Le defi
 | FeMM.Common: modelli (Models), helper e geometria usati dal form finding | `src/Arachne.Common` |
 | FeMM.Grasshopper: data type, attributi grafici, componenti | `src/Arachne.Grasshopper` |
 | MaffeisIGL (ARAP nativo, libigl) | `src/Arachne.Arap`, motore C# riscritto |
-| TensileLib 2.0.6 (NuGet, non più disponibile) | TensileLib 2.5.0.0 da `../tensilelib` |
+| TensileLib 2.0.6 (NuGet, non più disponibile) | TensileLib 2.5.0.1 da `../tensilelib` |
 
 Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino, plug-in FeMM.Rhino e risultati delle analisi FEM (resta solo il modello delle reazioni, `NodeReactResultModel`, usato dal form finding). Di conseguenza:
 

@@ -36,7 +36,7 @@ try {
         & "bin\Arachne.ExampleWriter\$Configuration\net48\Arachne.ExampleWriter.exe" $projectRoot $rhinoDir $ghDir --tests-only
         if($LASTEXITCODE -ne 0){throw 'Rhino/Grasshopper checks failed.'}
     }
-    $files = @('Arachne.Grasshopper.gha','Arachne.Common.dll','Arachne.Arap.dll','GPCGeometry.dll','GPCUtilities.dll','MathNet.Numerics.dll','System.Drawing.Common.dll','TensileLib.dll','alglibnet2.dll')
+    $files = @('Arachne.Grasshopper.gha','Arachne.Common.dll','Arachne.Arap.dll','GPCGeometry.dll','GPCUtilities.dll','MathNet.Numerics.dll','TensileLib.dll','alglibnet2.dll')
     $manifest = foreach ($name in $files) {
         $binaryPath = Join-Path $pluginDir $name
         [pscustomobject]@{

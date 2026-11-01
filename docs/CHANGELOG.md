@@ -1,5 +1,16 @@
 # Registro delle modifiche
 
+## 0.3.0-rc.7 - 1 novembre 2026: librerie GPC attuali
+
+Nessun componente cambia: GUID, ingressi e uscite sono quelli della rc.6.
+
+- **Versione delle DLL:** 0.3.0.7.
+- **Librerie GPC:** GPCGeometry 2.3.0.0 (era 2.1.0.4) e GPCUtilities 3.0.0.0 (era 2.0.0.8). Sono le DLL di ReBear e BridGHe: i tre plug-in si caricano nello stesso Rhino e devono usare le stesse versioni, quindi si aggiornano insieme.
+- **TensileLib 2.5.0.1:** la 2.5 compilata con le stesse librerie. Il codice non cambia. I risultati sono identici bit per bit: confrontate coordinate, densità, forze e piastre di 37 calcoli Linear, Non-Linear e planari.
+- **System.Drawing.Common tolto:** serviva solo a GPCUtilities 2.x e non è più nel plug-in.
+- **Banco di prova:** 153 controlli in Rhino/Grasshopper, 54 del motore ARAP e 59 di TensileLib, con gli stessi esiti della rc.6.
+- **Esempi** rigenerati con il plug-in rc.7.
+
 ## 0.3.0-rc.6 - 7 ottobre 2026: vincoli ruotati, pressione, piastre
 
 Dettagli in [PORTING.md](PORTING.md). Restraints ha un GUID nuovo e va ricollegato nelle definizioni esistenti.

@@ -33,7 +33,7 @@ Le configurazioni non sviluppabili ammettono distorsione residua. Convergenza de
 
 Implementato il nuovo motore **Arachne.Arap in C#**, target **netstandard2.0**, con soluzione e progetto autonomi nello stesso repository. Sono disponibili Flatten, Unwrap e Deform. Il plugin Arachne usa questo motore per i due componenti ARAP e per il tentativo ARAP di Geodesic Offsets. Restano 43 componenti; GUID, ingressi e uscita mesh preesistenti dei componenti ARAP sono conservati.
 
-La libreria dipende soltanto da GPCGeometry 2.1.0.3 e GPCUtilities 2.0.0.8, oltre alle librerie standard .NET. Non usa Rhino, Grasshopper, TensileLib, MathNet o codice nativo. Algebra, rotazioni e solver sparso sono implementati nel progetto C#. TensileLib e i risultati della ricerca di forma non sono stati modificati in questa riscrittura.
+La libreria dipende soltanto da GPCGeometry 2.3.0.0 e GPCUtilities 3.0.0.0, oltre alle librerie standard .NET. Non usa Rhino, Grasshopper, TensileLib, MathNet o codice nativo. Algebra, rotazioni e solver sparso sono implementati nel progetto C#. TensileLib e i risultati della ricerca di forma non sono stati modificati in questa riscrittura.
 
 Il lavoro usa i sorgenti originali disponibili e il confronto con il binario: non e stata necessaria una decompilazione della DLL. La DLL nativa rimane soltanto come riferimento facoltativo nei test; non viene distribuita con il plugin 0.2.0. Il progetto e lo script C++ della release precedente restano utilizzabili per ricostruire quel riferimento.
 
