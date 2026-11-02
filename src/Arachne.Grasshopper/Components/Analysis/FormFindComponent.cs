@@ -154,6 +154,9 @@ namespace Arachne.Grasshopper.Components.Analysis
                     throw new ArgumentException("Max Iter must be at least 1");
 
                 Model ff_model = Common.Helpers.FormFindingHelper.AssemblyModel(model.Value, plane, solverType, options, out List<string> warnings);
+#if ARACHNE_MIGRATION_CAPTURE
+                int captureId = MigrationTensileCapture.Input(ff_model, model.Value.Units, solverType, options);
+#endif
                 foreach (string warning in warnings)
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, warning);
 
@@ -213,6 +216,9 @@ namespace Arachne.Grasshopper.Components.Analysis
 
                         if (!exit && count >= maxIterNumber)
                         {
+#if ARACHNE_MIGRATION_CAPTURE
+                            MigrationTensileCapture.Result(captureId, ff_model, false, "outer-iteration-limit");
+#endif
                             AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Not converged. The maximum number of iteration has been reached.");
                             Message = "Error";
                             return;
@@ -243,6 +249,9 @@ namespace Arachne.Grasshopper.Components.Analysis
                     }
                 }
 
+#if ARACHNE_MIGRATION_CAPTURE
+                MigrationTensileCapture.Result(captureId, ff_model, converged, "solver-returned");
+#endif
                 // Create a deep copy of the model where to add the results
                 GH_Model result = (GH_Model)model.Duplicate();
 

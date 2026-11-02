@@ -24,6 +24,7 @@ internal static class FormFindingChecks
     private static int passed, failed;
     private static void Test(string name, Action action)
     {
+        Environment.SetEnvironmentVariable("ARACHNE_CAPTURE_CASE", name);
         try { action(); passed++; Console.WriteLine("FORMFIND PASS " + name); }
         catch (Exception e) { failed++; Console.WriteLine("FORMFIND FAIL " + name + ": " + e.GetBaseException().Message); }
     }
