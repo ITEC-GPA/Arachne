@@ -20,7 +20,7 @@ internal static class F6ContractsChecks
     internal static int Run()
     {
         int failed = 0;
-        foreach (var test in new Action[] { ArchiveGraph, NodeAndLoadStorage, GoalOwnership, WrapperPersistence, ProductionIdentity, ProductionUnits, IpsSelfWeight, DistributedLoadMoment, PersistencePathOrdering, DocumentSidecars, SolverOptionsOwnership, InvalidArchives, FutureWrapperSchema, LegacyMigration, IndependentGpcSolver })
+        foreach (var test in new Action[] { ArchiveGraph, NodeAndLoadStorage, GoalOwnership, WrapperPersistence, ProductionIdentity, ProductionUnits, IpsSelfWeight, DistributedLoadMoment, PersistencePathOrdering, DocumentSidecars, SavedOutputRestoration, SolverOptionsOwnership, InvalidArchives, FutureWrapperSchema, LegacyMigration, IndependentGpcSolver })
             try { test(); Console.WriteLine("F6 PASS " + test.Method.Name); }
             catch (Exception ex) { failed++; Console.WriteLine("F6 FAIL " + test.Method.Name + ": " + ex); }
         return failed;
@@ -302,7 +302,8 @@ internal static class F6ContractsChecks
                     var actual = component.ReadAnalysis(0);
                     Check(actual.Model.AnalysisFingerprint() == fingerprint && actual.Model.AllElements.Any(e => e.Results.Count > 0), "GH reopen reads the saved GPC analysis without solving");
                     Check(actual.SolverMap != null, "Solver identities survive GH reopen");
-                    reopened.Document.NewSolution(false);
+                    reopened.Document.Enabled = true; reopened.Document.NewSolution(false);
+                    Check(Canvas.Out(component).Count == 1, "Reopened auto-run document produces output");
                     Check(component.AnalysisReferences.Count == 1 && component.ReadAnalysis(0).Model.AnalysisFingerprint() == fingerprint,
                         "Recalculation after reopen replaces the saved iteration without duplicating slots");
                 }
@@ -327,6 +328,57 @@ internal static class F6ContractsChecks
                     var component = missingIo.Document.Objects.OfType<Arachne.Grasshopper.Components.Analysis.FormFindComponent>().Single();
                     bool rejected = false; try { component.ReadAnalysis(0); } catch (System.IO.InvalidDataException) { rejected = true; }
                     Check(rejected, "Missing numerical blocks are diagnosed explicitly");
+                }
+            }
+        }
+        finally { System.IO.Directory.Delete(directory, true); }
+    }
+    private static void SavedOutputRestoration()
+    {
+        string directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "arachne-f6-restore-" + Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(directory);
+        try
+        {
+            using (var canvas = new Canvas())
+            {
+                var chain = FormFindingChecks.Start(canvas); var grid = FormFindingChecks.SaddleGrid(2, 400, 100);
+                var beams = FormFindingChecks.Beams(chain, grid.lines);
+                var build = FormFindingChecks.Build(chain, FormFindingChecks.ForceDensity(chain, beams, 1), FormFindingChecks.Supports(chain, grid.border));
+                var solve = (Arachne.Grasshopper.Components.Analysis.FormFindComponent)FormFindingChecks.FormFind(chain, build, 0);
+                var options = FormFindingChecks.Options(solve);
+                Canvas.Set(options, 1, new Grasshopper.Kernel.Types.GH_Number(.0001)); Canvas.Link(options, 2, chain.LoadCase);
+                canvas.Solve();
+                var expected = Canvas.Single<Arachne.Grasshopper.DataTypes.GH_Model>(solve).Value;
+                Check(expected.Nodes.SelectMany(n => n.Loads).OfType<NodePressureLoadModel>().Any(), "Pressure fixture produces nodal forces");
+                var reference = solve.AnalysisReferences[0];
+                Canvas.Set(solve, 4, new Grasshopper.Kernel.Types.GH_Boolean(false));
+                string path = System.IO.Path.Combine(directory, "pressure.gh");
+                Check(new Grasshopper.Kernel.GH_DocumentIO { Document = canvas.Document }.SaveQuiet(path), "Save manual-run document");
+                var io = new Grasshopper.Kernel.GH_DocumentIO(); Check(io.Open(path), "Reopen manual-run document");
+                using (io.Document)
+                {
+                    var restored = io.Document.Objects.OfType<Arachne.Grasshopper.Components.Analysis.FormFindComponent>().Single();
+                    io.Document.Enabled = true; io.Document.NewSolution(false);
+                    var actual = Canvas.Single<Arachne.Grasshopper.DataTypes.GH_Model>(restored).Value;
+                    Check(restored.Message == "Restored" && restored.AnalysisReferences[0].ManifestAddress == reference.ManifestAddress,
+                        "Outputs restored from the saved run with Auto Run disabled");
+                    Check(actual.Nodes.Count == expected.Nodes.Count && actual.Beams.Count == expected.Beams.Count, "Saved output topology retained");
+                    for (int i = 0; i < actual.Nodes.Count; i++)
+                    {
+                        Check(actual.Nodes[i].Position == expected.Nodes[i].Position, "Exact final solver coordinates retained");
+                        var oldPressure = expected.Nodes[i].Loads.OfType<NodePressureLoadModel>().SingleOrDefault();
+                        var pressure = actual.Nodes[i].Loads.OfType<NodePressureLoadModel>().SingleOrDefault();
+                        Check((pressure == null) == (oldPressure == null) && (pressure == null || pressure.Value == oldPressure.Value), "Saved pressure forces retained");
+                        var oldReaction = expected.Nodes[i].Results.OfType<NodeReactResultModel>().SingleOrDefault();
+                        var reaction = actual.Nodes[i].Results.OfType<NodeReactResultModel>().SingleOrDefault();
+                        Check((reaction == null) == (oldReaction == null) && (reaction == null || reaction.Force == oldReaction.Force), "Saved reactions retained");
+                    }
+                    var changed = FormFindingChecks.Options(restored);
+                    Canvas.Set(changed, 1, new Grasshopper.Kernel.Types.GH_Number(.0002)); changed.ExpireSolution(false); io.Document.NewSolution(false);
+                    Check(Canvas.Out(restored).Count == 0 && restored.Message == "Inputs changed", "Changed engineering input cannot receive stale output");
+                    Check(restored.AnalysisReferences[0].ManifestAddress == reference.ManifestAddress, "Historical run remains available after input changes");
+                    Canvas.Set(changed, 1, new Grasshopper.Kernel.Types.GH_Number(.0001)); changed.ExpireSolution(false); io.Document.NewSolution(false);
+                    Check(Canvas.Out(restored).Count == 1 && restored.Message == "Restored", "Returning to the saved input restores output without a new run");
                 }
             }
         }

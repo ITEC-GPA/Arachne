@@ -27,6 +27,7 @@ namespace Arachne.Common.Analysis
         {
             public Model Model { get; internal set; }
             public LoadCaseBase ResultCase { get; internal set; }
+            public LoadCaseBase PressureCase { get; internal set; }
             public FormFindingUnits Units { get; internal set; }
             public List<string> Diagnostics { get; } = new List<string>();
         }
@@ -235,6 +236,11 @@ namespace Arachne.Common.Analysis
             }
             input.Model = ModelAssembly.Assemble(elements, owner, source.Name ?? "", supportsWarpedQuads: true);
             input.Model.FormFinding = ff;
+            if (ff.Pressure != 0)
+            {
+                input.PressureCase = Case(options.PressureLoadCase);
+                if (!input.Model.LoadCases.Values.Any(c => ReferenceEquals(c, input.PressureCase))) input.Model.LoadCases.Add(input.PressureCase);
+            }
             var resultName = "Form finding";
             while (cases.ContainsKey(resultName)) resultName += " (result)";
             input.ResultCase = new LoadCaseBase(Identity(owner, "case:form-finding-result"), resultName);

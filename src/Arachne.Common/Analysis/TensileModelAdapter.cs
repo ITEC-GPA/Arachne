@@ -198,7 +198,7 @@ public static class TensileModelAdapter
         }
         return Solver.ResultCodes.NotconvergedAtMaxIterationNumber;
     }
-    public static void Attach(Model model, Exported exported, Solver.ResultCodes status, LoadCaseBase resultCase = null)
+    public static void Attach(Model model, Exported exported, Solver.ResultCodes status, LoadCaseBase resultCase = null, LoadCaseBase pressureCase = null)
     {
         if (model.AnalysisFingerprint() != exported.Map.AnalysisFingerprint) throw new InvalidOperationException("StaleFormFindingResult");
         if (status == Solver.ResultCodes.NotconvergedAtMaxIterationNumber) throw new InvalidOperationException("UnconvergedFormFindingResult");
@@ -211,8 +211,16 @@ public static class TensileModelAdapter
         foreach (var node in model.NodesElements.Values)
         {
             var n = exported.Solver.Nodes[exported.Ids[node.Guid]];
-            if(n.HasRestraint) { var reaction=n.RestrainedPart(sums[n.Id]*-1); node.AddResult(new NodeResult(new List<INodeResultLocation>{ new NodeResultForces(load,new ResultBeamForces(reaction.Z * force,reaction.X * force,reaction.Y * force,0,0,0,CoordinateSystem.Global)){Kind=NodalForceKind.SupportReaction,State=state()} })); }
-            node.AddResult(new NodeResult(new List<INodeResultLocation> { new NodeResultDisplacement(load, new ResultDisplacement(n.DX * length, n.DY * length, n.DZ * length, 0, 0, 0)) { State = state() } }));
+            if(n.HasRestraint) { var reaction=n.RestrainedPart(sums[n.Id]*-1); node.AddResult(new NodeResult(new List<INodeResultLocation>{ new NodeResultForces(load,new ResultBeamForces(reaction.Z * force,reaction.X * force,reaction.Y * force,0,0,0,CoordinateSystem.Global)){Kind=NodalForceKind.SupportReaction,Body=ActionBody.OnNode,State=state()} })); }
+            var displacementState = state();
+            displacementState.SourceDisplacementReference = "initial";
+            displacementState.Original = new OriginalResultData { Values = new double?[] { n.X, n.Y, n.Z },
+                ComponentOrder = "X,Y,Z", Convention = "Final global coordinates", ReaderVersion = "Arachne.FormFinding/1", LengthToMm = length };
+            node.AddResult(new NodeResult(new List<INodeResultLocation> { new NodeResultDisplacement(load, new ResultDisplacement(n.DX * length, n.DY * length, n.DZ * length, 0, 0, 0)) { State = displacementState } }));
+            if (n.PressureX != 0 || n.PressureY != 0 || n.PressureZ != 0)
+                node.AddResult(new NodeResult(new List<INodeResultLocation> { new NodeResultForces(pressureCase ?? load,
+                    new ResultBeamForces(n.PressureZ * force, n.PressureX * force, n.PressureY * force, 0, 0, 0, CoordinateSystem.Global))
+                    { Kind = NodalForceKind.AppliedPressure, Body = ActionBody.OnNode, State = state() } }));
         }
         foreach (var beam in model.BeamElements.Values)
         {

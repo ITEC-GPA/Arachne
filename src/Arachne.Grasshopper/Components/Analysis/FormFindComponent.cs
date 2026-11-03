@@ -139,7 +139,8 @@ namespace Arachne.Grasshopper.Components.Analysis
                 return;
             }
 
-            if (_run || autoRun)
+            bool execute = _run || autoRun;
+            if (execute)
             {
                 try
                 {
@@ -154,10 +155,38 @@ namespace Arachne.Grasshopper.Components.Analysis
                 }
             }
 
+            if (!execute && DA.Iteration < _analysisReferences.Count && _analysisReferences[DA.Iteration] != null)
+                RestoreAnalysis(DA.Iteration, model, solverType, options, plane);
+
             if (DA.Iteration < _models.Count && _models[DA.Iteration] != null)
             {
                 DA.SetData(0, _models[DA.Iteration]);
                 DA.SetData(1, _meshes[DA.Iteration]);
+            }
+        }
+
+        private void RestoreAnalysis(int iteration, GH_Model model, int solverType, SolverOptionsModel options, Plane plane)
+        {
+            var reference = _analysisReferences[iteration];
+            try
+            {
+                var current = Common.Analysis.FormFindingInputBuilder.Build(model.Value, plane, solverType, options, model.Value.InputOwner, model.Guids);
+                if (!reference.IsCurrent(current.Model))
+                {
+                    if (iteration < _models.Count) { _models[iteration] = null; _meshes[iteration] = null; }
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Saved form-finding results belong to different inputs. Run the analysis again.");
+                    Message = "Inputs changed"; return;
+                }
+                var saved = _analysisState.Open(iteration);
+                var view = Common.Analysis.FormFindingOutputProjection.Project(model.Value, saved.Model, options);
+                SetResult(iteration, new GH_Model { Value = view.Model }, view.Mesh == null ? null : new GH_Mesh(view.Mesh));
+                _analysisReferences[iteration] = reference;
+                Message = "Restored";
+            }
+            catch (Exception error)
+            {
+                if (iteration < _models.Count) { _models[iteration] = null; _meshes[iteration] = null; }
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Cannot restore saved form finding: " + error.Message);
             }
         }
 
@@ -193,11 +222,21 @@ namespace Arachne.Grasshopper.Components.Analysis
                     AddRuntimeMessage(solverType == 1 ? GH_RuntimeMessageLevel.Error : GH_RuntimeMessageLevel.Warning, "Not converged. The maximum number of iteration has been reached.");
                     if (solverType == 1) { Message = "Error"; return; }
                 }
-                if (converged) Common.Analysis.TensileModelAdapter.Attach(input.Model, exported, status, input.ResultCase);
+                if (converged) Common.Analysis.TensileModelAdapter.Attach(input.Model, exported, status, input.ResultCase, input.PressureCase);
 
 #if ARACHNE_MIGRATION_CAPTURE
                 MigrationTensileCapture.Result(captureId, ff_model, converged, "solver-returned");
 #endif
+                if (converged)
+                {
+                    var view = Common.Analysis.FormFindingOutputProjection.Project(model.Value, input.Model, options);
+                    SetResult(iteration, new GH_Model { Value = view.Model }, view.Mesh == null ? null : new GH_Mesh(view.Mesh));
+                    _analysisState.Prepare(iteration, input.Model, exported.Map);
+                    Message = "Done"; return;
+                }
+
+                // Compatibility preview of a nonconverged iteration. It is never persisted as a
+                // completed GPC analysis and remains accompanied by the convergence warning.
                 // Create a deep copy of the model where to add the results
                 GH_Model result = (GH_Model)model.Duplicate();
 
