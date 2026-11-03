@@ -11,6 +11,21 @@ namespace Arachne.Common.Models
     [Serializable]
     public class NodeForceLoadModel : LoadModel<Vector3d>, IEquatable<NodeForceLoadModel>
     {
+        private GPC.Model.Loads.PointLoad input;
+        internal GPC.Model.Loads.PointLoad Input
+        {
+            get
+            {
+                if (input == null) input = new GPC.Model.Loads.PointLoad(0, 0, 0, 0, 0, 0, new GPC.Geometry.Point3d(0, 0, 0), null);
+                input.LoadCase = _loadCase?.Input;
+                return input;
+            }
+        }
+        protected override Vector3d _value
+        {
+            get => new Vector3d(Input.F1, Input.F2, Input.F3);
+            set { var load = Input; load.F1 = value.X; load.F2 = value.Y; load.F3 = value.Z; }
+        }
         protected static bool _isVisible = true;
         protected static double _scale = 1;
         protected static Color _color = Color.IndianRed;
@@ -46,32 +61,31 @@ namespace Arachne.Common.Models
 
         public NodeForceLoadModel(NodeForceLoadModel fl)
         {
-            _loadCase = fl._loadCase;
-            _value = new Vector3d(fl._value);
+            var copy = SerializationHelper.Clone(fl);
+            _loadCase = copy._loadCase;
+            input = copy.input;
         }
 
         #region Serialization
 
         private string SERIALIZATION_RELEASE_NAME = "NodeForceLoadModel_SERIALIZATION_RELEASE"; //do not modify the name!
-        private int SERIALIZATION_RELEASE = 1;
+        private int SERIALIZATION_RELEASE = 2;
 
 		protected NodeForceLoadModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
             int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
-            double x = info.GetDouble("X");
-            double y = info.GetDouble("Y");
-            double z = info.GetDouble("Z");
-            _value = new Vector3d(x, y, z);
+            if (savedRelease >= 2)
+                input = (GPC.Model.Loads.PointLoad)info.GetValue("Input", typeof(GPC.Model.Loads.PointLoad)) ?? throw new SerializationException("MissingNodeForceInput");
+            else
+                _value = new Vector3d(info.GetDouble("X"), info.GetDouble("Y"), info.GetDouble("Z"));
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             base.GetObjectData(info, context);
             info.AddValue(SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
-            info.AddValue("X", _value.X);
-            info.AddValue("Y", _value.Y);
-            info.AddValue("Z", _value.Z);
+            info.AddValue("Input", Input, typeof(GPC.Model.Loads.PointLoad));
         }
 
         #endregion

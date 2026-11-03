@@ -22,6 +22,7 @@ namespace Arachne.Grasshopper.DataTypes
         internal void SetInputIdentity(Guid identity)
         {
             if (identity == Guid.Empty) throw new ArgumentException("EmptyComponentInputIdentity");
+            Value?.BindInputIdentity(identity);
             _guid = identity;
         }
 
@@ -68,6 +69,7 @@ namespace Arachne.Grasshopper.DataTypes
             : this()
         {
             Value = new NodeModel(point);
+            Value.BindInputIdentity(_guid);
         }
 
         public GH_Node(NodeModel node, Guid? guid = null)
@@ -76,8 +78,8 @@ namespace Arachne.Grasshopper.DataTypes
             if (node == null)
                 node = new NodeModel();
             Value = new NodeModel(node);
-            if (guid.HasValue)
-                _guid = guid.Value;
+            _guid = guid ?? Value.Identity;
+            Value.BindInputIdentity(_guid);
         }
 
         /// <summary>
@@ -193,7 +195,8 @@ namespace Arachne.Grasshopper.DataTypes
 
             if (typeof(NodeModel).IsAssignableFrom(source.GetType()))
             {
-                Value = (NodeModel)source;
+                Value = new NodeModel((NodeModel)source);
+                _guid = Value.Identity;
                 return true;
             }
 
@@ -245,6 +248,7 @@ namespace Arachne.Grasshopper.DataTypes
                 {
                     _guid = reader.GetGuid("Guid");
                     Value = SerializationHelper.FromBytes<NodeModel>(reader.GetByteArray("Data"));
+                    Value.BindInputIdentity(_guid);
                     return true;
                 }
                 catch (Exception e)

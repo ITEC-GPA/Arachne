@@ -51,7 +51,12 @@ namespace Arachne.Common.Helpers
                 {
                     var legacy = LegacyNrbfArchive.Read<T>(data);
                     if (legacy is Models.ModelModel legacyModel)
-                        using (var sha = System.Security.Cryptography.SHA256.Create()) legacyModel.InputOwner = new Guid(sha.ComputeHash(data).Take(16).ToArray());
+                        using (var sha = System.Security.Cryptography.SHA256.Create())
+                        {
+                            legacyModel.InputOwner = new Guid(sha.ComputeHash(data).Take(16).ToArray());
+                            for (int i = 0; i < legacyModel.Nodes.Count; i++)
+                                legacyModel.Nodes[i].BindInputIdentity(Analysis.FormFindingInputBuilder.Identity(legacyModel.InputOwner, "node:" + i));
+                        }
                     return legacy;
                 }
                 throw new SerializationException("UnsupportedArachneArchive: expected ARCGPC2 or the closed legacy NRBF vocabulary.");

@@ -39,8 +39,11 @@ namespace Arachne.Grasshopper.DataTypes
         {
             try
             {
-                LoadCaseModel lc = new LoadCaseModel("", reader.GetString("name"));
-                Value = lc;
+                Value = reader.ItemExists("GpcData")
+                    ? Common.Helpers.SerializationHelper.FromBytes<LoadCaseModel>(reader.GetByteArray("GpcData"))
+                    : new LoadCaseModel("", reader.GetString("name"));
+                if (!reader.ItemExists("GpcData"))
+                    Value.BindInputIdentity(CaseModel.LegacyIdentity(Value.Name));
             }
             catch (Exception)
             {
@@ -53,7 +56,7 @@ namespace Arachne.Grasshopper.DataTypes
         {
             try
             {
-                writer.SetString("name", Value.Name);
+                writer.SetByteArray("GpcData", Common.Helpers.SerializationHelper.ToBytes(Value));
             }
             catch (Exception)
             {

@@ -20,7 +20,7 @@ internal static class F6ContractsChecks
     internal static int Run()
     {
         int failed = 0;
-        foreach (var test in new Action[] { ArchiveGraph, GoalOwnership, WrapperPersistence, ProductionIdentity, ProductionUnits, IpsSelfWeight, DistributedLoadMoment, PersistencePathOrdering, SolverOptionsOwnership, InvalidArchives, FutureWrapperSchema, LegacyMigration, IndependentGpcSolver })
+        foreach (var test in new Action[] { ArchiveGraph, NodeAndLoadStorage, GoalOwnership, WrapperPersistence, ProductionIdentity, ProductionUnits, IpsSelfWeight, DistributedLoadMoment, PersistencePathOrdering, DocumentSidecars, SolverOptionsOwnership, InvalidArchives, FutureWrapperSchema, LegacyMigration, IndependentGpcSolver })
             try { test(); Console.WriteLine("F6 PASS " + test.Method.Name); }
             catch (Exception ex) { failed++; Console.WriteLine("F6 FAIL " + test.Method.Name + ": " + ex); }
         return failed;
@@ -42,6 +42,45 @@ internal static class F6ContractsChecks
         copy.Nodes[0].Loads[0].LoadCase.Name = "changed";
         copy.Nodes[0].Position = new R.Point3d(10, 20, 30);
         Check(load.Name == "Load" && a.Position == R.Point3d.Origin, "Branch mutation isolated");
+    }
+    private static T StoredInput<T>(System.Runtime.Serialization.ISerializable wrapper)
+    {
+        var data = new System.Runtime.Serialization.SerializationInfo(wrapper.GetType(), new System.Runtime.Serialization.FormatterConverter());
+        wrapper.GetObjectData(data, new System.Runtime.Serialization.StreamingContext());
+        return (T)data.GetValue("Input", typeof(T));
+    }
+    private static void NodeAndLoadStorage()
+    {
+        var node = new NodeModel("N", new R.Point3d(10, 20, -0.0));
+        var identity = Guid.NewGuid(); node.BindInputIdentity(identity);
+        var physical = StoredInput<NodeElement>(node);
+        Check(physical.Guid == identity && physical.Name == "N" && physical.Position.Y == 20, "Node owns GPC input");
+        node.Position = new R.Point3d(40, 50, -0.0);
+        Check(physical.Position.X == 40, "Rhino coordinates are a view of the GPC node");
+        var lc = new LoadCaseModel("12", "Wind");
+        lc.BindInputIdentity(Guid.NewGuid());
+        var force = new NodeForceLoadModel(lc, new R.Vector3d(1, -2, 3)); node.Loads.Add(force);
+        var physicalForce = StoredInput<PointLoad>(force);
+        var physicalCase = StoredInput<LoadCaseBase>(lc);
+        Check(ReferenceEquals(physicalForce.LoadCase, physicalCase), "Load references the case input, not a second physical definition");
+        force.Value = new R.Vector3d(5, 6, 7);
+        Check(physicalForce.F1 == 5 && physicalForce.F3 == 7, "Force vector writes GPC components");
+        var clone = new NodeModel(node);
+        Check(clone.Identity == node.Identity && BitConverter.DoubleToInt64Bits(clone.Position.Z) == BitConverter.DoubleToInt64Bits(node.Position.Z), "Copy retains node identity and signed zero");
+        ((NodeForceLoadModel)clone.Loads[0]).Value = R.Vector3d.Zero;
+        clone.Loads[0].LoadCase.Name = "copy";
+        Check(force.Value.X == 5 && lc.Name == "Wind", "Copied node owns force and case");
+        var chunk = new GH_IO.Serialization.GH_LooseChunk("case");
+        Check(new Arachne.Grasshopper.DataTypes.GH_LoadCase(lc).Write(chunk), "Write full load case");
+        var read = new GH_IO.Serialization.GH_LooseChunk("case"); read.Deserialize_Binary(chunk.Serialize_Binary());
+        var restored = new Arachne.Grasshopper.DataTypes.GH_LoadCase();
+        Check(restored.Read(read) && restored.Value.Id == "12" && restored.Value.Identity == lc.Identity && restored.Value.Name == "Wind", "Case ID and identity survive internalization");
+        var old = new GH_IO.Serialization.GH_LooseChunk("legacy"); old.SetString("name", "Old case");
+        var migrated1 = new Arachne.Grasshopper.DataTypes.GH_LoadCase(); var migrated2 = new Arachne.Grasshopper.DataTypes.GH_LoadCase();
+        Check(migrated1.Read(old) && migrated2.Read(old) && migrated1.Value.Identity == migrated2.Value.Identity, "Legacy case migration is deterministic");
+        var assigned = StoredInput<NodeElement>(clone); assigned.Loads.Add(StoredInput<PointLoad>((NodeForceLoadModel)clone.Loads[0]));
+        bool refused = false; try { clone.BindInputIdentity(Guid.NewGuid()); } catch (InvalidOperationException) { refused = true; }
+        Check(refused && clone.Identity == identity, "Cannot reidentify a node carrying domain assignments");
     }
     private static void GoalOwnership()
     {
@@ -202,14 +241,14 @@ internal static class F6ContractsChecks
     }
     private sealed class PathProbe : Grasshopper.Kernel.GH_Component
     {
-        internal string PathSeen;
+        internal string PathSeen; internal string ArchiveSeen;
         public PathProbe() : base("Path probe", "Probe", "Test only", "Tests", "Tests") { }
         public override Guid ComponentGuid => new Guid("5d768a1a-8e1d-42eb-b126-8d72287b07fb");
         protected override void RegisterInputParams(GH_InputParamManager manager) { }
         protected override void RegisterOutputParams(GH_OutputParamManager manager) { }
         protected override void SolveInstance(Grasshopper.Kernel.IGH_DataAccess access) { }
         public override bool Write(GH_IO.Serialization.GH_IWriter writer)
-        { PathSeen = OnPingDocument()?.FilePath; return base.Write(writer); }
+        { PathSeen = OnPingDocument()?.FilePath; ArchiveSeen = writer.ArchiveLocation; return base.Write(writer); }
     }
     private static void PersistencePathOrdering()
     {
@@ -223,10 +262,72 @@ internal static class F6ContractsChecks
                 var io = new Grasshopper.Kernel.GH_DocumentIO { Document = document };
                 string first = System.IO.Path.Combine(directory, "first.ghx");
                 Check(io.SaveQuiet(first), "Save first document");
-                Check(string.IsNullOrEmpty(probe.PathSeen), "SaveQuiet does not provide the first destination to component Write");
+                Check(string.IsNullOrEmpty(probe.PathSeen) && probe.ArchiveSeen == first, "Writer ArchiveLocation gives the first destination independently of Document.FilePath");
                 string second = System.IO.Path.Combine(directory, "second.ghx");
                 Check(io.SaveQuiet(second), "Save As document");
-                Check(string.IsNullOrEmpty(probe.PathSeen), "SaveQuiet does not provide the Save As destination to component Write");
+                Check(string.IsNullOrEmpty(probe.PathSeen) && probe.ArchiveSeen == second, "Writer ArchiveLocation gives the Save As destination independently of Document.FilePath");
+            }
+        }
+        finally { System.IO.Directory.Delete(directory, true); }
+    }
+    private static void DocumentSidecars()
+    {
+        string directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "arachne-f6-document-" + Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(directory);
+        try
+        {
+            using (var canvas = new Canvas())
+            {
+                var chain = FormFindingChecks.Start(canvas);
+                var ends = new[] { new R.Point3d(-100, 0, 0), new R.Point3d(100, 0, 0) };
+                var beams = FormFindingChecks.Beams(chain, new[] { new R.Line(ends[0], R.Point3d.Origin), new R.Line(R.Point3d.Origin, ends[1]) });
+                var build = FormFindingChecks.Build(chain, FormFindingChecks.ForceDensity(chain, beams, 1), FormFindingChecks.Supports(chain, ends));
+                var solve = (Arachne.Grasshopper.Components.Analysis.FormFindComponent)FormFindingChecks.FormFind(chain, build, 0);
+                canvas.Solve();
+                var expected = solve.ReadAnalysis(0); var fingerprint = expected.Model.AnalysisFingerprint();
+                string first = System.IO.Path.Combine(directory, "first.ghx");
+                var io = new Grasshopper.Kernel.GH_DocumentIO { Document = canvas.Document };
+                Check(io.SaveQuiet(first), "Save GH document with sidecar");
+                var reference = solve.AnalysisReferences[0]; string sidecar = reference.ResolvePath(first);
+                Check(System.IO.File.Exists(sidecar) && reference.ArchiveFile.Contains(solve.InstanceGuid.ToString("N")), "Each component owns a distinct sidecar");
+                byte[] saved = System.IO.File.ReadAllBytes(sidecar); var stamp = System.IO.File.GetLastWriteTimeUtc(sidecar);
+                Check(io.SaveQuiet(first) && saved.SequenceEqual(System.IO.File.ReadAllBytes(sidecar)) && stamp == System.IO.File.GetLastWriteTimeUtc(sidecar), "Unchanged GH save leaves sidecar bytes and timestamp unchanged");
+                string second = System.IO.Path.Combine(directory, "second.gh");
+                Check(io.SaveQuiet(second), "GH binary Save As");
+                Check(solve.AnalysisReferences[0].ResolvePath(second) != sidecar && System.IO.File.Exists(sidecar), "Save As rebases references and preserves the original sidecar");
+                var reopened = new Grasshopper.Kernel.GH_DocumentIO(); Check(reopened.Open(second), "Open saved GH document");
+                using (reopened.Document)
+                {
+                    var component = reopened.Document.Objects.OfType<Arachne.Grasshopper.Components.Analysis.FormFindComponent>().Single();
+                    var actual = component.ReadAnalysis(0);
+                    Check(actual.Model.AnalysisFingerprint() == fingerprint && actual.Model.AllElements.Any(e => e.Results.Count > 0), "GH reopen reads the saved GPC analysis without solving");
+                    Check(actual.SolverMap != null, "Solver identities survive GH reopen");
+                    reopened.Document.NewSolution(false);
+                    Check(component.AnalysisReferences.Count == 1 && component.ReadAnalysis(0).Model.AnalysisFingerprint() == fingerprint,
+                        "Recalculation after reopen replaces the saved iteration without duplicating slots");
+                }
+                var clipboard = new GH_IO.Serialization.GH_LooseChunk("clipboard"); Check(solve.Write(clipboard), "Write portable clipboard/undo archive");
+                var bytes = clipboard.Serialize_Binary(); var reader = new GH_IO.Serialization.GH_LooseChunk("clipboard"); reader.Deserialize_Binary(bytes);
+                var copied = new Arachne.Grasshopper.Components.Analysis.FormFindComponent(); copied.CreateAttributes();
+                Check(copied.Read(reader) && copied.ReadAnalysis(0).Model.AnalysisFingerprint() == fingerprint, "Clipboard carries an independent GPC analysis");
+                // Moving both files preserves the relative reference. A missing sidecar must not run a solver.
+                string moved = System.IO.Path.Combine(directory, "moved"); System.IO.Directory.CreateDirectory(moved);
+                string movedDocument = System.IO.Path.Combine(moved, "renamed.gh"); System.IO.File.Copy(second, movedDocument);
+                var secondRef = solve.AnalysisReferences[0]; System.IO.File.Copy(secondRef.ResolvePath(second), secondRef.ResolvePath(movedDocument));
+                var movedIo = new Grasshopper.Kernel.GH_DocumentIO(); Check(movedIo.Open(movedDocument), "Open moved document");
+                using (movedIo.Document)
+                {
+                    var component = movedIo.Document.Objects.OfType<Arachne.Grasshopper.Components.Analysis.FormFindComponent>().Single();
+                    Check(component.ReadAnalysis(0).Model.AnalysisFingerprint() == fingerprint, "Relative sidecar survives moving the project");
+                }
+                System.IO.File.Delete(secondRef.ResolvePath(movedDocument));
+                var missingIo = new Grasshopper.Kernel.GH_DocumentIO(); Check(missingIo.Open(movedDocument), "Definition opens without its results file");
+                using (missingIo.Document)
+                {
+                    var component = missingIo.Document.Objects.OfType<Arachne.Grasshopper.Components.Analysis.FormFindComponent>().Single();
+                    bool rejected = false; try { component.ReadAnalysis(0); } catch (System.IO.InvalidDataException) { rejected = true; }
+                    Check(rejected, "Missing numerical blocks are diagnosed explicitly");
+                }
             }
         }
         finally { System.IO.Directory.Delete(directory, true); }

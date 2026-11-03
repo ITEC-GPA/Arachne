@@ -86,9 +86,11 @@ namespace Arachne.Common.Analysis
                 element.Source = new SourceIdentity("Arachne", owner.ToString("D"), family, slot.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 elements.Add(element);
             }
-            NodeElement AddNode(R.Point3d p, Guid id)
+            NodeElement AddNode(R.Point3d p, Guid id, NodeElement original = null)
             {
-                var node = new NodeElement(id, Point(p));
+                var node = original == null ? new NodeElement(id, Point(p)) : ModelValues.CopyValue(original);
+                if (node.Guid != id) throw new ArgumentException("ConflictingNodeWrapperIdentity");
+                node.Position = Point(p);
                 Register(node, EntityFamily.Node, nodes.Count); nodes.Add(node);
                 if (!points.ContainsKey((p.X, p.Y, p.Z))) points.Add((p.X, p.Y, p.Z), node);
                 return node;
@@ -97,7 +99,9 @@ namespace Arachne.Common.Analysis
                 ? node : AddNode(p, Identity(element, endpoint));
             for (int i = 0; i < source.Nodes.Count; i++)
             {
-                var old = source.Nodes[i]; var node = AddNode(old.Position, Key(old, "node:" + i));
+                var old = source.Nodes[i];
+                var id = identities != null && identities.TryGetValue(old, out var bound) ? bound : old.Identity;
+                var node = AddNode(old.Position, id, old.Input);
                 if (old.HasAttribute(typeof(NodeRestraintAttributeModel)))
                 {
                     var r = NodeRestraintAttributeModel.GetRestraint(old);
@@ -110,7 +114,12 @@ namespace Arachne.Common.Analysis
                 {
                     if (load is NodePressureLoadModel) { input.Diagnostics.Add("The pressure forces of a previous form finding are results; only the current pressure is applied."); continue; }
                     if (load is NodeForceLoadModel force && Applies(load))
-                        node.Loads.Add(new PointLoad(force.Value.X * u.ForceToN, force.Value.Y * u.ForceToN, force.Value.Z * u.ForceToN, 0, 0, 0, node.Position, Case(load.LoadCase)));
+                    {
+                        var physicalLoad = ModelValues.CopyValue(force.Input);
+                        physicalLoad.F1 *= u.ForceToN; physicalLoad.F2 *= u.ForceToN; physicalLoad.F3 *= u.ForceToN;
+                        physicalLoad.Point = node.Position; physicalLoad.LoadCase = Case(load.LoadCase);
+                        node.Loads.Add(physicalLoad);
+                    }
                     else if (!(load is NodeForceLoadModel)) throw new NotSupportedException("UnsupportedFormFindingNodeLoad: " + load.GetType().Name);
                 }
                 if (old.HasAttribute(typeof(NodeWeightAttributeModel)))

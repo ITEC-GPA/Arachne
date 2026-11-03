@@ -45,6 +45,8 @@ namespace Arachne.Grasshopper.Components.Definitions
 
             LoadCaseModel lc = name == LoadCaseModel.Dead.Name ? new LoadCaseModel(LoadCaseModel.Dead) : new LoadCaseModel("", name);
 
+            lc.BindInputIdentity(ComponentInputIdentity.For(this, DA));
+
             Message = name;
 
             DA.SetData(0, new GH_LoadCase(lc));

@@ -215,7 +215,20 @@ namespace Arachne.Common.Models
             return Arachne.Common.Helpers.SerializationHelper.Clone(this);
         }
 
-        internal void RebuildIndexes() => Sync(0);
+        internal void RebuildIndexes()
+        {
+            Sync(0);
+            BindLegacyNodeIdentities();
+        }
+        internal void BindLegacyNodeIdentities()
+        {
+            for (int i = 0; i < Nodes.Count; i++)
+            {
+                var node = Nodes[i];
+                if (node.NeedsLegacyIdentity)
+                    node.BindInputIdentity(InputIdentities.TryGetValue(node, out var id) ? id : Analysis.FormFindingInputBuilder.Identity(InputOwner, "node:" + i));
+            }
+        }
 
 		/*/// <summary>
         /// Setup the conversion parameter for converting measures through the Utilities library

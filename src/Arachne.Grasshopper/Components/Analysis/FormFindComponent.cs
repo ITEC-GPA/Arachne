@@ -16,10 +16,10 @@ namespace Arachne.Grasshopper.Components.Analysis
 {
     public class FormFindComponent : GH_Component
     {
-        private readonly GPC.Model.Persistence.ExternalModelArchive _analysisArchive = new GPC.Model.Persistence.ExternalModelArchive();
-        private readonly List<GPC.Model.Persistence.ExternalModelReference> _analysisReferences = new List<GPC.Model.Persistence.ExternalModelReference>();
+        private readonly AnalysisDocumentState _analysisState = new AnalysisDocumentState();
+        private List<GPC.Model.Persistence.ExternalModelReference> _analysisReferences => _analysisState.References;
         public IReadOnlyList<GPC.Model.Persistence.ExternalModelReference> AnalysisReferences => _analysisReferences.AsReadOnly();
-        public GPC.Model.Persistence.ExternalModelRun ReadAnalysis(int iteration) => _analysisArchive.Open(_analysisReferences[iteration]);
+        public GPC.Model.Persistence.ExternalModelRun ReadAnalysis(int iteration) => _analysisState.Open(iteration);
         private bool _run;
         // Last result of every data tree iteration, kept on the outputs until the next run
         private readonly List<GH_Model> _models;
@@ -36,6 +36,28 @@ namespace Arachne.Grasshopper.Components.Analysis
             _models = new List<GH_Model>();
             _meshes = new List<GH_Mesh>();
             _runCount = 0;
+        }
+
+        public override bool Write(GH_IO.Serialization.GH_IWriter writer)
+        {
+            if (!base.Write(writer)) return false;
+            try { _analysisState.Write(writer, InstanceGuid); return true; }
+            catch (Exception error)
+            {
+                writer.AddMessage("Cannot save form-finding analysis: " + error.Message, GH_IO.Serialization.GH_Message_Type.error);
+                return false;
+            }
+        }
+
+        public override bool Read(GH_IO.Serialization.GH_IReader reader)
+        {
+            if (!base.Read(reader)) return false;
+            try { _analysisState.Read(reader); _models.Clear(); _meshes.Clear(); return true; }
+            catch (Exception error)
+            {
+                reader.AddMessage("Cannot read form-finding analysis: " + error.Message, GH_IO.Serialization.GH_Message_Type.error);
+                return false;
+            }
         }
 
         public override void CreateAttributes()
@@ -379,7 +401,7 @@ namespace Arachne.Grasshopper.Components.Analysis
                 }
 
                 SetResult(iteration, result, resultMesh);
-                if (converged) _analysisReferences[iteration] = _analysisArchive.Prepare(input.Model, exported.Map);
+                if (converged) _analysisState.Prepare(iteration, input.Model, exported.Map);
                 Message = "Done";
             }
             catch (Exception e)
@@ -393,10 +415,10 @@ namespace Arachne.Grasshopper.Components.Analysis
         {
             while (_models.Count <= iteration)
             {
-                _analysisReferences.Add(null);
                 _models.Add(null);
                 _meshes.Add(null);
             }
+            while (_analysisReferences.Count <= iteration) _analysisReferences.Add(null);
             _analysisReferences[iteration] = null;
             _models[iteration] = model;
             _meshes[iteration] = mesh;
