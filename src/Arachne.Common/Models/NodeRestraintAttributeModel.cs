@@ -6,6 +6,8 @@ using Rhino.Display;
 using Rhino.Geometry;
 using Arachne.Common.Helpers;
 using System.Collections.Generic;
+using GPC.Model.Restraints;
+using GPC.Model.Core;
 
 namespace Arachne.Common.Models
 {
@@ -30,9 +32,19 @@ namespace Arachne.Common.Models
         // The rotations of FeMM are not kept: the form finding does not use them
         public class AttributeData : IEquatable<AttributeData>
         {
-            public bool Tx { get; set; }
-            public bool Ty { get; set; }
-            public bool Tz { get; set; }
+            private List<DofRestrain> dofs = Enumerable.Range(0, 3).Select(i => new DofRestrain((GeometryRestrain.DOF)i, false)).ToList();
+            internal IReadOnlyList<DofRestrain> InputDofs => dofs.AsReadOnly();
+            public bool Tx { get => dofs[0].IsRestrained; set => dofs[0].IsRestrained = value; }
+            public bool Ty { get => dofs[1].IsRestrained; set => dofs[1].IsRestrained = value; }
+            public bool Tz { get => dofs[2].IsRestrained; set => dofs[2].IsRestrained = value; }
+            public AttributeData() { }
+            internal AttributeData(List<DofRestrain> values, CoordinateSystemModel axes)
+            {
+                if (values == null || values.Count != 3 || values.Where((d, i) => d == null || (int)d.Dof != i).Any())
+                    throw new SerializationException("InvalidArachneTranslationRestraints");
+                dofs = values; CoordinateSystem = axes;
+            }
+            internal AttributeData Copy() => new AttributeData(ModelValues.CopyValue(dofs), CoordinateSystem == null ? null : new CoordinateSystemModel(CoordinateSystem));
 
             /// <summary>
             /// The axes of the restraints: X, Y and Z of the coordinate system (of a plane).
@@ -97,24 +109,18 @@ namespace Arachne.Common.Models
                 Tx = tx,
                 Ty = ty,
                 Tz = tz,
-                CoordinateSystem = coordinateSystem
+                CoordinateSystem = coordinateSystem == null ? null : new CoordinateSystemModel(coordinateSystem)
             };
         }
 
         public NodeRestraintAttributeModel(AttributeData value)
-            : base(value)
+            : base(value?.Copy() ?? throw new ArgumentNullException(nameof(value)))
         {
         }
 
         public NodeRestraintAttributeModel(NodeRestraintAttributeModel attr)
         {
-            _value = new AttributeData()
-            {
-                Tx = attr.Value.Tx,
-                Ty = attr.Value.Ty,
-                Tz = attr.Value.Tz,
-                CoordinateSystem = attr.Value.CoordinateSystem != null ? new CoordinateSystemModel(attr.Value.CoordinateSystem) : null
-            };
+            _value = attr.Value.Copy();
         }
 
         public override void Draw(DisplayPipeline display, RhinoViewport viewport, Color color, ElementModel element)
@@ -147,12 +153,18 @@ namespace Arachne.Common.Models
 
         private string SERIALIZATION_RELEASE_NAME = "NodeRestraintAttributeModel_SERIALIZATION_RELEASE"; //do not modify the name!
         // 2: no rotations, coordinate system of the restraints
-        private int SERIALIZATION_RELEASE = 2;
+        private int SERIALIZATION_RELEASE = 3;
 
 		protected NodeRestraintAttributeModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
             int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
+            if (savedRelease >= 3)
+            {
+                _value = new AttributeData((List<DofRestrain>)info.GetValue("Dofs", typeof(List<DofRestrain>)),
+                    (CoordinateSystemModel)info.GetValue("CoordinateSystem", typeof(CoordinateSystemModel)));
+                return;
+            }
             _value = new AttributeData()
             {
                 Tx = info.GetBoolean("Tx"),
@@ -167,9 +179,7 @@ namespace Arachne.Common.Models
         {
             base.GetObjectData(info, context);
             info.AddValue(SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
-            info.AddValue("Tx", _value.Tx);
-            info.AddValue("Ty", _value.Ty);
-            info.AddValue("Tz", _value.Tz);
+            info.AddValue("Dofs", _value.InputDofs.ToList(), typeof(List<DofRestrain>));
             info.AddValue("CoordinateSystem", _value.CoordinateSystem, typeof(CoordinateSystemModel));
         }
 

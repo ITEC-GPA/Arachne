@@ -6,6 +6,10 @@ using Rhino.Geometry;
 using Arachne.Common.Helpers;
 using System.Collections.Generic;
 using Rhino.Collections;
+using GPC.Model.Core;
+using GPC.Model.Loads;
+using GPC.Model.Loads.Assignments;
+using G = GPC.Geometry;
 
 namespace Arachne.Common.Models
 {
@@ -23,9 +27,55 @@ namespace Arachne.Common.Models
             /// <summary>
             /// NULL for local system
             /// </summary>
-            public CoordinateSystemModel CoordinateSystem { get; set; }
-            public Vector3d P { get; set; }
-            public double A { get; set; }
+            private CoordinateSystemModel coordinateSystem;
+            private LoadType kind;
+            internal BeamLoadAssignment Input { get; private set; } = new BeamLoadAssignment
+            {
+                Concentrated = new PointLoad(0, 0, 0, 0, 0, 0, new G.Point3d(0, 0, 0), null),
+                LengthConvention = BeamLoadLengthConvention.ActualLength
+            };
+            internal bool MissingLegacyAxes { get; private set; }
+            public CoordinateSystemModel CoordinateSystem
+            {
+                get => coordinateSystem;
+                set { coordinateSystem = value; MissingLegacyAxes = false; }
+            }
+            internal LoadType Kind
+            {
+                get => kind;
+                set
+                {
+                    if (value != LoadType.Force && value != LoadType.Moment) throw new ArgumentOutOfRangeException(nameof(value));
+                    var components = P; kind = value;
+                    var p = Input.Concentrated; p.F1 = p.F2 = p.F3 = p.M1 = p.M2 = p.M3 = 0;
+                    P = components;
+                }
+            }
+            public Vector3d P
+            {
+                get => kind == LoadType.Force ? new Vector3d(Input.Concentrated.F1, Input.Concentrated.F2, Input.Concentrated.F3)
+                    : new Vector3d(Input.Concentrated.M1, Input.Concentrated.M2, Input.Concentrated.M3);
+                set
+                {
+                    if (kind == LoadType.Force) { Input.Concentrated.F1 = value.X; Input.Concentrated.F2 = value.Y; Input.Concentrated.F3 = value.Z; }
+                    else { Input.Concentrated.M1 = value.X; Input.Concentrated.M2 = value.Y; Input.Concentrated.M3 = value.Z; }
+                }
+            }
+            public double A { get => Input.Start; set { Input.Start = value; Input.End = value; } }
+            public LoadData() { }
+            internal LoadData(BeamLoadAssignment input, LoadType type, CoordinateSystemModel axes, bool missingAxes)
+            {
+                if (input?.Concentrated == null || input.Start != input.End || input.StartIntensity != null || input.EndIntensity != null
+                    || input.Eccentricity != null || input.LengthConvention != BeamLoadLengthConvention.ActualLength
+                    || (type != LoadType.Force && type != LoadType.Moment)) throw new SerializationException("InvalidArachnePointLoadAssignment");
+                var p = input.Concentrated;
+                if (type == LoadType.Force ? p.M1 != 0 || p.M2 != 0 || p.M3 != 0 : p.F1 != 0 || p.F2 != 0 || p.F3 != 0)
+                    throw new SerializationException("MixedArachnePointLoadComponents");
+                Input = input; kind = type; coordinateSystem = axes; MissingLegacyAxes = missingAxes;
+            }
+            internal LoadData Copy() => new LoadData(ModelValues.CopyValue(Input), kind,
+                coordinateSystem == null ? null : new CoordinateSystemModel(coordinateSystem), MissingLegacyAxes);
+            internal void MarkMissingAxes() { MissingLegacyAxes = true; }
 
             public override bool Equals(object obj)
             {
@@ -53,7 +103,17 @@ namespace Arachne.Common.Models
         protected static bool _isVisible = true;
         protected static double _scale = 1;
         protected static Color _color = Color.IndianRed;
-        protected LoadType _loadType;
+        protected LoadType _loadType { get => _value.Kind; set => _value.Kind = value; }
+        public override LoadData Value
+        {
+            get => base.Value;
+            set => base.Value = value ?? throw new ArgumentNullException(nameof(value));
+        }
+        internal BeamLoadAssignment Input
+        {
+            get { _value.Input.Concentrated.LoadCase = LoadCase?.Input; return _value.Input; }
+        }
+        public bool RequiresCoordinateSystemRecovery => _value.MissingLegacyAxes;
 
         public static bool IsVisible
         {
@@ -83,42 +143,39 @@ namespace Arachne.Common.Models
 
         public BeamPointLoadModel()
         {
+            _value = new LoadData();
         }
 
         public BeamPointLoadModel(LoadCaseModel loadCase, LoadData value, LoadType type)
-            : base (loadCase, value)
+            : base (loadCase, value?.Copy() ?? throw new ArgumentNullException(nameof(value)))
         {
             _loadType = type;
         }
 
         public BeamPointLoadModel(BeamPointLoadModel load)
         {
-            _loadCase = load.LoadCase;
-            _loadType = load._loadType;
-            _value = new LoadData()
-            {
-                CoordinateSystem = load.Value.CoordinateSystem != null ? new CoordinateSystemModel(load.Value.CoordinateSystem) : null,
-                P = new Vector3d(load.Value.P),
-                A = load.Value.A
-            };
+            var copy = SerializationHelper.Clone(load);
+            _loadCase = copy._loadCase; _value = copy._value;
         }
 
         #region Serialization
 
         private string SERIALIZATION_RELEASE_NAME = "BeamPointLoadModel_SERIALIZATION_RELEASE"; //do not modify the name!
-        private int SERIALIZATION_RELEASE = 1;
+        private int SERIALIZATION_RELEASE = 2;
 
 		protected BeamPointLoadModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
             int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
-            _loadType = (LoadType)info.GetValue("LoadType", typeof(LoadType));
-            _value = new LoadData()
+            var type = (LoadType)info.GetValue("LoadType", typeof(LoadType));
+            if (savedRelease >= 2)
+                _value = new LoadData((BeamLoadAssignment)info.GetValue("Input", typeof(BeamLoadAssignment)), type,
+                    (CoordinateSystemModel)info.GetValue("CoordinateSystem", typeof(CoordinateSystemModel)), info.GetBoolean("MissingLegacyAxes"));
+            else
             {
-                // TODO: CoordinateSystem
-                P = (Vector3d)info.GetValue("Force", typeof(Vector3d)),
-                A = info.GetDouble("A")
-            };
+                _value = new LoadData { P = (Vector3d)info.GetValue("Force", typeof(Vector3d)), A = info.GetDouble("A") };
+                _loadType = type; _value.MarkMissingAxes();
+            }
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -126,9 +183,9 @@ namespace Arachne.Common.Models
             base.GetObjectData(info, context);
             info.AddValue(SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             info.AddValue("LoadType", _loadType, typeof(LoadType));
-            // TODO: info.AddValue("CoordinateSystem"
-            info.AddValue("Force", _value.P, typeof(Vector3d));
-            info.AddValue("A", _value.A);
+            info.AddValue("Input", Input, typeof(BeamLoadAssignment));
+            info.AddValue("CoordinateSystem", _value.CoordinateSystem, typeof(CoordinateSystemModel));
+            info.AddValue("MissingLegacyAxes", _value.MissingLegacyAxes);
         }
 
         #endregion
@@ -162,8 +219,7 @@ namespace Arachne.Common.Models
                 }
                 else //  Custom system
                 {
-                    // TODO: gestire ucs
-                    return;
+                    if (!_value.CoordinateSystem.GetAxes(out v1, out v2, out v3)) return;
                 }
 
                 Point3d pt = beam.PointFrom + uvec_h * (_value.A * vec.Length);

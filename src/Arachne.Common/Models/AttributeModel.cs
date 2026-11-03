@@ -64,7 +64,8 @@ namespace Arachne.Common.Models
 
     public abstract class AttributeModel<T> : AttributeModel
     {
-        protected T _value;
+        private T value;
+        protected virtual T _value { get => value; set => this.value = value; }
 
         public virtual T Value
         {

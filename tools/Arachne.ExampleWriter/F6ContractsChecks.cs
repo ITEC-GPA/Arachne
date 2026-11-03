@@ -20,7 +20,7 @@ internal static class F6ContractsChecks
     internal static int Run()
     {
         int failed = 0;
-        foreach (var test in new Action[] { ArchiveGraph, NodeAndLoadStorage, GoalOwnership, WrapperPersistence, ProductionIdentity, ProductionUnits, IpsSelfWeight, DistributedLoadMoment, PersistencePathOrdering, DocumentSidecars, SavedOutputRestoration, SolverOptionsOwnership, InvalidArchives, FutureWrapperSchema, LegacyMigration, IndependentGpcSolver })
+        foreach (var test in new Action[] { ArchiveGraph, NodeAndLoadStorage, NodeConstraintStorage, BeamPointLoadStorage, GoalOwnership, WrapperPersistence, ProductionIdentity, ProductionUnits, IpsSelfWeight, DistributedLoadMoment, PersistencePathOrdering, DocumentSidecars, SavedOutputRestoration, SolverOptionsOwnership, InvalidArchives, FutureWrapperSchema, LegacyMigration, IndependentGpcSolver })
             try { test(); Console.WriteLine("F6 PASS " + test.Method.Name); }
             catch (Exception ex) { failed++; Console.WriteLine("F6 FAIL " + test.Method.Name + ": " + ex); }
         return failed;
@@ -81,6 +81,90 @@ internal static class F6ContractsChecks
         var assigned = StoredInput<NodeElement>(clone); assigned.Loads.Add(StoredInput<PointLoad>((NodeForceLoadModel)clone.Loads[0]));
         bool refused = false; try { clone.BindInputIdentity(Guid.NewGuid()); } catch (InvalidOperationException) { refused = true; }
         Check(refused && clone.Identity == identity, "Cannot reidentify a node carrying domain assignments");
+    }
+    private static void NodeConstraintStorage()
+    {
+        var axes = CoordinateSystemModel.FromPlane(new R.Plane(new R.Point3d(7, 8, 9), R.Vector3d.YAxis, -R.Vector3d.XAxis));
+        var restraint = new NodeRestraintAttributeModel(true, false, true, axes);
+        axes.Origin = R.Point3d.Origin;
+        Check(restraint.Value.CoordinateSystem.Origin.X == 7, "Restraint owns its axes");
+        var data = new System.Runtime.Serialization.SerializationInfo(restraint.GetType(), new System.Runtime.Serialization.FormatterConverter());
+        restraint.GetObjectData(data, new System.Runtime.Serialization.StreamingContext());
+        var dofs = (System.Collections.Generic.List<DofRestrain>)data.GetValue("Dofs", typeof(System.Collections.Generic.List<DofRestrain>));
+        Check(dofs.Count == 3 && dofs[0].Dof == GeometryRestrain.DOF.DX && dofs[0].IsRestrained && !dofs[1].IsRestrained, "GPC translation restraints stored");
+        restraint.Value.Ty = true;
+        Check(dofs[1].IsRestrained, "Boolean controls view the GPC degrees of freedom");
+        var copied = new NodeRestraintAttributeModel(restraint);
+        copied.Value.Tx = false; copied.Value.CoordinateSystem.Origin = R.Point3d.Origin;
+        Check(restraint.Value.Tx && restraint.Value.CoordinateSystem.Origin.X == 7, "Restraint copies are independent");
+        var restored = SerializationHelper.Clone(restraint);
+        Check(restored.Equals(restraint), "GPC restraint and local axes survive persistence");
+        var weight = new NodeWeightAttributeModel(new R.Vector3d(2, 3, -0.0));
+        weight.Goal.Weights.X = 4;
+        Check(weight.Value.X == 4, "Coordinate controls view the GPC goal");
+        var weightCopy = SerializationHelper.Clone(weight); weightCopy.Value = R.Vector3d.Zero;
+        Check(weight.Value.X == 4 && BitConverter.DoubleToInt64Bits(weight.Value.Z) == long.MinValue, "Goal copy is detached and preserves negative zero");
+        var node = new NodeModel("N", new R.Point3d(1, 2, 3)); node.Attributes.Add(restraint); node.Attributes.Add(weight);
+        var model = new ModelModel(ModelModel.ModelUnits.Nmm); model.AddElements(new[] { node });
+        var options = new SolverOptionsModel { CreateMesh = false };
+        var input = FormFindingInputBuilder.Build(model, R.Plane.WorldXY, 2, options, model.InputOwner, model.InputIdentities);
+        var physical = input.Model.NodesElements.Values.Single();
+        Check(physical.Assignments.Restrains.Single().Restrain.Restrains.Count == 3 && input.Model.FormFinding.CoordinateGoals.Single().NodeGuid == physical.Guid, "Builder uses GPC restraints and binds coordinate goal identity");
+        input.Model.FormFinding.CoordinateGoals.Single().Weights.X = 10;
+        physical.Assignments.Restrains.Single().Restrain.Restrains[0].IsRestrained = false;
+        Check(weight.Value.X == 4 && restraint.Value.Tx, "Assembled graph does not alias wrapper inputs");
+        var linear = FormFindingInputBuilder.Build(model, R.Plane.WorldXY, 0, options, model.InputOwner, model.InputIdentities);
+        Check(linear.Model.FormFinding.CoordinateGoals.Count == 0 && linear.Diagnostics.Any(d => d.Contains("Coordinate objectives")), "Inactive nonlinear goal is diagnosed for linear solver");
+        // Exercise old schema constructors without rewriting the frozen NRBF fixtures.
+        System.Runtime.Serialization.SerializationInfo Legacy(Type type, string key, int version)
+        {
+            var info = new System.Runtime.Serialization.SerializationInfo(type, new System.Runtime.Serialization.FormatterConverter());
+            info.AddValue("AttributeModel_SERIALIZATION_RELEASE", 1); info.AddValue("AttributeModel<T>_SERIALIZATION_RELEASE", 1); info.AddValue(key, version); return info;
+        }
+        object Read(Type type, System.Runtime.Serialization.SerializationInfo info) => type.GetConstructor(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null,
+            new[] { typeof(System.Runtime.Serialization.SerializationInfo), typeof(System.Runtime.Serialization.StreamingContext) }, null).Invoke(new object[] { info, new System.Runtime.Serialization.StreamingContext() });
+        var oldRestraint = Legacy(typeof(NodeRestraintAttributeModel), "NodeRestraintAttributeModel_SERIALIZATION_RELEASE", 2);
+        oldRestraint.AddValue("Tx", true); oldRestraint.AddValue("Ty", false); oldRestraint.AddValue("Tz", true); oldRestraint.AddValue("CoordinateSystem", axes, typeof(CoordinateSystemModel));
+        var migrated = (NodeRestraintAttributeModel)Read(typeof(NodeRestraintAttributeModel), oldRestraint);
+        Check(migrated.Value.Tx && !migrated.Value.Ty && migrated.Value.Tz, "Legacy restraint flags migrate to GPC degrees of freedom");
+        var oldWeight = Legacy(typeof(NodeWeightAttributeModel), "NodeWeightAttributeModel_SERIALIZATION_RELEASE", 1); oldWeight.AddValue("Value", new R.Vector3d(3, 5, 7));
+        Check(((NodeWeightAttributeModel)Read(typeof(NodeWeightAttributeModel), oldWeight)).Goal.Weights.Y == 5, "Legacy coordinate weights migrate to GPC goal");
+    }
+    private static void BeamPointLoadStorage()
+    {
+        var axes = CoordinateSystemModel.FromPlane(new R.Plane(R.Point3d.Origin, R.Vector3d.YAxis, -R.Vector3d.XAxis), "Rotated");
+        var lc = new LoadCaseModel("P", "Point force");
+        var original = new BeamPointLoadModel(lc, new BeamPointLoadModel.LoadData { CoordinateSystem = axes, P = new R.Vector3d(2, 3, 5), A = .25 }, BeamPointLoadModel.LoadType.Force);
+        var physical = StoredInput<GPC.Model.Loads.Assignments.BeamLoadAssignment>(original);
+        original.Value.P = new R.Vector3d(7, 11, 13); original.Value.A = .4;
+        Check(physical.Concentrated.F2 == 11 && physical.Start == .4 && physical.End == .4, "Point components and station are GPC-backed");
+        var restored = SerializationHelper.Clone(original);
+        Check(restored.Value.CoordinateSystem.Equals(axes) && !restored.RequiresCoordinateSystemRecovery, "Point-load axes survive persistence");
+        var copy = new BeamPointLoadModel(original); copy.PointLoadType = BeamPointLoadModel.LoadType.Moment; copy.LoadCase.Name = "copy";
+        var moment = StoredInput<GPC.Model.Loads.Assignments.BeamLoadAssignment>(copy).Concentrated;
+        Check(moment.M1 == 7 && moment.M2 == 11 && moment.F1 == 0 && original.PointLoadType == BeamPointLoadModel.LoadType.Force && lc.Name == "Point force", "Type changes move components and copy owns its case");
+        Check(SerializationHelper.Clone(copy).Value.P.Z == 13, "Moment components persist without reinterpretation");
+        var beam = new BeamModel("B", new R.Point3d(0, 0, 0), new R.Point3d(2, 0, 0))
+        { BeamProperty = new BeamPropertyModel("P") { Material = new MaterialModel("M") { Density = 0 }, Section = new SectionModel("S") { SectionArea = .01 } } }; beam.Loads.Add(restored);
+        var model = new ModelModel(ModelModel.ModelUnits.SI); model.AddElements(new[] { beam }); model.AddLoadCases(new[] { lc });
+        var input = FormFindingInputBuilder.Build(model, R.Plane.WorldXY, 0, new SolverOptionsModel { CreateMesh = false }, model.InputOwner, model.InputIdentities);
+        var actual = input.Model.BeamElements.Values.Single().Assignments.Loads.Single();
+        Check(actual.Concentrated.F1 == -11 && actual.Concentrated.F2 == 7 && actual.Concentrated.F3 == 13 && actual.Start == .4, "Custom axes resolve to the independent analytical global vector");
+        actual.Concentrated.F1 = 99;
+        Check(restored.Value.P.X == 7 && physical.Concentrated.F1 == 7, "Assembly owns its point load");
+        var info = new System.Runtime.Serialization.SerializationInfo(typeof(BeamPointLoadModel), new System.Runtime.Serialization.FormatterConverter());
+        info.AddValue("LoadModel_SERIALIZATION_RELEASE", 1); info.AddValue("LoadModel<T>_SERIALIZATION_RELEASE", 1); info.AddValue("LoadCase", lc);
+        info.AddValue("BeamPointLoadModel_SERIALIZATION_RELEASE", 1); info.AddValue("LoadType", BeamPointLoadModel.LoadType.Force); info.AddValue("Force", R.Vector3d.XAxis); info.AddValue("A", .5);
+        var legacy = (BeamPointLoadModel)typeof(BeamPointLoadModel).GetConstructor(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null,
+            new[] { typeof(System.Runtime.Serialization.SerializationInfo), typeof(System.Runtime.Serialization.StreamingContext) }, null).Invoke(new object[] { info, new System.Runtime.Serialization.StreamingContext() });
+        Check(legacy.RequiresCoordinateSystemRecovery && SerializationHelper.Clone(legacy).RequiresCoordinateSystemRecovery, "Missing legacy axes remain explicit through a resave");
+        beam.Loads.Clear(); beam.Loads.Add(legacy);
+        bool refused = false;
+        try { FormFindingInputBuilder.Build(model, R.Plane.WorldXY, 0, new SolverOptionsModel { CreateMesh = false }, model.InputOwner, model.InputIdentities); }
+        catch (InvalidOperationException e) { refused = e.Message.Contains("LegacyPointLoadCoordinateSystemWasNotSaved"); }
+        Check(refused, "Ambiguous legacy load cannot silently change its force direction");
+        legacy.Value.CoordinateSystem = CoordinateSystemModel.Global;
+        Check(!legacy.RequiresCoordinateSystemRecovery, "Explicit axis assignment recovers the legacy load");
     }
     private static void GoalOwnership()
     {

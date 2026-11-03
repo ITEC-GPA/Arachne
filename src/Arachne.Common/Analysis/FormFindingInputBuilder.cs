@@ -109,7 +109,7 @@ namespace Arachne.Common.Analysis
                     var axes = r.Axes();
                     node.Assignments.Restrains.Add(new RestrainAssignment { Restrain = new NodeRestrain(node,
                         new G.CoordinateSystem(node.Position, Vector(axes[0]), Vector(axes[1])),
-                        new[] { r.Tx, r.Ty, r.Tz }.Select((fixedDof, dof) => new DofRestrain((GeometryRestrain.DOF)dof, fixedDof)).ToList()) });
+                        ModelValues.CopyValue(r.InputDofs.ToList())) });
                 }
                 foreach (var load in old.Loads)
                 {
@@ -126,7 +126,11 @@ namespace Arachne.Common.Analysis
                 if (old.HasAttribute(typeof(NodeWeightAttributeModel)))
                 {
                     var weights = NodeWeightAttributeModel.GetWeight(old);
-                    if (solverType == 2) ff.CoordinateGoals.Add(new FormFindingCoordinateGoal { NodeGuid = node.Guid, Weights = Vector(weights) });
+                    if (solverType == 2)
+                    {
+                        var goal = ModelValues.CopyValue(old.Attributes.OfType<NodeWeightAttributeModel>().First().Goal);
+                        goal.NodeGuid = node.Guid; ff.CoordinateGoals.Add(goal);
+                    }
                     else if (weights != R.Vector3d.Zero) input.Diagnostics.Add("Coordinate objectives are ignored by the selected linear method.");
                 }
             }
@@ -167,10 +171,13 @@ namespace Arachne.Common.Analysis
                     if (load is BeamPointLoadModel point)
                     {
                         if (point.PointLoadType != BeamPointLoadModel.LoadType.Force) throw new NotSupportedException("FormFindingDoesNotSupportBeamMoments");
+                        if (point.RequiresCoordinateSystemRecovery) throw new InvalidOperationException("LegacyPointLoadCoordinateSystemWasNotSaved: recompute the upstream load component or explicitly assign its coordinate system.");
+                        var assignment = ModelValues.CopyValue(point.Input);
                         var p = Global(point.Value.CoordinateSystem, point.Value.P);
-                        beam.Assignments.Loads.Add(new BeamLoadAssignment { Start = point.Value.A, End = point.Value.A,
-                            Concentrated = new PointLoad(p.X * u.ForceToN, p.Y * u.ForceToN, p.Z * u.ForceToN, 0, 0, 0, beam.StartPoint, Case(load.LoadCase)),
-                            LengthConvention = BeamLoadLengthConvention.ActualLength });
+                        var force = assignment.Concentrated;
+                        force.F1 = p.X * u.ForceToN; force.F2 = p.Y * u.ForceToN; force.F3 = p.Z * u.ForceToN;
+                        force.CoordinateSystem = G.CoordinateSystem.Global; force.Point = beam.StartPoint; force.LoadCase = Case(load.LoadCase);
+                        beam.Assignments.Loads.Add(assignment);
                     }
                     else if (load is BeamDistributedLoadModel distributed)
                     {
