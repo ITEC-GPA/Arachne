@@ -51,7 +51,7 @@ internal static class GpcPilotAdapter
         }
         foreach (var old in source.Beams)
         {
-            if (old.Load.Length != 0 || old.ForceDensitySource == TBeam.ForceDensitySources.FromFixedCurvatureRatio || old.ForceDensitySource == TBeam.ForceDensitySources.None)
+            if (old.Load.Length != 0 || old.ForceDensitySource == TBeam.ForceDensitySources.None)
                 throw new NotSupportedException("PilotUnsupportedBeamInput");
             var beam = new BeamElement(Identity(owner, "beam:" + old.Id), nodes[old.Node1.Id].Position, nodes[old.Node2.Id].Position, null, name: "beam:" + old.Id);
             beam.ConnectNodes(nodes[old.Node1.Id], nodes[old.Node2.Id]);
@@ -64,6 +64,8 @@ internal static class GpcPilotAdapter
             {
                 case TBeam.ForceDensitySources.ByForceDensityValue: goal.Kind = FormFindingGoalKind.ForceDensity; goal.Target = old.TargetForceDensity; break;
                 case TBeam.ForceDensitySources.FromAxialForce: goal.Kind = FormFindingGoalKind.CableForce; goal.Target = old.TargetAxialForce; break;
+                case TBeam.ForceDensitySources.FromFixedCurvatureRatio:
+                    goal.Kind = FormFindingGoalKind.CurvatureRatio; goal.Target = old.TargetCurvatureRatio; goal.ChordLengthMm = old.CurveChord; break;
                 case TBeam.ForceDensitySources.FromMembrane:
                     goal.Kind = FormFindingGoalKind.MembraneForcePerWidth; goal.Target = old.TargetForceAreaDensity;
                     goal.Direction = old.MembraneType == TBeam.MembraneTypes.Warp ? FabricDirection.Warp : old.MembraneType == TBeam.MembraneTypes.Weft ? FabricDirection.Weft : FabricDirection.Unspecified; break;
@@ -95,6 +97,7 @@ internal static class GpcPilotAdapter
     internal static Exported Export(Model model)
     {
         var ff = model.FormFinding ?? throw new ArgumentException("MissingFormFindingDefinition"); ff.Validate(model);
+        if (PhysicalAssignments.HasData(model) || model.MovingLoads!=null) throw new NotSupportedException("PilotUnsupportedPhysicalAssignment");
         if (model.VolumeElements.Count != 0 || model.ModelLoads.Count != 0 || model.Costrains.Count != 0 || model.Stages.Count != 0 || model.Combinations.Count != 0)
             throw new NotSupportedException("PilotUnsupportedModelInput");
         var cs = ff.ProjectionPlane ?? CoordinateSystem.Global;
@@ -139,9 +142,13 @@ internal static class GpcPilotAdapter
                 {
                     case FormFindingGoalKind.ForceDensity: b.TargetForceDensity = g.Target; break;
                     case FormFindingGoalKind.CableForce: b.TargetAxialForce = g.Target; break;
+                    case FormFindingGoalKind.CurvatureRatio: b.TargetCurvatureRatio = g.Target; b.CurveChord = g.ChordLengthMm.Value; break;
                     case FormFindingGoalKind.MembraneForcePerWidth: b.TargetForceAreaDensity = g.Target; b.MembraneType = g.Direction == FabricDirection.Warp ? TBeam.MembraneTypes.Warp : g.Direction == FabricDirection.Weft ? TBeam.MembraneTypes.Weft : TBeam.MembraneTypes.Undefined; break;
                     case FormFindingGoalKind.Length: b.FixNLLength(g.Target, g.Weight); continue;
-                    case FormFindingGoalKind.AxialForce: b.TargetAxialForce = g.Target; b.FixNLAxialForce(g.Weight); continue;
+                    case FormFindingGoalKind.AxialForce:
+                        var source=b.ForceDensitySource;
+                        if(source==TBeam.ForceDensitySources.FromAxialForce && b.TargetAxialForce!=g.Target) throw new NotSupportedException("ConflictingTensileAxialForceTargets");
+                        b.TargetAxialForce = g.Target; b.ForceDensitySource=source; b.FixNLAxialForce(g.Weight); continue;
                     default: throw new NotSupportedException("PilotGoal");
                 }
                 b.Project = g.ProjectToPlane; if (g.Weight > 0) b.FixNLForceDensity(g.Weight);
@@ -159,10 +166,30 @@ internal static class GpcPilotAdapter
     }
     internal static Solver.ResultCodes Solve(TModel native, FormFindingDefinition ff)
     {
-        ForceDensitySolver solver = ff.Method == FormFindingMethod.LinearForceDensity
-            ? (ForceDensitySolver)new LinearForceDensitySolver(native, ff.MaxIterations, ff.RelativeTolerance, ff.SolverToleranceA, ff.SolverToleranceB, ff.SolverMaxIterations)
-            : new NonLinearForceDensitySolver(native, ff.MaxIterations, ff.RelativeTolerance, ff.SolverToleranceA, ff.SolverToleranceB, ff.SolverMaxIterations);
-        return solver.SolveForceDensity();
+        if(!Enum.IsDefined(typeof(FormFindingMethod),ff.Method)) throw new NotSupportedException("UnknownFormFindingMethod");
+        ForceDensitySolver solver = ff.Method == FormFindingMethod.NonlinearForceDensity
+            ? (ForceDensitySolver)new NonLinearForceDensitySolver(native, ff.MaxIterations, ff.RelativeTolerance, ff.SolverToleranceA, ff.SolverToleranceB, ff.SolverMaxIterations)
+            : new LinearForceDensitySolver(native, ff.MaxIterations, ff.RelativeTolerance, ff.SolverToleranceA, ff.SolverToleranceB, ff.SolverMaxIterations);
+        if(ff.Method!=FormFindingMethod.SteppedLinearForceDensity) return solver.SolveForceDensity();
+        var lengths=native.Beams.Where(b=>b.HasNLFixedLength).ToArray();
+        var forces=native.Beams.Where(b=>b.HasNLFixedAxialForce).ToArray();
+        if(lengths.Any(b=>!(b.NLFixedLength>0)) || forces.Any(b=>b.TargetAxialForce==0)) throw new ArgumentException("InvalidSteppedTarget");
+        for(int iteration=0;iteration<ff.MaxIterations;iteration++)
+        {
+            var status=solver.SolveForceDensity(); bool converged=true;
+            foreach(var beam in native.Beams) beam.TargetForceDensity=beam.ForceDensity;
+            foreach(var beam in lengths)
+                if(Math.Abs((beam.Length-beam.NLFixedLength)/beam.NLFixedLength)>ff.RelativeTolerance)
+                { converged=false; beam.TargetForceDensity*=beam.Length/beam.NLFixedLength; }
+            foreach(var beam in forces)
+                if(Math.Abs((beam.AxialForce-beam.TargetAxialForce)/beam.TargetAxialForce)>ff.RelativeTolerance)
+                {
+                    if(beam.AxialForce==0) throw new InvalidOperationException("ZeroForceInSteppedUpdate");
+                    converged=false; beam.TargetForceDensity*=beam.TargetAxialForce/beam.AxialForce;
+                }
+            if(converged) return status;
+        }
+        return Solver.ResultCodes.NotconvergedAtMaxIterationNumber;
     }
     internal static void Attach(Model model, Exported exported, Solver.ResultCodes status)
     {

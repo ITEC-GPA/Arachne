@@ -29,6 +29,7 @@ internal static class GpcPilot
     internal static int Run(string root)
     {
         string reopen=Environment.GetEnvironmentVariable("GPC_PILOT_REOPEN"); if(!string.IsNullOrEmpty(reopen)) return ReopenFolder(reopen);
+        GpcF5Objectives.Run();
         string folder = Path.Combine(root, "artifacts", "f4", "membrane-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss")); Directory.CreateDirectory(folder);
         for (int test = 0; test < 4; test++) RunCase(folder, test);
         Console.WriteLine("F4 MEMBRANE PASS " + folder); return 0;
