@@ -17,7 +17,7 @@ internal static class Program
 #endif
         if (args.Length < 3) { Console.Error.WriteLine(Usage); return 2; }
         var root = Path.GetFullPath(args[0]);
-        string mode = args.Skip(3).FirstOrDefault(a => a == "--tests-only" || a == "--examples" || a == "--icons" || a == "--migration-scale" || a == "--gpc-pilot");
+        string mode = args.Skip(3).FirstOrDefault(a => a == "--tests-only" || a == "--examples" || a == "--icons" || a == "--migration-scale" || a == "--gpc-pilot" || a == "--f6-contracts");
         int femmIndex = Array.IndexOf(args, "--femm");
         string femm = femmIndex >= 0 && femmIndex + 1 < args.Length ? Path.GetFullPath(args[femmIndex + 1])
             : Path.GetFullPath(Path.Combine(root, "..", "FeMM 30-5-2024", "Test1", "FeMM"));
@@ -79,10 +79,11 @@ internal static class Program
         if (mode == "--gpc-pilot") return GpcPilot.Run(root);
 #endif
         if (mode == "--migration-scale") return MigrationScale.Run();
+        if (mode == "--f6-contracts") return F6ContractsChecks.Run();
 
         if (mode != "--examples")
         {
-            int failures = InventoryChecks.Run(root, femm) + FormFindingChecks.Run() + PatterningChecks.Run() + NetworkChecks.Run();
+            int failures = InventoryChecks.Run(root, femm) + F6ContractsChecks.Run() + FormFindingChecks.Run() + PatterningChecks.Run() + NetworkChecks.Run();
             if (failures > 0) { Console.WriteLine("FAILED checks: " + failures); return 1; }
             Console.WriteLine("All checks passed.");
             if (mode == "--tests-only") return 0;

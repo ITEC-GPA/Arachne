@@ -16,6 +16,10 @@ namespace Arachne.Grasshopper.Components.Analysis
 {
     public class FormFindComponent : GH_Component
     {
+        private readonly GPC.Model.Persistence.ExternalModelArchive _analysisArchive = new GPC.Model.Persistence.ExternalModelArchive();
+        private readonly List<GPC.Model.Persistence.ExternalModelReference> _analysisReferences = new List<GPC.Model.Persistence.ExternalModelReference>();
+        public IReadOnlyList<GPC.Model.Persistence.ExternalModelReference> AnalysisReferences => _analysisReferences.AsReadOnly();
+        public GPC.Model.Persistence.ExternalModelRun ReadAnalysis(int iteration) => _analysisArchive.Open(_analysisReferences[iteration]);
         private bool _run;
         // Last result of every data tree iteration, kept on the outputs until the next run
         private readonly List<GH_Model> _models;
@@ -142,10 +146,6 @@ namespace Arachne.Grasshopper.Components.Analysis
             try
             {
                 int maxIterNumber = options.MaxIterations;
-                double tolerance = options.Tolerance;
-                int maxIterNumberSolver = options.SolverMaxIterations;
-                double toleranceSolverA = options.SolverToleranceA;
-                double toleranceSolverB = options.SolverToleranceB;
                 bool makeMesh = options.CreateMesh;
 
                 if (solverType < 0 || solverType > 2)
@@ -153,101 +153,25 @@ namespace Arachne.Grasshopper.Components.Analysis
                 if (maxIterNumber < 1)
                     throw new ArgumentException("Max Iter must be at least 1");
 
-                Model ff_model = Common.Helpers.FormFindingHelper.AssemblyModel(model.Value, plane, solverType, options, out List<string> warnings);
+                var input = Common.Analysis.FormFindingInputBuilder.Build(model.Value, plane, solverType, options, model.Value.InputOwner, model.Guids);
+                var exported = Common.Analysis.TensileModelAdapter.Export(input.Model, input.Units);
+                Model ff_model = exported.Solver;
+                var warnings = input.Diagnostics;
 #if ARACHNE_MIGRATION_CAPTURE
                 int captureId = MigrationTensileCapture.Input(ff_model, model.Value.Units, solverType, options);
 #endif
                 foreach (string warning in warnings)
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, warning);
 
-                // The reactions are stored only for an equilibrium configuration
-                bool converged = true;
-                if (solverType == 1)
+                // Solver execution is shared by the production path and the integration checks.
+                var status = Common.Analysis.TensileModelAdapter.Solve(ff_model, input.Model.FormFinding);
+                bool converged = status != Solver.ResultCodes.NotconvergedAtMaxIterationNumber;
+                if (!converged)
                 {
-                    List<Beam> fixedAxialForceBeam = ff_model.Beams.Where(j => j.HasNLFixedAxialForce).ToList();
-                    List<Beam> fixedLengthBeam = ff_model.Beams.Where(j => j.HasNLFixedLength).ToList();
-
-                    // The relative errors below are divided by these targets
-                    if (fixedLengthBeam.Any(b => !(b.NLFixedLength > 0)))
-                        throw new ArgumentException("The fixed lengths must be greater than 0");
-                    if (fixedAxialForceBeam.Any(b => b.TargetAxialForce == 0))
-                        throw new ArgumentException("The fixed axial forces must be different from 0");
-
-                    bool exit = true;
-                    int count = 0;
-                    Solver.ResultCodes ret;
-
-                    ForceDensitySolver solver = new LinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolverA, toleranceSolverB, maxIterNumberSolver);
-
-                    do
-                    {
-                        exit = true;
-                        count++;
-
-                        ret = solver.SolveForceDensity();
-
-                        // The next steps go on from the force densities just found, as TensileLib did
-                        // before 2.2: now the solver keeps them apart from the targets
-                        foreach (Beam beam in ff_model.Beams)
-                            beam.TargetForceDensity = beam.ForceDensity;
-
-                        for (int i = 0; i < fixedLengthBeam.Count; i++)
-                        {
-                            Beam bb = fixedLengthBeam[i];
-
-                            if (Math.Abs((bb.Length - bb.NLFixedLength) / bb.NLFixedLength) > tolerance)
-                            {
-                                exit = false;
-                                bb.TargetForceDensity = bb.TargetForceDensity * bb.Length / bb.NLFixedLength;
-                            }
-                        }
-                        for (int i = 0; i < fixedAxialForceBeam.Count; i++)
-                        {
-                            Beam bb = fixedAxialForceBeam[i];
-
-                            if (Math.Abs((bb.AxialForce - bb.TargetAxialForce) / bb.TargetAxialForce) > tolerance)
-                            {
-                                if (bb.AxialForce == 0)
-                                    throw new InvalidOperationException("A beam with fixed axial force has no force: its force density cannot be updated");
-                                exit = false;
-                                bb.TargetForceDensity = bb.TargetForceDensity * bb.TargetAxialForce / bb.AxialForce;
-                            }
-                        }
-
-                        if (!exit && count >= maxIterNumber)
-                        {
-#if ARACHNE_MIGRATION_CAPTURE
-                            MigrationTensileCapture.Result(captureId, ff_model, false, "outer-iteration-limit");
-#endif
-                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Not converged. The maximum number of iteration has been reached.");
-                            Message = "Error";
-                            return;
-                        }
-
-                    } while (!exit);
-
-                    if (ret == Solver.ResultCodes.NotconvergedAtMaxIterationNumber)
-                    {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged. The maximum number of iteration has been reached.");
-                        converged = false;
-                    }
+                    AddRuntimeMessage(solverType == 1 ? GH_RuntimeMessageLevel.Error : GH_RuntimeMessageLevel.Warning, "Not converged. The maximum number of iteration has been reached.");
+                    if (solverType == 1) { Message = "Error"; return; }
                 }
-                else
-                {
-                    ForceDensitySolver solver;
-                    if (solverType == 0)
-                        solver = new LinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolverA, toleranceSolverB, maxIterNumberSolver);
-                    else
-                        solver = new NonLinearForceDensitySolver(ff_model, maxIterNumber, tolerance, toleranceSolverA, toleranceSolverB, maxIterNumberSolver);
-
-                    Solver.ResultCodes ret = solver.SolveForceDensity();
-
-                    if (ret == Solver.ResultCodes.NotconvergedAtMaxIterationNumber)
-                    {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged. The maximum number of iteration has been reached.");
-                        converged = false;
-                    }
-                }
+                if (converged) Common.Analysis.TensileModelAdapter.Attach(input.Model, exported, status, input.ResultCase);
 
 #if ARACHNE_MIGRATION_CAPTURE
                 MigrationTensileCapture.Result(captureId, ff_model, converged, "solver-returned");
@@ -455,6 +379,7 @@ namespace Arachne.Grasshopper.Components.Analysis
                 }
 
                 SetResult(iteration, result, resultMesh);
+                if (converged) _analysisReferences[iteration] = _analysisArchive.Prepare(input.Model, exported.Map);
                 Message = "Done";
             }
             catch (Exception e)
@@ -468,9 +393,11 @@ namespace Arachne.Grasshopper.Components.Analysis
         {
             while (_models.Count <= iteration)
             {
+                _analysisReferences.Add(null);
                 _models.Add(null);
                 _meshes.Add(null);
             }
+            _analysisReferences[iteration] = null;
             _models[iteration] = model;
             _meshes[iteration] = mesh;
         }

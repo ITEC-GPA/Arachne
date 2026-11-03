@@ -160,19 +160,11 @@ namespace Arachne.Common.Models
 
 		#region Serialization
 
-		private readonly string SERIALIZATION_RELEASE_NAME = "SERIALIZATION_RELEASE"; //do not modify the name!
+        // The persisted release is owned and validated by BeamPropertyBaseModel.
 
 		protected BeamPropertyModel(SerializationInfo info, StreamingContext context)
+            : base(info, context)
 		{
-			int savedRelease;
-			try
-			{
-				savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-			}
-			catch
-			{
-				savedRelease = 0;
-			}
 			_id = info.GetString("Id");
 			_name = info.GetString("Name");
 			_beamPropertyType = (BeamPropertyType)info.GetValue("BeamPropertyType", typeof(BeamPropertyType));

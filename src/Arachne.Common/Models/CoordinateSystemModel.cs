@@ -102,15 +102,7 @@ namespace Arachne.Common.Models
 
 		protected CoordinateSystemModel(SerializationInfo info, StreamingContext context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _id = info.GetString("Id");
             _name = info.GetString("Name");
             _origin = (Point3d)info.GetValue("Origin", typeof(Point3d));

@@ -40,7 +40,7 @@ namespace Arachne.Grasshopper.DataTypes
         {
             return new GH_PlateResults
             {
-                Value = new List<ResultModel>(Value)
+                Value = Arachne.Common.Helpers.SerializationHelper.Clone(Value)
             };
         }
 

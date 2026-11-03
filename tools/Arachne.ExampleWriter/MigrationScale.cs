@@ -41,7 +41,7 @@ internal static class MigrationScale
                     copy = null;
                 }
                 Measure("save-memory", 0, () => archive = SerializationHelper.ToBytes(model));
-                Measure("load-memory", 0, () => { using (var stream = new MemoryStream(archive, false)) copy = ModelModel.Deserialize(new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter(), stream); });
+                Measure("load-memory", 0, () => { copy = Arachne.Common.Helpers.SerializationHelper.FromBytes<ModelModel>(archive); });
                 if (copy.Nodes.Count != nodeCount || copy.Plates.Count != plateCount) throw new Exception("Archive entity loss");
                 byte[] hash = null;
                 Measure("archive-sha256", 0, () => { using (var sha = SHA256.Create()) hash = sha.ComputeHash(archive); });

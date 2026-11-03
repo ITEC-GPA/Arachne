@@ -86,6 +86,7 @@ namespace Arachne.Grasshopper.Components.Models
             if (offset != 0)
                 plate.Value.Offset = offset;
 
+            plate.SetInputIdentity(Helpers.ComponentInputIdentity.For(this, DA));
             DA.SetData("Plate", plate);
         }
 

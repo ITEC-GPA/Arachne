@@ -10,7 +10,10 @@ namespace Arachne.Common.Models
     [Serializable]
     public class FixedAxialForceModel : LoadModel<double>, IEquatable<FixedAxialForceModel>
     {
-        protected double _weight;
+        private GPC.Model.Analysis.FormFindingGoal goal = new GPC.Model.Analysis.FormFindingGoal { Kind = GPC.Model.Analysis.FormFindingGoalKind.AxialForce };
+        public GPC.Model.Analysis.FormFindingGoal Goal => goal;
+        protected override double _value { get => goal.Target; set => goal.Target = value; }
+        protected double _weight { get => goal.Weight; set => goal.Weight = value; }
 
         public override string Description => "Axial Force";
 
@@ -33,9 +36,8 @@ namespace Arachne.Common.Models
 
         public FixedAxialForceModel(FixedAxialForceModel af)
         {
-            _loadCase = af._loadCase;
-            _value = af._value;
-            _weight = af._weight;
+            _loadCase = Helpers.SerializationHelper.Clone(af._loadCase);
+            goal = GPC.Model.Core.ModelValues.CopyValue(af.goal);
         }
 
         #region Serialization
@@ -45,15 +47,7 @@ namespace Arachne.Common.Models
 		protected FixedAxialForceModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _value = info.GetDouble("Value");
             _weight = info.GetDouble("Weight");
         }

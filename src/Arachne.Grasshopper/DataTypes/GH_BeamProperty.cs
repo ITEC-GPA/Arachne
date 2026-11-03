@@ -11,7 +11,6 @@ namespace Arachne.Grasshopper.DataTypes
 {
     public class GH_BeamProperty : GH_Goo<BeamPropertyModel>
     {
-        private readonly GH_Material _material;
 
         public GH_BeamProperty()
         {
@@ -20,13 +19,12 @@ namespace Arachne.Grasshopper.DataTypes
         public GH_BeamProperty(BeamPropertyModel beamProperty)
         {
             Value = beamProperty;
-            _material = new GH_Material(Value.Material);
         }
 
         public GH_BeamProperty(BeamPropertyModel beamProperty, GH_Material material)
         {
             Value = beamProperty;
-            _material = material;
+            if (material != null) Value.Material = material.Value;
         }
 
         #region Properties
@@ -41,7 +39,7 @@ namespace Arachne.Grasshopper.DataTypes
 
         public override IGH_Goo Duplicate()
         {
-            return new GH_BeamProperty(Value);
+            return new GH_BeamProperty(Arachne.Common.Helpers.SerializationHelper.Clone(Value));
         }
 
         public override bool Write(GH_IWriter writer)
@@ -50,10 +48,7 @@ namespace Arachne.Grasshopper.DataTypes
             {
                 try
                 {
-                    writer.SetString("Id", Value.Id);
-                    writer.SetString("Name", Value.Name);
-
-                    _material.Write(writer);
+                    writer.SetByteArray("GpcData", Arachne.Common.Helpers.SerializationHelper.ToBytes(Value));
                 }
                 catch (Exception e)
                 {
@@ -72,10 +67,9 @@ namespace Arachne.Grasshopper.DataTypes
             {
                 try
                 {
-                    BeamPropertyModel beamProperty = new BeamPropertyModel(reader.GetString("Id"));
-                    beamProperty.Name = reader.GetString("Name");
-
-                    Value = beamProperty;
+                    if (!reader.ItemExists("GpcData"))
+                        throw new System.Runtime.Serialization.SerializationException("IncompleteLegacyBeamPropertyArchive: the old writer did not save the section. Recompute the upstream property component.");
+                    Value = Arachne.Common.Helpers.SerializationHelper.FromBytes<BeamPropertyModel>(reader.GetByteArray("GpcData"));
                 }
                 catch (Exception e)
                 {

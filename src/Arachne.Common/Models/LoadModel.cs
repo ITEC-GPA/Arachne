@@ -2,7 +2,6 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Permissions;
 using Rhino.Display;
 
@@ -45,15 +44,7 @@ namespace Arachne.Common.Models
 
 		protected LoadModel(SerializationInfo info, StreamingContext context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _loadCase = (LoadCaseModel)info.GetValue("LoadCase", typeof(LoadCaseModel));
         }
 
@@ -74,14 +65,7 @@ namespace Arachne.Common.Models
         /// <returns>The deep copy</returns>
         public virtual object Clone()
         {
-            using (var ms = new MemoryStream())
-            {
-                var formatter = new BinaryFormatter();
-                formatter.Serialize(ms, this);
-                ms.Position = 0;
-
-                return formatter.Deserialize(ms);
-            }
+            return Arachne.Common.Helpers.SerializationHelper.Clone(this);
         }
 
         public virtual void Draw(DisplayPipeline display, RhinoViewport viewport, Color color, ElementModel element)
@@ -100,7 +84,8 @@ namespace Arachne.Common.Models
 
     public abstract class LoadModel<T> : LoadModel
     {
-        protected T _value;
+        private T value;
+        protected virtual T _value { get => value; set => this.value = value; }
 
         public virtual T Value
         {

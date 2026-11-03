@@ -11,6 +11,9 @@ namespace Arachne.Common.Models
     [Serializable]
     public class SolverOptionsModel
     {
+        private GPC.Model.Analysis.FormFindingDefinition definition = new GPC.Model.Analysis.FormFindingDefinition();
+        /// <summary>The sole owner of physical solver settings. Selection and preview policy stay in this adapter.</summary>
+        public GPC.Model.Analysis.FormFindingDefinition Definition => definition;
         /// <summary>
         /// Default tolerances A and B of the algebraic solver: the ALGLIB defaults (read from the
         /// library), also the defaults of SciPy and MATLAB LSQR, about 6 correct digits. FeMM gave
@@ -19,10 +22,10 @@ namespace Arachne.Common.Models
         public const double DefaultSolverTolerance = 1e-6;
 
         /// <summary>Gravity acceleration for the self weight, in model units (9806.65 in N/mm); 0: no self weight.</summary>
-        public double Gravity { get; set; }
+        public double Gravity { get => definition.Gravity; set => definition.Gravity = value; }
 
         /// <summary>Normal pressure on the plates.</summary>
-        public double Pressure { get; set; }
+        public double Pressure { get => definition.Pressure; set => definition.Pressure = value; }
 
         /// <summary>Load case of the pressure forces stored in the result.</summary>
         public LoadCaseModel PressureLoadCase { get; set; }
@@ -34,22 +37,22 @@ namespace Arachne.Common.Models
         public List<LoadCaseModel> LoadCases { get; set; } = new List<LoadCaseModel>();
 
         /// <summary>Maximum number of iterations of the solution.</summary>
-        public int MaxIterations { get; set; } = 20;
+        public int MaxIterations { get => definition.MaxIterations; set => definition.MaxIterations = value; }
 
         /// <summary>Tolerance on the relative error of the solution.</summary>
-        public double Tolerance { get; set; } = 1e-4;
+        public double Tolerance { get => definition.RelativeTolerance; set => definition.RelativeTolerance = value; }
 
         /// <summary>Maximum number of iterations of the algebraic solver; 0: no limit.</summary>
-        public int SolverMaxIterations { get; set; }
+        public int SolverMaxIterations { get => definition.SolverMaxIterations; set => definition.SolverMaxIterations = value; }
 
         /// <summary>
         /// Tolerance A of the algebraic solver: relative residual of the conjugate gradient
         /// (Linear), least squares residual |A^T r| / (|A| |r|) of LSQR (Non-Linear).
         /// </summary>
-        public double SolverToleranceA { get; set; } = DefaultSolverTolerance;
+        public double SolverToleranceA { get => definition.SolverToleranceA; set => definition.SolverToleranceA = value; }
 
         /// <summary>Tolerance B of the algebraic solver: LSQR (Non-Linear) stops when |r| &lt;= B |b|.</summary>
-        public double SolverToleranceB { get; set; } = DefaultSolverTolerance;
+        public double SolverToleranceB { get => definition.SolverToleranceB; set => definition.SolverToleranceB = value; }
 
         /// <summary>Create the plates and the mesh of the result.</summary>
         public bool CreateMesh { get; set; } = true;
@@ -63,17 +66,13 @@ namespace Arachne.Common.Models
 
         public SolverOptionsModel(SolverOptionsModel options)
         {
-            Gravity = options.Gravity;
-            Pressure = options.Pressure;
-            PressureLoadCase = options.PressureLoadCase;
-            LoadCases = new List<LoadCaseModel>(options.LoadCases ?? new List<LoadCaseModel>());
-            MaxIterations = options.MaxIterations;
-            Tolerance = options.Tolerance;
-            SolverMaxIterations = options.SolverMaxIterations;
-            SolverToleranceA = options.SolverToleranceA;
-            SolverToleranceB = options.SolverToleranceB;
-            CreateMesh = options.CreateMesh;
-            PlateProperty = options.PlateProperty;
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            var copy = Helpers.SerializationHelper.Clone(options);
+            definition = copy.definition;
+            PressureLoadCase = copy.PressureLoadCase;
+            LoadCases = copy.LoadCases;
+            CreateMesh = copy.CreateMesh;
+            PlateProperty = copy.PlateProperty;
         }
 
         public override string ToString()

@@ -45,6 +45,7 @@ namespace Arachne.Common.Models
         protected LoadCaseModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
+            Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _id = info.GetString("Id");
         }
 

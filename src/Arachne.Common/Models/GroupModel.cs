@@ -62,15 +62,7 @@ namespace Arachne.Common.Models
 
 		protected GroupModel(SerializationInfo info, StreamingContext context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _name = info.GetString("Name");
             if (savedRelease > 1)
                 _parent = (GroupModel)info.GetValue("Parent", typeof(GroupModel));

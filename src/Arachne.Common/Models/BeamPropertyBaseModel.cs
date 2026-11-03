@@ -59,15 +59,7 @@ namespace Arachne.Common.Models
 		private readonly int SERIALIZATION_RELEASE = 2;
 		protected BeamPropertyBaseModel(SerializationInfo info, StreamingContext context)
 		{
-			int savedRelease;
-			try
-			{
-				savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-			}
-			catch
-			{
-				savedRelease = 0;
-			}
+			int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
 			_id = info.GetString("Id");
 			_name = info.GetString("Name");
 			_material = (MaterialModel)info.GetValue("Material", typeof(MaterialModel));

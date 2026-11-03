@@ -18,6 +18,11 @@ namespace Arachne.Grasshopper.DataTypes
         #region Properties
 
         public Guid Guid => _guid;
+        internal void SetInputIdentity(Guid identity)
+        {
+            if (identity == Guid.Empty) throw new ArgumentException("EmptyComponentInputIdentity");
+            _guid = identity;
+        }
 
         public override bool IsValid => Value == null ? false : Value.IsValid;
 
@@ -211,12 +216,7 @@ namespace Arachne.Grasshopper.DataTypes
 
         public override IGH_GeometricGoo DuplicateGeometry()
         {
-            GH_Beam copy = new GH_Beam
-            {
-                _guid = _guid,
-                Value = Value
-            };
-            return copy;
+            return new GH_Beam(this);
         }
 
         public override BoundingBox GetBoundingBox(Transform xform)

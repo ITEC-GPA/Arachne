@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Permissions;
 
 namespace Arachne.Common.Models
@@ -13,7 +12,9 @@ namespace Arachne.Common.Models
 	[Serializable]
 	public class ModelModel : ISerializable, ICloneable
 	{
-		public const double GRAVITY_mmSuS2 = 9806.65;
+		public Guid InputOwner { get; set; } = Guid.NewGuid();
+        public Dictionary<ElementModel, Guid> InputIdentities { get; private set; } = new Dictionary<ElementModel, Guid>();
+        public const double GRAVITY_mmSuS2 = 9806.65;
 
 		public enum ModelUnits
 		{
@@ -72,57 +73,25 @@ namespace Arachne.Common.Models
 
 		public ModelModel(ModelModel model)
 		{
-			_name = model._name;
-			_units = model._units;
-			_elements = new List<ElementModel>();
-			_nodes = new List<NodeModel>();
-			_beams = new List<BeamModel>();
-			_plates = new List<PlateModel>();
-			_loadCases = new List<LoadCaseModel>();
-			_nodesIndexes = new Dictionary<string, int>();
-			_beamsIndexes = new Dictionary<string, int>();
-			_platesIndexes = new Dictionary<string, int>();
-
-			for (int i = 0; i < model._elements.Count; i++)
-			{
-				ElementModel element = model._elements[i];
-				ElementModel copy_element;
-				if (element is NodeModel node)
-					copy_element = new NodeModel(node);
-				else if (element is BeamModel beam)
-					copy_element = new BeamModel(beam);
-				else if (element is PlateModel plate)
-					copy_element = new PlateModel(plate);
-				else
-					continue;
-				_elements.Add(copy_element);
-			}
-			Sync(0);
-
-			for (int i = 0; i < model._loadCases.Count; i++)
-			{
-				LoadCaseModel lc = model._loadCases[i];
-				_loadCases.Add(new LoadCaseModel(lc));
-			}
+            var copy = SerializationHelper.Clone(model);
+            InputOwner = copy.InputOwner; InputIdentities = copy.InputIdentities;
+            _name = copy._name; _units = copy._units; _elements = copy._elements;
+            _nodes = copy._nodes; _beams = copy._beams; _plates = copy._plates;
+            _loadCases = copy._loadCases;
+            _nodesIndexes = copy._nodesIndexes; _beamsIndexes = copy._beamsIndexes; _platesIndexes = copy._platesIndexes;
 		}
 
 		#region Serialization
 
 		private string SERIALIZATION_RELEASE_NAME = "ModelModel_SERIALIZATION_RELEASE"; //do not modify the name!
 		// Release 5: load combinations, named sets, staged constructions and functions removed (FEM analysis only)
-		private int SERIALIZATION_RELEASE = 5;
+		private int SERIALIZATION_RELEASE = 6;
 
 		protected ModelModel(SerializationInfo info, StreamingContext context)
 		{
-			int savedRelease;
-			try
-			{
-				savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-			}
-			catch
-			{
-				savedRelease = 0;
-			}
+            int savedRelease = SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
+            InputOwner = SerializationHelper.ReadOptional(info, "InputOwner", Guid.NewGuid());
+            InputIdentities = SerializationHelper.ReadOptional(info, "InputIdentities", new Dictionary<ElementModel, Guid>());
 			_name = info.GetString("Name");
 			_units = (ModelUnits)info.GetValue("Units", typeof(ModelUnits));
 			_elements = (List<ElementModel>)info.GetValue("Elements", typeof(List<ElementModel>));
@@ -143,7 +112,9 @@ namespace Arachne.Common.Models
 			if (info == null)
 				throw new ArgumentNullException("info");
 			info.AddValue(SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
-			info.AddValue("Name", _name);
+			info.AddValue("InputOwner", InputOwner);
+            info.AddValue("InputIdentities", InputIdentities);
+            info.AddValue("Name", _name);
 			info.AddValue("Units", _units, typeof(ModelUnits));
 			info.AddValue("Elements", _elements, typeof(List<ElementModel>));
 			info.AddValue("LoadCases", _loadCases, typeof(List<LoadCaseModel>));
@@ -241,22 +212,10 @@ namespace Arachne.Common.Models
 		/// <returns>The deep copy</returns>
 		public object Clone()
 		{
-			using (var ms = new MemoryStream())
-			{
-				var formatter = new BinaryFormatter();
-				formatter.Serialize(ms, this);
-				ms.Position = 0;
+            return Arachne.Common.Helpers.SerializationHelper.Clone(this);
+        }
 
-				return Deserialize(formatter, ms);
-			}
-		}
-
-		public static ModelModel Deserialize(BinaryFormatter formatter, MemoryStream ms)
-		{
-			ModelModel result = (ModelModel)formatter.Deserialize(ms);
-			result.Sync(0);
-			return result;
-		}
+        internal void RebuildIndexes() => Sync(0);
 
 		/*/// <summary>
         /// Setup the conversion parameter for converting measures through the Utilities library

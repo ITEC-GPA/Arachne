@@ -65,6 +65,7 @@ namespace Arachne.Grasshopper.Components.Models
             if (has_offset)
                 beam.Value.Offset = new Vector2d(offset.X, offset.Y);
 
+            beam.SetInputIdentity(Helpers.ComponentInputIdentity.For(this, DA));
             DA.SetData("Beam", beam);
         }
 

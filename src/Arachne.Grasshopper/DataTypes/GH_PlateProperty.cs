@@ -31,7 +31,7 @@ namespace Arachne.Grasshopper.DataTypes
 
         public override IGH_Goo Duplicate()
         {
-            return new GH_PlateProperty(Value);
+            return new GH_PlateProperty(Arachne.Common.Helpers.SerializationHelper.Clone(Value));
         }
 
         // The whole property, material and thickness included: FeMM wrote the material but read

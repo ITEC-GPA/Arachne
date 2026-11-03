@@ -43,7 +43,9 @@ namespace Arachne.Grasshopper.Components.Models
             if (!DA.GetData("Point", ref point))
                 return;
 
-            DA.SetData("Node", new GH_Node(point));
+            var node = new GH_Node(point);
+            node.SetInputIdentity(Helpers.ComponentInputIdentity.For(this, DA));
+            DA.SetData("Node", node);
         }
 
         public override GH_Exposure Exposure => GH_Exposure.secondary;

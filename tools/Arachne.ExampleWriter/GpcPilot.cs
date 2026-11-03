@@ -85,7 +85,7 @@ internal static class GpcPilot
             var input = Canvas.Single<GH_Model>(build).Value;
             var options = new SolverOptionsModel { MaxIterations = 200, Tolerance = 1e-9, SolverToleranceA = 1e-12, SolverToleranceB = 1e-12, Pressure = test == 1 ? .0001 : 0 };
             if(test==3) { options.Gravity=ModelModel.GRAVITY_mmSuS2; options.PlateProperty=Canvas.Single<GH_PlateProperty>(property).Value; }
-            var baseline = FormFindingHelper.AssemblyModel(input, Plane.WorldXY, test == 2 ? 1 : 0, options, out var warnings);
+            var baseline = LegacyFormFindingBaseline.AssemblyModel(input, Plane.WorldXY, test == 2 ? 1 : 0, options, out var warnings);
             var settings = new FormFindingDefinition { Method = test == 2 ? FormFindingMethod.NonlinearForceDensity : FormFindingMethod.LinearForceDensity, MaxIterations = options.MaxIterations, RelativeTolerance = options.Tolerance, SolverToleranceA = options.SolverToleranceA, SolverToleranceB = options.SolverToleranceB };
             Guid owner = GpcPilotAdapter.Identity(new Guid("96341d4b-14c9-477a-aab4-c9149c079318"), "branch:" + test);
             var watch = Stopwatch.StartNew(); var model = GpcPilotAdapter.Import(baseline,owner,settings);

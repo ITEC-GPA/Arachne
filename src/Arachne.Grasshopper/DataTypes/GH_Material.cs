@@ -26,7 +26,7 @@ namespace Arachne.Grasshopper.DataTypes
 
         public override IGH_Goo Duplicate()
         {
-            return new GH_Material(Value);
+            return new GH_Material(Arachne.Common.Helpers.SerializationHelper.Clone(Value));
         }
 
         public override bool Write(GH_IWriter writer)

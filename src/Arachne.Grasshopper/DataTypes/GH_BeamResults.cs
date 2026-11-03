@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 using Grasshopper.Kernel.Types;
 using GH_IO.Serialization;
@@ -42,7 +41,7 @@ namespace Arachne.Grasshopper.DataTypes
         {
             return new GH_BeamResults
             {
-                Value = new List<ResultModel>(Value)
+                Value = Arachne.Common.Helpers.SerializationHelper.Clone(Value)
             };
         }
 

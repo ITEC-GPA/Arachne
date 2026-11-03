@@ -146,8 +146,10 @@ namespace Arachne.Common.Models
         }
 
         public BeamModel(BeamModel beam)
-            : base(beam)
+            : base()
         {
+            beam = SerializationHelper.Clone(beam);
+            AdoptCollections(beam);
             _beamId = beam._beamId;
             _pointFrom = beam._pointFrom;
             _pointTo = beam._pointTo;
@@ -166,15 +168,7 @@ namespace Arachne.Common.Models
         protected BeamModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _beamId = info.GetString("BeamId");
             _pointFrom = (Point3d)info.GetValue("PointFrom", typeof(Point3d));
             _pointTo = (Point3d)info.GetValue("PointTo", typeof(Point3d));

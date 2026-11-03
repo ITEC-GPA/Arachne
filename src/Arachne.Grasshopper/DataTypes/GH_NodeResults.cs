@@ -39,7 +39,7 @@ namespace Arachne.Grasshopper.DataTypes
         {
             return new GH_NodeResults
             {
-                Value = new List<ResultModel>(Value)
+                Value = Arachne.Common.Helpers.SerializationHelper.Clone(Value)
             };
         }
 

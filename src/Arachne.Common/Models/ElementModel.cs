@@ -47,11 +47,17 @@ namespace Arachne.Common.Models
 
         public ElementModel(ElementModel element)
         {
-            _groups = new ObservableCollection<GroupModel>(element._groups);
-            _loads = new ObservableCollection<LoadModel>(element._loads);
-            _attributes = new ObservableCollection<AttributeModel>(element._attributes);
+            var copy = Helpers.SerializationHelper.Clone(element);
+            AdoptCollections(copy);
+        }
+
+        // All members come from one copied graph, preserving aliases inside the branch.
+        protected void AdoptCollections(ElementModel copy)
+        {
+            _groups = copy._groups; _loads = copy._loads;
+            _attributes = copy._attributes; _results = copy._results;
+            _attributes.CollectionChanged -= copy.Attributes_CollectionChanged;
             _attributes.CollectionChanged += Attributes_CollectionChanged;
-            _results = new ObservableCollection<ResultModel>(element._results);
         }
 
         #region Serialization
@@ -60,15 +66,7 @@ namespace Arachne.Common.Models
 
 		protected ElementModel(SerializationInfo info, StreamingContext context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _groups = (ObservableCollection<GroupModel>)info.GetValue("Groups", typeof(ObservableCollection<GroupModel>));
             _loads = (ObservableCollection<LoadModel>)info.GetValue("Loads", typeof(ObservableCollection<LoadModel>));
             _attributes = (ObservableCollection<AttributeModel>)info.GetValue("Attributes", typeof(ObservableCollection<AttributeModel>));
@@ -129,6 +127,7 @@ namespace Arachne.Common.Models
 
         public virtual void Merge(ElementModel other)
         {
+            other = Helpers.SerializationHelper.Clone(other);
             foreach (GroupModel group in other.Groups)
             {
                 if (!_groups.Contains(group))

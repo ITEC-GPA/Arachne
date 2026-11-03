@@ -142,8 +142,10 @@ namespace Arachne.Common.Models
 		}
 
 		public PlateModel(PlateModel plate)
-			: base(plate)
+			: base()
 		{
+            plate = SerializationHelper.Clone(plate);
+            AdoptCollections(plate);
 			_plateId = plate._plateId;			
             _points = new ObservableCollection<Point3d>(plate._points);
             _points.CollectionChanged += (s, e) => CreateShapes();
@@ -162,15 +164,7 @@ namespace Arachne.Common.Models
 		protected PlateModel(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{
-			int savedRelease;
-			try
-			{
-				savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-			}
-			catch
-			{
-				savedRelease = 0;
-			}
+			int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
 			_plateId = info.GetString("PlateId");
 			_points = new ObservableCollection<Point3d>();
 			int n_points = info.GetInt32("NPoints");

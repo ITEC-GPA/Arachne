@@ -10,7 +10,10 @@ namespace Arachne.Common.Models
     [Serializable]
     public class FixedLengthModel : LoadModel<double>, IEquatable<FixedLengthModel>
     {
-        protected double _weight;
+        private GPC.Model.Analysis.FormFindingGoal goal = new GPC.Model.Analysis.FormFindingGoal { Kind = GPC.Model.Analysis.FormFindingGoalKind.Length };
+        public GPC.Model.Analysis.FormFindingGoal Goal => goal;
+        protected override double _value { get => goal.Target; set => goal.Target = value; }
+        protected double _weight { get => goal.Weight; set => goal.Weight = value; }
 
         public override string Description => "Fixed Lenght";
 
@@ -35,9 +38,8 @@ namespace Arachne.Common.Models
 
         public FixedLengthModel(FixedLengthModel fl)
         {
-            _loadCase = fl._loadCase;
-            _value = fl._value;
-            _weight = fl._weight;
+            _loadCase = Arachne.Common.Helpers.SerializationHelper.Clone(fl._loadCase);
+            goal = GPC.Model.Core.ModelValues.CopyValue(fl.goal);
         }
 
         #region Serialization
@@ -47,15 +49,7 @@ namespace Arachne.Common.Models
 		protected FixedLengthModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _value = info.GetDouble("Value");
             _weight = info.GetDouble("Weight");
         }

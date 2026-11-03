@@ -33,15 +33,7 @@ namespace Arachne.Common.Models
 
 		protected ResultModel(SerializationInfo info, StreamingContext context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _case = (CaseModel)info.GetValue("Case", typeof(CaseModel));
             _stepNum = info.GetDouble("StepNum");
             _stepType = info.GetString("StepType");

@@ -29,11 +29,61 @@ namespace Arachne.Common.Models
 		protected static bool _isVisible = false;
         protected static double _scale = 1;
         protected static Color _color = Color.IndianRed;
-        protected double _weight;
-        protected double _curvatureRatioValue;
-		protected ForceDensityTypes _type;
-		private MembraneTypes _membraneType;
-        protected bool _project;
+        private GPC.Model.Analysis.FormFindingGoal goal = new GPC.Model.Analysis.FormFindingGoal();
+        // Values of controls inactive for the current goal kind remain UI compatibility data.
+        private double inactiveChord;
+        private MembraneTypes inactiveDirection;
+        public GPC.Model.Analysis.FormFindingGoal Goal => goal;
+        protected override double _value { get => goal.Target; set => goal.Target = value; }
+        protected double _weight { get => goal.Weight; set => goal.Weight = value; }
+        protected bool _project { get => goal.ProjectToPlane; set => goal.ProjectToPlane = value; }
+        protected double _curvatureRatioValue
+        {
+            get => goal.Kind == GPC.Model.Analysis.FormFindingGoalKind.CurvatureRatio ? goal.ChordLengthMm ?? 0 : inactiveChord;
+            set { inactiveChord = value; if (goal.Kind == GPC.Model.Analysis.FormFindingGoalKind.CurvatureRatio) goal.ChordLengthMm = value; }
+        }
+        private MembraneTypes _membraneType
+        {
+            get => goal.Kind == GPC.Model.Analysis.FormFindingGoalKind.MembraneForcePerWidth
+                ? goal.Direction == GPC.Model.Analysis.FabricDirection.Warp ? MembraneTypes.Warp
+                    : goal.Direction == GPC.Model.Analysis.FabricDirection.Weft ? MembraneTypes.Weft : MembraneTypes.Undefined
+                : inactiveDirection;
+            set
+            {
+                inactiveDirection = value;
+                if (goal.Kind == GPC.Model.Analysis.FormFindingGoalKind.MembraneForcePerWidth)
+                    goal.Direction = value == MembraneTypes.Warp ? GPC.Model.Analysis.FabricDirection.Warp
+                        : value == MembraneTypes.Weft ? GPC.Model.Analysis.FabricDirection.Weft : GPC.Model.Analysis.FabricDirection.Unspecified;
+            }
+        }
+        protected ForceDensityTypes _type
+        {
+            get
+            {
+                switch (goal.Kind)
+                {
+                    case GPC.Model.Analysis.FormFindingGoalKind.ForceDensity: return ForceDensityTypes.ForceDensity;
+                    case GPC.Model.Analysis.FormFindingGoalKind.CableForce: return ForceDensityTypes.Cable;
+                    case GPC.Model.Analysis.FormFindingGoalKind.MembraneForcePerWidth: return ForceDensityTypes.Membrane;
+                    case GPC.Model.Analysis.FormFindingGoalKind.CurvatureRatio: return ForceDensityTypes.Curvature;
+                    default: throw new InvalidOperationException("InvalidForceDensityGoalKind");
+                }
+            }
+            set
+            {
+                var chord = _curvatureRatioValue; var direction = _membraneType;
+                switch (value)
+                {
+                    case ForceDensityTypes.ForceDensity: goal.Kind = GPC.Model.Analysis.FormFindingGoalKind.ForceDensity; break;
+                    case ForceDensityTypes.Cable: goal.Kind = GPC.Model.Analysis.FormFindingGoalKind.CableForce; break;
+                    case ForceDensityTypes.Membrane: goal.Kind = GPC.Model.Analysis.FormFindingGoalKind.MembraneForcePerWidth; break;
+                    case ForceDensityTypes.Curvature: goal.Kind = GPC.Model.Analysis.FormFindingGoalKind.CurvatureRatio; break;
+                    default: throw new ArgumentOutOfRangeException(nameof(value));
+                }
+                goal.ChordLengthMm = null; goal.Direction = GPC.Model.Analysis.FabricDirection.Unspecified;
+                _curvatureRatioValue = chord; _membraneType = direction;
+            }
+        }
 
 
 		public static bool IsVisible
@@ -113,12 +163,10 @@ namespace Arachne.Common.Models
 
 		public ForceDensityModel(ForceDensityModel fd)
         {
-            _loadCase = fd._loadCase;
-            _value = fd._value;
-            _weight = fd._weight;
-            _type = fd._type;
-            _project = fd._project;
-            _curvatureRatioValue = fd._curvatureRatioValue;
+            _loadCase = SerializationHelper.Clone(fd._loadCase);
+            goal = GPC.Model.Core.ModelValues.CopyValue(fd.goal);
+            inactiveChord = fd.inactiveChord;
+            inactiveDirection = fd.inactiveDirection;
         }
 
         #region Serialization
@@ -128,15 +176,7 @@ namespace Arachne.Common.Models
 		protected ForceDensityModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
 
             _value = info.GetDouble("Value");
             _weight = info.GetDouble("Weight");
@@ -221,7 +261,7 @@ namespace Arachne.Common.Models
                 Value == other.Value &&
                 Project == other.Project &&
                 CurvatureLengthValue == other.CurvatureLengthValue &&
-				ForceDensityTipe == other.ForceDensityTipe;
+				ForceDensityTipe == other.ForceDensityTipe && MembraneType == other.MembraneType;
         }
 
         public override bool Equals(object obj)
@@ -242,6 +282,7 @@ namespace Arachne.Common.Models
                 hashCode = hashCode * -23 + CurvatureLengthValue.GetHashCode();
                 hashCode = hashCode * -23 + Project.GetHashCode();
 				hashCode = hashCode * -23 + ForceDensityTipe.GetHashCode();
+                hashCode = hashCode * -23 + MembraneType.GetHashCode();
 
                 return hashCode;
             }

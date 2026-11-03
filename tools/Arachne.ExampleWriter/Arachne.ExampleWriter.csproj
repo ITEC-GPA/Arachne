@@ -6,6 +6,7 @@
     <ProjectReference Include="..\..\..\Model\GPC.Model.Persistence\GPC.Model.Persistence.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Fixtures\Legacy\*.nrbf" CopyToOutputDirectory="PreserveNewest" />
     <Reference Include="GPCUtilities"><HintPath>$(GpcUtilitiesPath)</HintPath><Private>true</Private></Reference>
     <ProjectReference Include="..\..\src\Arachne.Grasshopper\Arachne.Grasshopper.csproj" />
     <Reference Include="Grasshopper"><HintPath>$(GrasshopperDir)\Grasshopper.dll</HintPath><Private>false</Private></Reference>

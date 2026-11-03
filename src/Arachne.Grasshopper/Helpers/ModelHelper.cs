@@ -234,7 +234,7 @@ namespace Arachne.Grasshopper.Helpers
                     NodeModel newNode = new NodeModel(n_node.ToString(), startPt);
                     n_node++;
 
-                    orderedNodeList.Add(new GH_Node(newNode));
+                    orderedNodeList.Add(new GH_Node(newNode, Common.Analysis.FormFindingInputBuilder.Identity(orderedBeamsList[i].Guid, "I")));
                     rTree.Insert(startPt, orderedNodeList.Count - 1);
                 }
 
@@ -251,7 +251,7 @@ namespace Arachne.Grasshopper.Helpers
                     NodeModel newNode = new NodeModel(n_node.ToString(), endPt);
                     n_node++;
 
-                    orderedNodeList.Add(new GH_Node(newNode));
+                    orderedNodeList.Add(new GH_Node(newNode, Common.Analysis.FormFindingInputBuilder.Identity(orderedBeamsList[i].Guid, "J")));
                     rTree.Insert(endPt, orderedNodeList.Count - 1);
                 }
             }
@@ -285,7 +285,7 @@ namespace Arachne.Grasshopper.Helpers
                         NodeModel newNode = new NodeModel(n_node.ToString(), pt);
                         n_node++;
 
-                        orderedNodeList.Add(new GH_Node(newNode));
+                        orderedNodeList.Add(new GH_Node(newNode, Common.Analysis.FormFindingInputBuilder.Identity(orderedPlateList[i].Guid, "vertex:" + j)));
                         rTree.Insert(pt, orderedNodeList.Count - 1);
                     }
                 }

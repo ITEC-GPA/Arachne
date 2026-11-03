@@ -18,6 +18,11 @@ namespace Arachne.Grasshopper.DataTypes
         #region Properties
 
         public Guid Guid => _guid;
+        internal void SetInputIdentity(Guid identity)
+        {
+            if (identity == Guid.Empty) throw new ArgumentException("EmptyComponentInputIdentity");
+            _guid = identity;
+        }
 
         public GH_PlateProperty PlateProperty => _plateProperty;
 
@@ -103,9 +108,8 @@ namespace Arachne.Grasshopper.DataTypes
         public GH_Plate(GH_Plate plate)
         {
             _guid = plate._guid;
-            _plateProperty = plate._plateProperty;
-            _groups = plate._groups;
             Value = new PlateModel(plate.Value);
+            RebuildWrapperViews();
         }
 
         #endregion
@@ -217,14 +221,7 @@ namespace Arachne.Grasshopper.DataTypes
 
         public override IGH_GeometricGoo DuplicateGeometry()
         {
-            GH_Plate copy = new GH_Plate
-            {
-                _guid = _guid,
-                _plateProperty = _plateProperty,
-                _groups = _groups,
-                Value = Value
-            };
-            return copy;
+            return new GH_Plate(this);
         }
 
         public override BoundingBox GetBoundingBox(Transform xform)
@@ -234,6 +231,27 @@ namespace Arachne.Grasshopper.DataTypes
             if (!Value.IsValid)
                 return BoundingBox.Empty;
             return Value.Shape.GetBoundingBox(xform);
+        }
+
+        private void RebuildWrapperViews()
+        {
+            _plateProperty = Value?.PlateProperty == null ? null : new GH_PlateProperty(Value.PlateProperty);
+            _groups = Value == null ? new List<GH_Group>() : System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(Value.Groups, g => new GH_Group(g)));
+        }
+        public override bool Write(GH_IO.Serialization.GH_IWriter writer)
+        {
+            if (!base.Write(writer)) return false;
+            writer.SetGuid("Guid", _guid);
+            writer.SetByteArray("Data", Arachne.Common.Helpers.SerializationHelper.ToBytes(Value));
+            return true;
+        }
+        public override bool Read(GH_IO.Serialization.GH_IReader reader)
+        {
+            if (!base.Read(reader) || !reader.ItemExists("Data")) return false;
+            _guid = reader.GetGuid("Guid");
+            Value = Arachne.Common.Helpers.SerializationHelper.FromBytes<PlateModel>(reader.GetByteArray("Data"));
+            RebuildWrapperViews();
+            return true;
         }
 
         public override string ToString()

@@ -111,15 +111,7 @@ namespace Arachne.Common.Models
 		protected BeamPointLoadModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _loadType = (LoadType)info.GetValue("LoadType", typeof(LoadType));
             _value = new LoadData()
             {

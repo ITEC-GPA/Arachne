@@ -66,6 +66,7 @@ namespace Arachne.Grasshopper.Components.Models
                 // Load combinations, named sets and staged constructions served only the FEM programs
                 GH_Model model = new GH_Model((ModelModel.ModelUnits)units, elements);
                 model.Value.Name = name;
+                model.Value.InputOwner = Helpers.ComponentInputIdentity.For(this, DA);
 
                 DA.SetData(0, model);
                 Message = ((ModelModel.ModelUnits)units).GetDescription();

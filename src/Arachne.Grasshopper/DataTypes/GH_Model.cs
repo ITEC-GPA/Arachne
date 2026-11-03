@@ -11,7 +11,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Arachne.Grasshopper.DataTypes
 {
@@ -19,7 +18,7 @@ namespace Arachne.Grasshopper.DataTypes
     {
         protected Dictionary<ElementModel, Guid> _guids;
 
-        public Dictionary<ElementModel, Guid> Guids => _guids;
+        public Dictionary<ElementModel, Guid> Guids => Value?.InputIdentities ?? _guids;
 
         public override bool IsValid => Value != null && Value.Elements != null && Value.Elements.Count() > 0;
 
@@ -65,7 +64,7 @@ namespace Arachne.Grasshopper.DataTypes
                 elementsBag.Add(plate.Value);
             }
 
-            _guids = new Dictionary<ElementModel, Guid>(bufferGuidDict);
+            foreach (var identity in bufferGuidDict) Value.InputIdentities.Add(identity.Key, identity.Value);
 
             Value.AddElements(elementsBag);
         }
@@ -73,8 +72,9 @@ namespace Arachne.Grasshopper.DataTypes
         public GH_Model(GH_Model model)
             : this()
         {
-            Value = model.Value;
-            _guids = model.Guids;
+            var copy = (GH_Model)model.Duplicate();
+            Value = copy.Value;
+            _guids = copy.Guids;
         }
 
         /// <summary>
@@ -83,59 +83,12 @@ namespace Arachne.Grasshopper.DataTypes
         /// <returns>The deep copy of the model</returns>
         public override IGH_Goo Duplicate()
         {
-            GH_Model copy = new GH_Model { Value = new ModelModel(Value) };
-
-            // Rebuild the Guids association
-            foreach (ElementModel copy_element in copy.Value.Elements)
-            {
-                ElementModel element;
-                if (copy_element is NodeModel node)
-                {
-                    try
-                    {
-                        element = Value.GetNode(node.NodeId);
-                    }
-                    catch (Exception)
-                    {
-                        continue;
-                    }
-                }
-                else if (copy_element is BeamModel beam)
-                {
-                    try
-                    {
-                        element = Value.GetBeam(beam.BeamId);
-                    }
-                    catch (Exception)
-                    {
-                        continue;
-                    }
-                }
-                else if (copy_element is PlateModel plate)
-                {
-                    try
-                    {
-                        element = Value.GetPlate(plate.PlateId);
-                    }
-                    catch (Exception)
-                    {
-                        continue;
-                    }
-                }
-                else
-                    continue;
-
-                // A model read from a file has no Guid associations to restore
-                if (element != null && Guids.TryGetValue(element, out Guid guid))
-                    copy.Guids.Add(copy_element, guid);
-            }
-
-            return copy;
+            return new GH_Model { Value = Value == null ? null : new ModelModel(Value) };
         }
 
         public void AddGuid(ElementModel elementModel, Guid guid)
         {
-            _guids.Add(elementModel, guid);
+            Guids.Add(elementModel, guid);
         }
 
         public override bool Write(GH_IWriter writer)
@@ -164,11 +117,7 @@ namespace Arachne.Grasshopper.DataTypes
                 try
                 {
                     byte[] buffer = reader.GetByteArray("Data");
-                    using (MemoryStream ms = new MemoryStream(buffer))
-                    {
-                        BinaryFormatter bf = new BinaryFormatter();
-                        Value = ModelModel.Deserialize(bf, ms);
-                    }
+                    Value = SerializationHelper.FromBytes<ModelModel>(buffer);
                     return true;
                 }
                 catch (Exception e)

@@ -203,7 +203,7 @@ namespace Arachne.Grasshopper.DataTypes
 
         public GH_BeamSection(GH_BeamSection section)
         {
-            Value = section.Value;
+            Value = Arachne.Common.Helpers.SerializationHelper.Clone(section.Value);
         }
 
         public override bool CastFrom(object source)

@@ -59,15 +59,7 @@ namespace Arachne.Common.Models
 		protected NodeModel(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            int savedRelease;
-            try
-            {
-                savedRelease = info.GetInt32(SERIALIZATION_RELEASE_NAME);
-            }
-            catch
-            {
-                savedRelease = 0;
-            }
+            int savedRelease = Arachne.Common.Helpers.SerializationHelper.ReadVersion(info, SERIALIZATION_RELEASE_NAME, SERIALIZATION_RELEASE);
             _nodeId = info.GetString("NodeId");
             _position = (Point3d)info.GetValue("Position", typeof(Point3d));
         }
