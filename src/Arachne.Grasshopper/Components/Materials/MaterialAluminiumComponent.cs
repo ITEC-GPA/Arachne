@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using Arachne.Grasshopper.Helpers;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -57,11 +58,11 @@ namespace Arachne.Grasshopper.Components.Materials
             if (!DA.GetData("Alloy", ref alloy))
                 return;
 
-            MaterialModel material = new MaterialModel
+            MaterialInput material = new MaterialInput
             {
-                Kind = MaterialModel.MaterialKind.Aluminium,
+                Kind = MaterialInput.MaterialKind.Aluminium,
                 Name = name,
-                AlumiumType = (MaterialModel.AlumiumTypes)type_idx,
+                AlumiumType = (MaterialInput.AlumiumTypes)type_idx,
                 Alloy = alloy,
                 // Note: Values are in N, m, C. Remember to convert them in the export if the model units are different
                 Modulus = 69637.05,//N/mm2=MPa
@@ -76,7 +77,7 @@ namespace Arachne.Grasshopper.Components.Materials
                 ShearUltimateStrength = 165.5//N/mm2=MPa
             };
 
-            DA.SetData(0, new GH_Material(material));
+            DA.SetData(0, new GH_Material(material.ToGpc()));
         }
 
         /// <summary>

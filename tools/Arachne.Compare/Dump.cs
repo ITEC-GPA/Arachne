@@ -114,7 +114,7 @@ internal static class Diff
         {
             if (!candidate.TryGetValue(scenario.Key, out var other)) { Console.WriteLine("MISSING scenario " + scenario.Key); missing++; continue; }
             var mine = scenario.Value.Where(e => e.Kind != "M").ToList(); var theirs = other.Where(e => e.Kind != "M").ToDictionary(e => e.Key, e => e);
-            int bits = 0, numbers = 0, texts = 0; double worst = 0; string worstKey = null; var textDiffs = new List<string>(); var absent = new List<string>();
+            int bits = 0, numbers = 0, texts = 0, shown = 0; double worst = 0; string worstKey = null; var textDiffs = new List<string>(); var absent = new List<string>();
             foreach (var e in mine)
             {
                 if (!theirs.TryGetValue(e.Key, out var c)) { absent.Add(e.Key); continue; }
@@ -122,6 +122,7 @@ internal static class Diff
                 {
                     numbers++;
                     if (e.Bits == c.Bits) { bits++; continue; }
+                    if (shown++ < 6) textDiffs.Add("number " + e.Key + ": " + e.Number.ToString("R") + " vs " + c.Number.ToString("R"));
                     double rel = Math.Abs(e.Number - c.Number) / Math.Max(1e-300, Math.Max(Math.Abs(e.Number), Math.Abs(c.Number)));
                     double abs = Math.Abs(e.Number - c.Number);
                     double measure = Math.Min(rel, abs);

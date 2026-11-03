@@ -285,6 +285,29 @@ internal static class Scenarios
             var run = FormFind(c, Build(c, ForceDensity(c, Beams(c, lines), 1), plates, Supports(c, border)), 2, 100, 1e-8, 9806.65);
             Results(o, c, "explicit-plates", run);
         });
+        Case(dump, "explicit quad plates, one per face, with membrane and steel weight", (d, o) =>
+        {
+            var c = Start(d); var (lines, border) = SaddleGrid(2, 4000, 500);
+            double Z(int x, int y) => (x == 1 && y == 1) ? 0 : 500 * (x - 1) * (y - 1);
+            var faces = new List<IGH_Goo>();
+            for (int y = 0; y < 2; y++)
+                for (int x = 0; x < 2; x++)
+                {
+                    var face = new Mesh();
+                    face.Vertices.Add(2000 * x, 2000 * y, Z(x, y)); face.Vertices.Add(2000 * (x + 1), 2000 * y, Z(x + 1, y));
+                    face.Vertices.Add(2000 * (x + 1), 2000 * (y + 1), Z(x + 1, y + 1)); face.Vertices.Add(2000 * x, 2000 * (y + 1), Z(x, y + 1));
+                    face.Faces.AddFace(0, 1, 2, 3); faces.Add(new GH_Mesh(face));
+                }
+            var membrane = d.Add(Id.Membrane); d.Set(membrane, 0, S("PTFE")); d.Set(membrane, 1, N(1500)); d.Set(membrane, 2, N(5000)); d.Set(membrane, 3, N(4500));
+            var steel = d.Add(Id.Steel); d.Set(steel, 0, S("Steel")); d.Set(steel, 1, I(1));
+            foreach (var (material, key, thickness) in new[] { (membrane, "quad-fabric", 1.0), (steel, "quad-steel", 2.0) })
+            {
+                var property = d.Add(Id.PlateProperty); d.Set(property, 0, S("Plates")); d.Set(property, 1, N(thickness)); Doc.Link(property, 2, material);
+                var plates = d.Add(Id.Plate); d.Set(plates, 0, faces.ToArray()); Doc.Link(plates, 1, property);
+                foreach (int solver in new[] { 0, 2 })
+                    Results(o, c, key + solver, FormFind(c, Build(c, ForceDensity(c, Beams(c, lines), 1), plates, Supports(c, border)), solver, 100, 1e-8, 9806.65));
+            }
+        });
         Case(dump, "membrane force densities warp and weft", (d, o) =>
         {
             var c = Start(d); var (lines, border) = SaddleGrid(4, 4000, 800);
@@ -418,6 +441,7 @@ internal static class Scenarios
             var outputs = sections.Select(s => (s.key, p: After(new Chain { Doc = d }, Id.SectionProperties, s.c))).ToList();
             d.Solve();
             foreach (var s in outputs) o.Outputs(s.key, s.p);
+            foreach (var s in sections) o.Messages(s.key + ".section", s.c);
         });
         Case(dump, "membrane and plate property values", (d, o) =>
         {

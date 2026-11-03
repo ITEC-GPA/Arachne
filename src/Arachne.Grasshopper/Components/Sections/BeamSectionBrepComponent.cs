@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Arachne.Common.Models;
+using Arachne.Common.Geometry;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -120,13 +120,13 @@ namespace Arachne.Grasshopper.Components.Sections
 
             if (shapesList.Count > 0)
             {
-                SectionModel sectionModel = new SectionModel()
+                var sectionModel = new SectionCalculator()
                 {
-                    SectionType = SectionModel.SectionTypes.GenericShapes,
+                    Type = SectionCalculator.Kind.GenericShapes,
                     GenericShapes = new Common.Geometry.Shapes(shapesList)
                 };
 
-                GH_BeamSection section = new GH_BeamSection(sectionModel);
+                GH_BeamSection section = new GH_BeamSection(sectionModel.ToSection());
 
                 DA.SetData(0, section);
             }
@@ -142,4 +142,4 @@ namespace Arachne.Grasshopper.Components.Sections
         /// </summary>
         public override Guid ComponentGuid => new Guid("b105ee76-1e25-432e-a2b6-8b0ae1b7ed54");
     }
-}
+}

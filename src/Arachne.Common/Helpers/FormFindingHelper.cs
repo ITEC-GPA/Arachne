@@ -1,4 +1,3 @@
-using Arachne.Common.Models;
 using GPC.Utilities.Units;
 using Rhino.Geometry;
 using System;
@@ -10,87 +9,6 @@ namespace Arachne.Common.Helpers
 {
     public static class FormFindingHelper
     {
-        /// <summary>Compatibility entry point; all physical solver input now passes through GPC.</summary>
-        public static Model AssemblyModel(ModelModel model, Plane plane, int solverType, SolverOptionsModel options, out List<string> log)
-        {
-            var input = Analysis.FormFindingInputBuilder.Build(model, plane, solverType, options, model.InputOwner, model.InputIdentities);
-            log = input.Diagnostics;
-            return Analysis.TensileModelAdapter.Export(input.Model, input.Units).Solver;
-        }
-
-        /// <summary>
-        /// The case of the results computed by the form finding.
-        /// </summary>
-        public static LoadCaseModel FormFindingCase()
-        {
-            return new LoadCaseModel("FF", "Form Finding");
-        }
-
-        /// <summary>
-        /// The forces that the supports exert on a solved model, in the order of
-        /// <see cref="Model.Nodes"/>. At a restrained node the reaction balances the beam
-        /// forces and the loads the solver applied to the node: node forces, self-weight of
-        /// beams and plates, beam loads and pressure. Only the part along the restrained
-        /// directions is kept (the axes of the restraints, global or of a plane); the nodes
-        /// without translational restraints get null.
-        /// </summary>
-        public static Vector3d?[] ComputeReactions(Model ff_model)
-        {
-            List<Node> nodes = ff_model.Nodes.ToList();
-            Dictionary<int, int> indexes = new Dictionary<int, int>(nodes.Count);
-            Vector3d[] sums = new Vector3d[nodes.Count];
-            for (int i = 0; i < nodes.Count; i++)
-            {
-                Node node = nodes[i];
-                indexes.Add(node.Id, i);
-                sums[i] = ToRhino(node.NodeForce) + ToRhino(node.BeamSelfWeightForce) + ToRhino(node.PlateSelfWeightForce) +
-                    ToRhino(node.BeamLoadForce) + ToRhino(node.PressureForce);
-            }
-
-            foreach (Beam beam in ff_model.Beams)
-            {
-                Vector3d axis = new Vector3d(beam.Node2.X - beam.Node1.X, beam.Node2.Y - beam.Node1.Y, beam.Node2.Z - beam.Node1.Z);
-                double length = axis.Length;
-                if (length == 0)
-                    continue;
-                // A tension pulls each end towards the other one
-                Vector3d pull = axis * (beam.AxialForce / length);
-                sums[indexes[beam.Node1.Id]] += pull;
-                sums[indexes[beam.Node2.Id]] -= pull;
-            }
-
-            Vector3d?[] reactions = new Vector3d?[nodes.Count];
-            for (int i = 0; i < nodes.Count; i++)
-            {
-                Node node = nodes[i];
-                if (!node.Tx && !node.Ty && !node.Tz)
-                    continue;
-                reactions[i] = ToRhino(node.RestrainedPart(ToGpc(-sums[i])));
-            }
-            return reactions;
-        }
-
-        private static Vector3d ToRhino(GPC.Geometry.Vector3d v)
-        {
-            return new Vector3d(v.X, v.Y, v.Z);
-        }
-
-        private static GPC.Geometry.Vector3d ToGpc(Vector3d v)
-        {
-            return new GPC.Geometry.Vector3d(v.X, v.Y, v.Z);
-        }
-
-        /// <summary>
-        /// Converts a vector given in <paramref name="cs"/> into global coordinates.
-        /// A null coordinate system is the global one.
-        /// </summary>
-        private static Vector3d ToGlobal(CoordinateSystemModel cs, Vector3d v)
-        {
-            if (cs == null || !cs.GetAxes(out Vector3d e1, out Vector3d e2, out Vector3d e3))
-                return v;
-            return e1 * v.X + e2 * v.Y + e3 * v.Z;
-        }
-
         public static Model AssemblyModel(List<Curve> curves, double tol, out List<string> log)
         {
             log = new List<string>();

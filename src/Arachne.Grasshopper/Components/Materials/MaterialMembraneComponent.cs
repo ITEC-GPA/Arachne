@@ -1,5 +1,6 @@
 using System;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using Arachne.Grasshopper.Helpers;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -42,41 +43,30 @@ namespace Arachne.Grasshopper.Components.Materials
             string name = "";
             double weight = 0, strengthWarp = 0, strengthWeft = 0;
             double stiffnessWarp = 0, stiffnessWeft = 0, poisson = 0, shear = 0;
-
-            if (!DA.GetData(0, ref name) || !DA.GetData(1, ref weight) || !DA.GetData(2, ref strengthWarp) || !DA.GetData(3, ref strengthWeft))
-                return;
-            DA.GetData(4, ref stiffnessWarp);
-            DA.GetData(5, ref stiffnessWeft);
-            DA.GetData(6, ref poisson);
-            DA.GetData(7, ref shear);
-
-            if (!(weight > 0) || !(strengthWarp > 0) || !(strengthWeft > 0))
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Weight and strengths must be greater than 0");
-                return;
-            }
+            if (!DA.GetData(0, ref name) || !DA.GetData(1, ref weight) || !DA.GetData(2, ref strengthWarp) || !DA.GetData(3, ref strengthWeft)) return;
+            DA.GetData(4, ref stiffnessWarp); DA.GetData(5, ref stiffnessWeft); DA.GetData(6, ref poisson); DA.GetData(7, ref shear);
+            if (!(weight > 0) || !(strengthWarp > 0) || !(strengthWeft > 0)) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Weight and strengths must be greater than 0"); return; }
             if (stiffnessWarp < 0 || stiffnessWeft < 0 || shear < 0 || poisson < 0 || poisson >= 1)
+            { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Stiffnesses must not be negative and the Poisson ratio must be between 0 and 1"); return; }
+            // From the units of the data sheets to t, N and mm. A stiffness of 0 is "not given" (GPC: no value).
+            var membrane = new GPC.Model.ElementProperties.MembranePlateProperty(name)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Stiffnesses must not be negative and the Poisson ratio must be between 0 and 1");
-                return;
-            }
-
-            // From the units of the data sheets to t, N and mm (the default units of the model)
-            var material = new MaterialModel
-            {
-                Kind = MaterialModel.MaterialKind.Membrane,
-                Name = name,
-                AreaDensity = weight * 1e-12,      // g/m² -> t/mm²
+                MassPerArea = weight * 1e-12,      // g/m2 -> t/mm2
                 StrengthWarp = strengthWarp / 50,  // N/5cm -> N/mm
                 StrengthWeft = strengthWeft / 50,
-                StiffnessWarp = stiffnessWarp,     // kN/m = N/mm
-                StiffnessWeft = stiffnessWeft,
-                PoissonRatio = poisson,
-                ShearStiffness = shear
+                StiffnessWarp = stiffnessWarp > 0 ? stiffnessWarp : (double?)null, // kN/m = N/mm
+                StiffnessWeft = stiffnessWeft > 0 ? stiffnessWeft : (double?)null,
+                ShearStiffness = shear > 0 ? shear : (double?)null
             };
-
+            if (poisson > 0)
+            {
+                if (membrane.StiffnessWarp.HasValue && membrane.StiffnessWeft.HasValue) membrane.NuWarpWeft = poisson;
+                else AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "The Poisson ratio is kept with the warp and weft stiffnesses only.");
+            }
+            try { membrane.Validate(); }
+            catch (ArgumentException e) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message); return; }
             Message = $"{weight:0.#} g/m²";
-            DA.SetData(0, new GH_Material(material));
+            DA.SetData(0, new GH_Material(membrane));
         }
 
         protected override System.Drawing.Bitmap Icon => ComponentIcons.Get(GetType().Name);

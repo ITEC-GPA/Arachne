@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using GPC.Model.Analysis;
+using GPC.Model.Attributes;
+using GPC.Model.Core;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -45,64 +48,20 @@ namespace Arachne.Grasshopper.Components.Attributes
         {
             IGH_GeometricGoo element = null;
             string id = null;
-            if (!DA.GetData(0, ref element))
-                return;
-            if (!DA.GetData(1, ref id))
-                return;
-
-            if (string.IsNullOrEmpty(id))
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Empty string not admitted");
-                return;
-            }
-
-            ElementIdAttributeModel se = new ElementIdAttributeModel(id);
-            if (element is GH_Beam beam)
-            {
-                ElementIdAttributeModel other = GetOtherId(beam.Value);
-                if (other != null)
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Beam " + other.Value + " has already an ID");
-                    return;
-                }
-                GH_Beam new_beam = new GH_Beam(beam);
-                new_beam.Value.Attributes.Add(se);
-                DA.SetData(0, new_beam);
-            }
-            else if (element is GH_Plate plate)
-            {
-                ElementIdAttributeModel other = GetOtherId(plate.Value);
-                if (other != null)
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Plate " + other.Value + " has already an ID");
-                    return;
-                }
-                GH_Plate new_plate = new GH_Plate(plate);
-                new_plate.Value.Attributes.Add(se);
-                DA.SetData(0, new_plate);
-            }
-            else if (element is GH_Node node)
-            {
-                ElementIdAttributeModel other = GetOtherId(node.Value);
-                if (other != null)
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Node " + other.Value + " has already an ID");
-                    return;
-                }
-                GH_Node new_node = new GH_Node(node);
-                new_node.Value.Attributes.Add(se);
-                DA.SetData(0, new_node);
-            }
-            else
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unsupported element type");
-            }
+            if (!DA.GetData(0, ref element)) return;
+            if (!DA.GetData(1, ref id)) return;
+            if (string.IsNullOrEmpty(id)) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Empty string not admitted"); return; }
+            GPC.Model.Elements.Element target; string kind;
+            if (element is GH_Beam beam) { var copy = new GH_Beam(beam); target = copy.Value; element = copy; kind = "Beam"; }
+            else if (element is GH_Plate plate) { var copy = new GH_Plate(plate); target = copy.Value; element = copy; kind = "Plate"; }
+            else if (element is GH_Node node) { var copy = new GH_Node(node); target = copy.Value; element = copy; kind = "Node"; }
+            else { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unsupported element type"); return; }
+            string other = ElementDrafts.Label(target);
+            if (other != null) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, kind + " " + other + " has already an ID"); return; }
+            target.Attributes.Add(new ElementLabelAttribute(id));
+            DA.SetData(0, element);
         }
 
-        private ElementIdAttributeModel GetOtherId(ElementModel el)
-        {
-            return (ElementIdAttributeModel)el.Attributes.FirstOrDefault(a => a is ElementIdAttributeModel);
-        }
 
         public override GH_Exposure Exposure => GH_Exposure.quarternary;
 

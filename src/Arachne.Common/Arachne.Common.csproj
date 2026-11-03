@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Model and helpers ported from FeMM.Common: FEM model, form-finding assembly for TensileLib. -->
+  <!-- Arachne boundary on GPC objects: Build Model, form-finding graph and TensileLib adapter, section calculator, GPC codec of the GH data. -->
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <TensileLibDirectory>$([System.IO.Path]::GetDirectoryName('$(TensileLibPath)'))</TensileLibDirectory>
@@ -13,7 +13,6 @@
     <Reference Include="alglibnet2"><HintPath>$(TensileLibDirectory)\alglibnet2.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="System.Drawing" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-    <PackageReference Include="System.Formats.Nrbf" Version="9.0.16" />
   </ItemGroup>
   <Target Name="CheckLocalLibraries" BeforeTargets="ResolveReferences">
     <Error Condition="!Exists('$(GpcGeometryPath)')" Text="GPCGeometry.dll mancante. Impostare GpcGeometryPath." />

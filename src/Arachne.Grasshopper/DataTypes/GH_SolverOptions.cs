@@ -1,73 +1,59 @@
 using System;
+using System.Collections.Generic;
+using Arachne.Common.Analysis;
 using Arachne.Common.Helpers;
-using Arachne.Common.Models;
 using GH_IO.Serialization;
+using GPC.Model.Analysis;
+using GPC.Model.ElementProperties;
+using GPC.Model.LoadCases;
 using Grasshopper.Kernel.Types;
 
 namespace Arachne.Grasshopper.DataTypes
 {
-    public class GH_SolverOptions : GH_Goo<SolverOptionsModel>
+    /// <summary>The options of the Form Find: the GPC <see cref="FormFindingDefinition"/> of the solver settings and the GPC cases and
+    /// plate property of the Arachne choices (<see cref="FormFindingOptions"/>).</summary>
+    public class GH_SolverOptions : GH_Goo<FormFindingOptions>
     {
-        public GH_SolverOptions()
-        {
-            Value = new SolverOptionsModel();
-        }
-
-        public GH_SolverOptions(SolverOptionsModel options)
-        {
-            Value = options;
-        }
-
         public override bool IsValid => Value != null;
-
         public override string TypeName => "SolverOptions";
-
         public override string TypeDescription => "The options of the form finding";
-
-        public override IGH_Goo Duplicate()
-        {
-            return new GH_SolverOptions(new SolverOptionsModel(Value));
-        }
-
+        public GH_SolverOptions() { }
+        public GH_SolverOptions(FormFindingOptions options) { Value = options; }
+        public override IGH_Goo Duplicate() => new GH_SolverOptions(Value?.Copy());
         public override bool Write(GH_IWriter writer)
         {
-            if (base.Write(writer))
-            {
-                try
-                {
-                    writer.SetByteArray("Data", SerializationHelper.ToBytes(Value));
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("GH_SolverOptions.Write: {0}", e.Message);
-                    return false;
-                }
-            }
-            return false;
+            if (!base.Write(writer)) return false;
+            if (Value == null) return true;
+            writer.SetByteArray("Settings", ContractArchive.Value(Value.Settings));
+            if (Value.PressureLoadCase != null) writer.SetByteArray("PressureLoadCase", ContractArchive.Value(Value.PressureLoadCase));
+            writer.SetInt32("LoadCaseCount", Value.LoadCases.Count);
+            for (int i = 0; i < Value.LoadCases.Count; i++) writer.SetByteArray("LoadCase", i, ContractArchive.Value(Value.LoadCases[i]));
+            writer.SetBoolean("CreateMesh", Value.CreateMesh);
+            if (Value.PlateProperty != null) writer.SetByteArray("PlateProperty", ContractArchive.Value(Value.PlateProperty));
+            return true;
         }
-
         public override bool Read(GH_IReader reader)
         {
-            if (base.Read(reader))
+            if (!base.Read(reader)) return false;
+            try
             {
-                try
+                if (!reader.ItemExists("Settings"))
                 {
-                    Value = SerializationHelper.FromBytes<SolverOptionsModel>(reader.GetByteArray("Data"));
+                    if (reader.ItemExists("Data")) throw new System.Runtime.Serialization.SerializationException(ContractArchive.LegacyMessage);
+                    Value = null; return true;
                 }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("GH_SolverOptions.Read: {0}", e.Message);
-                    return false;
-                }
+                var settings = ContractArchive.ReadValue<FormFindingDefinition>(reader.GetByteArray("Settings"));
+                var pressure = reader.ItemExists("PressureLoadCase") ? ContractArchive.ReadValue<LoadCaseBase>(reader.GetByteArray("PressureLoadCase")) : null;
+                int count = reader.GetInt32("LoadCaseCount");
+                if (count < 0 || count > 100000) throw new System.Runtime.Serialization.SerializationException("InvalidLoadCaseCount");
+                var cases = new List<LoadCaseBase>();
+                for (int i = 0; i < count; i++) cases.Add(ContractArchive.ReadValue<LoadCaseBase>(reader.GetByteArray("LoadCase", i)));
+                var property = reader.ItemExists("PlateProperty") ? ContractArchive.ReadValue<PlateProperty>(reader.GetByteArray("PlateProperty")) : null;
+                Value = new FormFindingOptions(settings, pressure, cases, reader.GetBoolean("CreateMesh"), property);
                 return true;
             }
-            return false;
+            catch (Exception e) { reader.AddMessage("Solver Options: " + e.Message, GH_Message_Type.error); return false; }
         }
-
-        public override string ToString()
-        {
-            return Value == null ? "Null Solver options" : Value.ToString();
-        }
+        public override string ToString() => Value == null ? "Null options" : Value.ToString();
     }
 }

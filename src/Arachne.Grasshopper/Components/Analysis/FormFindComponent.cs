@@ -1,4 +1,4 @@
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.ComponentAttributes;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
@@ -9,11 +9,15 @@ using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TensileLib.FormFinding;
-using TensileLib.Geometry;
 
 namespace Arachne.Grasshopper.Components.Analysis
 {
+    /// <summary>
+    /// Form Find on GPC objects: the analysis graph of the run (<see cref="FormFindingInputBuilder"/>), its domain preflight and the
+    /// TensileLib solver (<see cref="TensileModelAdapter"/>), the results attached to the graph and kept in the sidecar of the document
+    /// (<see cref="AnalysisDocumentState"/>), and the outputs projected from them (<see cref="FormFindingOutputProjection"/>), as the
+    /// former Form Find. A saved run restores its outputs without the solver while its inputs are unchanged.
+    /// </summary>
     public class FormFindComponent : GH_Component
     {
         private readonly AnalysisDocumentState _analysisState = new AnalysisDocumentState();
@@ -105,10 +109,6 @@ namespace Arachne.Grasshopper.Components.Analysis
             pManager.AddMeshParameter("Mesh", "M", "The resulting mesh usefull to geometric operations", GH_ParamAccess.item);
         }
 
-        /// <summary>
-        /// This is the method that actually does the work.
-        /// </summary>
-        /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             Message = "";
@@ -127,7 +127,7 @@ namespace Arachne.Grasshopper.Components.Analysis
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Input parameter Options failed to collect data");
                 return;
             }
-            SolverOptionsModel options = gh_options?.Value ?? new SolverOptionsModel();
+            FormFindingOptions options = gh_options?.Value ?? new FormFindingOptions();
             DA.GetData(3, ref plane);
             if (!DA.GetData("Auto Run", ref autoRun))
                 return;
@@ -165,12 +165,13 @@ namespace Arachne.Grasshopper.Components.Analysis
             }
         }
 
-        private void RestoreAnalysis(int iteration, GH_Model model, int solverType, SolverOptionsModel options, Plane plane)
+        private void RestoreAnalysis(int iteration, GH_Model model, int solverType, FormFindingOptions options, Plane plane)
         {
             var reference = _analysisReferences[iteration];
             try
             {
-                var current = Common.Analysis.FormFindingInputBuilder.Build(model.Value, plane, solverType, options, model.Value.InputOwner, model.Guids);
+                var current = FormFindingInputBuilder.Build(model.Value, model.Units, solverType, options, plane);
+                TensileModelAdapter.Export(current.Model, current.Units, current);
                 if (!reference.IsCurrent(current.Model))
                 {
                     if (iteration < _models.Count) { _models[iteration] = null; _meshes[iteration] = null; }
@@ -178,8 +179,8 @@ namespace Arachne.Grasshopper.Components.Analysis
                     Message = "Inputs changed"; return;
                 }
                 var saved = _analysisState.Open(iteration);
-                var view = Common.Analysis.FormFindingOutputProjection.Project(model.Value, saved.Model, options);
-                SetResult(iteration, new GH_Model { Value = view.Model }, view.Mesh == null ? null : new GH_Mesh(view.Mesh));
+                var view = FormFindingOutputProjection.Project(model.Value, saved.Model, options, model.Units);
+                SetResult(iteration, new GH_Model(view.Model, model.Units), view.Mesh == null ? null : new GH_Mesh(view.Mesh));
                 _analysisReferences[iteration] = reference;
                 Message = "Restored";
             }
@@ -190,257 +191,42 @@ namespace Arachne.Grasshopper.Components.Analysis
             }
         }
 
-        private void Solve(int iteration, GH_Model model, int solverType, SolverOptionsModel options, Plane plane)
+        // The inputs that the selected method ignores are said by the remarks of the former assembly too: no warning for them.
+        private static readonly HashSet<string> IgnoredInputCodes = new HashSet<string> { "FormFindingFixedLengthIgnored", "FormFindingFixedAxialForceIgnored", "FormFindingCoordinateWeightsIgnored" };
+
+        private void Solve(int iteration, GH_Model model, int solverType, FormFindingOptions options, Plane plane)
         {
             // A failed run does not leave the previous result on the outputs
             SetResult(iteration, null, null);
             try
             {
-                int maxIterNumber = options.MaxIterations;
-                bool makeMesh = options.CreateMesh;
-
-                if (solverType < 0 || solverType > 2)
-                    throw new ArgumentException("Unknown solver type");
-                if (maxIterNumber < 1)
-                    throw new ArgumentException("Max Iter must be at least 1");
-
-                var input = Common.Analysis.FormFindingInputBuilder.Build(model.Value, plane, solverType, options, model.Value.InputOwner, model.Guids);
-                var exported = Common.Analysis.TensileModelAdapter.Export(input.Model, input.Units);
-                Model ff_model = exported.Solver;
-                var warnings = input.Diagnostics;
+                var input = FormFindingInputBuilder.Build(model.Value, model.Units, solverType, options, plane);
+                foreach (string remark in input.Remarks) AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, remark);
+                var exported = TensileModelAdapter.Export(input.Model, input.Units, input);
+                foreach (var diagnostic in exported.Diagnostics)
+                    AddRuntimeMessage(diagnostic.Severity == GPC.Model.Core.Diagnostics.DiagnosticSeverity.Warning && !IgnoredInputCodes.Contains(diagnostic.Code)
+                        ? GH_RuntimeMessageLevel.Warning : GH_RuntimeMessageLevel.Remark, diagnostic.Code + ": " + diagnostic.Message);
+                foreach (string remark in exported.Remarks.Concat(input.FinalRemarks)) AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, remark);
 #if ARACHNE_MIGRATION_CAPTURE
-                int captureId = MigrationTensileCapture.Input(ff_model, model.Value.Units, solverType, options);
+                int captureId = MigrationTensileCapture.Input(exported.Solver, model.Units, solverType, options);
 #endif
-                foreach (string warning in warnings)
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, warning);
-
-                // Solver execution is shared by the production path and the integration checks.
-                var status = Common.Analysis.TensileModelAdapter.Solve(ff_model, input.Model.FormFinding);
-                bool converged = status != Solver.ResultCodes.NotconvergedAtMaxIterationNumber;
-                if (!converged)
-                {
-                    AddRuntimeMessage(solverType == 1 ? GH_RuntimeMessageLevel.Error : GH_RuntimeMessageLevel.Warning, "Not converged. The maximum number of iteration has been reached.");
-                    if (solverType == 1) { Message = "Error"; return; }
-                }
-                if (converged) Common.Analysis.TensileModelAdapter.Attach(input.Model, exported, status, input.ResultCase, input.PressureCase);
-
+                var outcome = TensileModelAdapter.Solve(exported.Solver, input.Model.FormFinding);
 #if ARACHNE_MIGRATION_CAPTURE
-                MigrationTensileCapture.Result(captureId, ff_model, converged, "solver-returned");
+                MigrationTensileCapture.Result(captureId, exported.Solver, outcome.Converged, "solver-returned");
 #endif
-                if (converged)
+                if (outcome.Error != null)
                 {
-                    var view = Common.Analysis.FormFindingOutputProjection.Project(model.Value, input.Model, options);
-                    SetResult(iteration, new GH_Model { Value = view.Model }, view.Mesh == null ? null : new GH_Mesh(view.Mesh));
-                    _analysisState.Prepare(iteration, input.Model, exported.Map);
-                    Message = "Done"; return;
+                    // Linear step by step: no result when its outer loop does not converge
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, outcome.Error);
+                    Message = "Error";
+                    return;
                 }
-
-                // Compatibility preview of a nonconverged iteration. It is never persisted as a
-                // completed GPC analysis and remains accompanied by the convergence warning.
-                // Create a deep copy of the model where to add the results
-                GH_Model result = (GH_Model)model.Duplicate();
-
-                // Update the model with the FF results. The pressure becomes nodal forces in its
-                // load case, as in FeMM, marked as a result: the forces of a previous form finding,
-                // computed on the previous shape, are replaced, and a new form finding does not
-                // apply them again
-                NodeModel[] nodeArray = result.Value.Nodes.ToArray();
-                for (int i = 0; i < nodeArray.Length; i++)
-                {
-                    NodeModel node = nodeArray[i];
-                    Node ff_node = ff_model.Nodes.ElementAt(i);
-                    node.Position = new Point3d(ff_node.X, ff_node.Y, ff_node.Z);
-
-                    for (int k = node.Loads.Count - 1; k >= 0; k--)
-                    {
-                        if (node.Loads[k] is NodePressureLoadModel)
-                            node.Loads.RemoveAt(k);
-                    }
-                    Vector3d p = new Vector3d(ff_node.PressureX, ff_node.PressureY, ff_node.PressureZ);
-                    if (p.Length != 0)
-                        node.Loads.Add(new NodePressureLoadModel(options.PressureLoadCase, p));
-                }
-
-                BeamModel[] beamsModel = result.Value.Beams.ToArray();
-                for (int i = 0; i < beamsModel.Length; i++)
-                {
-                    BeamModel beam = beamsModel[i];
-                    Beam ff_beam = ff_model.Beams.ElementAt(i);
-                    beam.PointFrom = new Point3d(ff_beam.Node1.X, ff_beam.Node1.Y, ff_beam.Node1.Z);
-                    beam.PointTo = new Point3d(ff_beam.Node2.X, ff_beam.Node2.Y, ff_beam.Node2.Z);
-                    // The pre-load uses the load case of the force density or, on the beams governed
-                    // only by a fixed axial force or a fixed length, the load case of that load.
-                    // Beams without any of them carry no force and get no pre-load.
-                    LoadModel source = beam.Loads.FirstOrDefault(l => l.GetType() == typeof(ForceDensityModel))
-                        ?? beam.Loads.FirstOrDefault(l => l.GetType() == typeof(FixedAxialForceModel))
-                        ?? beam.Loads.FirstOrDefault(l => l.GetType() == typeof(FixedLengthModel));
-                    if (source != null)
-                    {
-                        LoadCaseModel lc = source.LoadCase;
-                        for (int k = 0; k < beam.Loads.Count; k++)
-                        {
-                            if (beam.Loads[k].GetType() == typeof(BeamPreLoadModel))
-                            {
-                                beam.Loads.Remove(beam.Loads[k]);
-                                k--;
-                            }
-                        }
-                        beam.Loads.Add(new BeamPreLoadModel(lc, ff_beam.AxialForce, BeamPreLoadModel.LoadType.Tension));
-                    }
-                }
-
-                // Support reactions, read by the Support Reactions component. A previous form
-                // finding of the same model leaves reactions that are no longer valid.
-                foreach (NodeModel node in nodeArray)
-                {
-                    for (int k = node.Results.Count - 1; k >= 0; k--)
-                        if (node.Results[k] is NodeReactResultModel)
-                            node.Results.RemoveAt(k);
-                }
-                if (converged)
-                {
-                    Vector3d?[] reactions = Common.Helpers.FormFindingHelper.ComputeReactions(ff_model);
-                    LoadCaseModel reactionCase = Common.Helpers.FormFindingHelper.FormFindingCase();
-                    for (int i = 0; i < nodeArray.Length && i < reactions.Length; i++)
-                    {
-                        if (reactions[i].HasValue)
-                            nodeArray[i].Results.Add(new NodeReactResultModel(reactionCase) { Force = reactions[i].Value });
-                    }
-                }
-
-                GH_Mesh resultMesh = null;
-                if (makeMesh) // Create the mesh if required
-                {
-                    // Generate the plates
-                    try
-                    {
-                        if (ff_model.Plates == null || ff_model.Plates.Count == 0)
-                            ff_model.GeneratePlatesFromBeams();
-                    }
-                    catch (Exception)
-                    {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Fail to generate the mesh");
-                    }
-
-                    Mesh mesh = new Mesh();
-                    Dictionary<int, int> idRhinoIndexMap = new Dictionary<int, int>();
-
-                    for (int i = 0; i < ff_model.Nodes.Count; i++)
-                    {
-                        Node ff_node = ff_model.Nodes.ElementAt(i);
-                        int tag = mesh.Vertices.Add(ff_node.X, ff_node.Y, ff_node.Z);
-                        idRhinoIndexMap.Add(ff_node.Id, tag);
-                    }
-
-                    for (int i = 0; i < ff_model.Plates.Count; i++)
-                    {
-                        Plate ff_plate = ff_model.Plates.ElementAt(i);
-                        int i1 = idRhinoIndexMap[ff_plate.Node1.Id];
-                        int i2 = idRhinoIndexMap[ff_plate.Node2.Id];
-                        int i3 = idRhinoIndexMap[ff_plate.Node3.Id];
-                        int i4 = -1;
-
-                        if (ff_plate.PlateType == Plate.PlateTypes.Quad4)
-                            i4 = idRhinoIndexMap[ff_plate.Node4.Id];
-
-                        if (ff_plate.PlateType == Plate.PlateTypes.Quad4)
-                            mesh.Faces.AddFace(i1, i2, i3, i4);
-                        else if (ff_plate.PlateType == Plate.PlateTypes.Tri3)
-                            mesh.Faces.AddFace(i1, i2, i3);
-                    }
-                    mesh.Compact();
-                    mesh.RebuildNormals();
-
-                    resultMesh = new GH_Mesh(mesh);
-
-                    if (result.Value.Plates.Count > 0)
-                    {
-                        for (int i = 0; i < ff_model.Plates.Count && i < result.Value.Plates.Count; i++)
-                        {
-                            Plate ff_plate = ff_model.Plates.ElementAt(i);
-                            PlateModel femmPlate = result.Value.Plates.ElementAt(i);
-                            if (int.TryParse(femmPlate.PlateId, out int femmPlateId))
-                            {
-                                if (femmPlateId == ff_plate.Id)
-                                {
-                                    Point3d[] points = null;
-
-                                    if (ff_plate.PlateType == Plate.PlateTypes.Quad4)
-                                    {
-                                        points = new[]
-                                        {
-                                            new Point3d(ff_plate.Node1.X, ff_plate.Node1.Y, ff_plate.Node1.Z),
-                                            new Point3d(ff_plate.Node2.X, ff_plate.Node2.Y, ff_plate.Node2.Z),
-                                            new Point3d(ff_plate.Node3.X, ff_plate.Node3.Y, ff_plate.Node3.Z),
-                                            new Point3d(ff_plate.Node4.X, ff_plate.Node4.Y, ff_plate.Node4.Z)
-                                        };
-                                    }
-                                    else
-                                    {
-                                        points = new[]
-                                        {
-                                            new Point3d(ff_plate.Node1.X, ff_plate.Node1.Y, ff_plate.Node1.Z),
-                                            new Point3d(ff_plate.Node2.X, ff_plate.Node2.Y, ff_plate.Node2.Z),
-                                            new Point3d(ff_plate.Node3.X, ff_plate.Node3.Y, ff_plate.Node3.Z)
-                                        };
-                                    }
-
-                                    femmPlate.Points = new System.Collections.ObjectModel.ObservableCollection<Point3d>(points);
-                                    femmPlate.CreateShapes();
-                                    GH_Plate gH_Plate = new GH_Plate(femmPlate);
-
-                                    result.Guids.Remove(femmPlate);
-                                    result.AddGuid(femmPlate, gH_Plate.Guid);
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (options.PlateProperty != null) // Add the plates to the model if it's required
-                        {
-                            PlateModel[] plates = new PlateModel[ff_model.Plates.Count];
-
-                            for (int i = 0; i < ff_model.Plates.Count; i++)
-                            {
-                                Plate ff_plate = ff_model.Plates.ElementAt(i);
-                                Point3d[] points = null;
-
-                                if (ff_plate.PlateType == Plate.PlateTypes.Quad4)
-                                {
-                                    points = new[]
-                                    {
-                                        new Point3d(ff_plate.Node1.X, ff_plate.Node1.Y, ff_plate.Node1.Z),
-                                        new Point3d(ff_plate.Node2.X, ff_plate.Node2.Y, ff_plate.Node2.Z),
-                                        new Point3d(ff_plate.Node3.X, ff_plate.Node3.Y, ff_plate.Node3.Z),
-                                        new Point3d(ff_plate.Node4.X, ff_plate.Node4.Y, ff_plate.Node4.Z)
-                                    };
-                                }
-                                else
-                                {
-                                    points = new[]
-                                    {
-                                        new Point3d(ff_plate.Node1.X, ff_plate.Node1.Y, ff_plate.Node1.Z),
-                                        new Point3d(ff_plate.Node2.X, ff_plate.Node2.Y, ff_plate.Node2.Z),
-                                        new Point3d(ff_plate.Node3.X, ff_plate.Node3.Y, ff_plate.Node3.Z)
-                                    };
-                                }
-                                PlateModel plate = new PlateModel(points, options.PlateProperty)
-                                {
-                                    PlateId = ff_plate.Id.ToString()
-                                };
-                                plates[i] = plate;
-
-                                GH_Plate gH_Plate = new GH_Plate(plate);
-                                result.AddGuid(plate, gH_Plate.Guid);
-                            }
-                            result.Value.AddElements(plates);
-                        }
-                    }
-                }
-
-                SetResult(iteration, result, resultMesh);
-                if (converged) _analysisState.Prepare(iteration, input.Model, exported.Map);
+                // The reactions are stored only for an equilibrium configuration; the shape is published also at the iteration limit
+                if (!outcome.Converged) AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged. The maximum number of iteration has been reached.");
+                TensileModelAdapter.Attach(input.Model, exported, outcome, input);
+                var view = FormFindingOutputProjection.Project(model.Value, input.Model, options, model.Units);
+                SetResult(iteration, new GH_Model(view.Model, model.Units), view.Mesh == null ? null : new GH_Mesh(view.Mesh));
+                _analysisState.Prepare(iteration, input.Model, exported.Map);
                 Message = "Done";
             }
             catch (Exception e)

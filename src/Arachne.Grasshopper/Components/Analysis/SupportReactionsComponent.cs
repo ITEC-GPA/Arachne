@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -49,31 +49,25 @@ namespace Arachne.Grasshopper.Components.Analysis
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             GH_Model model = null;
-            if (!DA.GetData(0, ref model) || model?.Value == null)
-                return;
-
-            List<Point3d> points = new List<Point3d>();
-            List<Vector3d> reactions = new List<Vector3d>();
-            List<string> ids = new List<string>();
+            if (!DA.GetData(0, ref model) || model?.Value == null) return;
+            var units = model.Scale;
+            var points = new List<Point3d>(); var reactions = new List<Vector3d>(); var ids = new List<string>();
             Vector3d total = Vector3d.Zero;
-            foreach (NodeModel node in model.Value.Nodes)
+            foreach (var node in model.Value.NodesElements.Values)
             {
-                NodeReactResultModel reaction = node.Results.OfType<NodeReactResultModel>().LastOrDefault();
-                if (reaction == null)
-                    continue;
-                points.Add(node.Position);
-                reactions.Add(reaction.Force);
-                ids.Add(node.NodeId);
-                total += reaction.Force;
+                var reaction = node.Results.SelectMany(r => r.Results).OfType<GPC.Model.Results.Locations.NodeResultForces>()
+                    .LastOrDefault(f => f.Kind == GPC.Model.Results.State.NodalForceKind.SupportReaction && f.State?.DatasetId == "form-finding");
+                if (reaction == null) continue;
+                var force = FormFindingOutputProjection.Force(reaction, units);
+                points.Add(FormFindingOutputProjection.Position(node, units)); reactions.Add(force); ids.Add(node.Name);
+                total += force;
             }
-
             if (points.Count == 0)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "The model has no reactions: connect the model computed by the Form Find component. " +
                     "The reactions are stored only when the form finding converges and the model has restrained nodes.");
                 return;
             }
-
             DA.SetDataList(0, points);
             DA.SetDataList(1, reactions);
             DA.SetDataList(2, ids);

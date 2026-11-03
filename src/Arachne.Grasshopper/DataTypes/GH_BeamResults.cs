@@ -1,55 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
+using GPC.Model.Core;
+using GPC.Model.Elements;
 using Grasshopper.Kernel.Types;
-using GH_IO.Serialization;
-using Arachne.Common.Models;
 
 namespace Arachne.Grasshopper.DataTypes
 {
-    public class GH_BeamResults : GH_Goo<List<ResultModel>>
+    /// <summary>The results of a beam: the GPC element with its results (form-finding dataset).</summary>
+    public class GH_BeamResults : GpcGoo<BeamElement>
     {
-        #region Properties
-
-        public override bool IsValid => Value != null && Value.Count > 0;
-
-        public override string IsValidWhyNot => "Invalid or empty beam results";
-
         public override string TypeName => "Beam Result";
-
         public override string TypeDescription => "The beam analysis results";
-
-        #endregion
-
-        #region Constructors
-
-        public GH_BeamResults()
-        {
-        }
-
-        public GH_BeamResults(GH_Beam beam)
-            : this()
-        {
-            Value = new List<ResultModel>(beam.Value.Results);
-        }
-
-        #endregion
-
-        #region IGH_Goo implementation functions
-
-        public override IGH_Goo Duplicate()
-        {
-            return new GH_BeamResults
-            {
-                Value = Arachne.Common.Helpers.SerializationHelper.Clone(Value)
-            };
-        }
-
-        public override string ToString()
-        {
-            return Value.ToString();
-        }
-
-        #endregion
+        public GH_BeamResults() { }
+        public GH_BeamResults(GH_Beam element) : base(element?.Value == null ? null : ModelValues.CopyValue(element.Value)) { }
+        public GH_BeamResults(BeamElement element) : base(element) { }
+        public override IGH_Goo Duplicate() => new GH_BeamResults(Copy(Value));
+        public override string ToString() => Value == null ? "No results" : "Beam Results: " + Value.Results.Count;
     }
 }

@@ -1,6 +1,8 @@
+using Arachne.Common.Helpers;
+using System.Linq;
 using System;
 using System.Collections.Generic;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -42,30 +44,21 @@ namespace Arachne.Grasshopper.Components.Models
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             GH_Model model = null;
-            if (!DA.GetData("Model", ref model))
-                return;
-
-            if (model.Value == null)
-                return;
-
-            List<GH_Node> nodes = new List<GH_Node>();
-            List<GH_Beam> beams = new List<GH_Beam>();
-            List<GH_Plate> plates = new List<GH_Plate>();
-
+            if (!DA.GetData("Model", ref model)) return;
+            if (model.Value == null) return;
+            var nodes = new List<GH_Node>(); var beams = new List<GH_Beam>(); var plates = new List<GH_Plate>();
             try
             {
-                foreach (NodeModel node in model.Value.Nodes)
-                    nodes.Add(new GH_Node(node, model.Guids.TryGetValue(node, out Guid nodeGuid) ? nodeGuid : (Guid?)null));
-                foreach (BeamModel beam in model.Value.Beams)
-                    beams.Add(new GH_Beam(beam, model.Guids.TryGetValue(beam, out Guid beamGuid) ? beamGuid : (Guid?)null));
-                foreach (PlateModel plate in model.Value.Plates)
-                    plates.Add(new GH_Plate(plate, model.Guids.TryGetValue(plate, out Guid plateGuid) ? plateGuid : (Guid?)null));
+                // Elements in the document units again (Build Model converts them to N and mm), with their identity and results;
+                // after a form finding, at the exact solver coordinates.
+                var back = new ElementDrafts.Scale(model.Scale, false);
+                var exact = model.Value.NodesElements.Values.ToDictionary(n => n.Guid, n => FormFindingOutputProjection.Position(n, model.Scale));
+                void Place(GPC.Model.Elements.NodeElement n) { if (exact.TryGetValue(n.Guid, out var p)) n.Position = new GPC.Geometry.Point3d(p.X, p.Y, p.Z); }
+                foreach (var node in model.Value.NodesElements.Values) { var item = new GH_Node(node); back.Apply(item.Value); Place(item.Value); nodes.Add(item); }
+                foreach (var beam in model.Value.BeamElements.Values) { var item = new GH_Beam(beam); back.Apply(item.Value, true); Place(item.Value.NodeI); Place(item.Value.NodeJ); beams.Add(item); }
+                foreach (var plate in model.Value.AreaElements.Values) { var item = new GH_Plate(plate); back.Apply(item.Value, true); foreach (var n in item.Value.Nodes) Place(n); plates.Add(item); }
             }
-            catch (Exception e)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
-            }
-
+            catch (Exception e) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message); }
             DA.SetDataList(0, nodes);
             DA.SetDataList(1, beams);
             DA.SetDataList(2, plates);

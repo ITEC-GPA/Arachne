@@ -1,5 +1,6 @@
 using System;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using Arachne.Grasshopper.Helpers;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -43,23 +44,21 @@ namespace Arachne.Grasshopper.Components.ElementProperties
             string name = "";
             double thickness = 0;
             GH_Material material = null;
-            if (!DA.GetData(0, ref name) || !DA.GetData(1, ref thickness) || !DA.GetData(2, ref material))
-                return;
-
-            if (!(thickness > 0))
+            if (!DA.GetData(0, ref name) || !DA.GetData(1, ref thickness) || !DA.GetData(2, ref material)) return;
+            if (!(thickness > 0)) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The thickness must be greater than 0"); return; }
+            GPC.Model.ElementProperties.PlateProperty property;
+            if (material.Membrane != null)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The thickness must be greater than 0");
-                return;
+                // A fabric: its own values per unit width (the thickness only says that the plates weigh, as before)
+                var membrane = GPC.Model.Core.ModelValues.CopyValue(material.Membrane); membrane.Name = name; property = membrane;
             }
-
-            PlatePropertyModel pp = new PlatePropertyModel
+            else if (material.Material != null)
             {
-                Name = name,
-                Material = material.Value,
-                Thickness = thickness
-            };
-
-            DA.SetData(0, new GH_PlateProperty(pp));
+                try { property = new GPC.Model.ElementProperties.ElasticPlateProperty(name, GPC.Model.Core.ModelValues.CopyValue(material.Material), thickness, thickness, GPC.Model.ElementProperties.ElasticPlateFormulation.Membrane); }
+                catch (ArgumentException e) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message); return; }
+            }
+            else { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid material"); return; }
+            DA.SetData(0, new GH_PlateProperty(property));
         }
 
         /// <summary>

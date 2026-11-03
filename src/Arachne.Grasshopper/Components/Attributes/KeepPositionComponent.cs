@@ -1,4 +1,7 @@
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using GPC.Model.Analysis;
+using GPC.Model.Attributes;
+using GPC.Model.Core;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -42,20 +45,12 @@ namespace Arachne.Grasshopper.Components.Attributes
         {
             GH_Node node = null;
             Vector3d weight = Vector3d.Unset;
-
-            if (!DA.GetData("Node", ref node))
-                return;
+            if (!DA.GetData("Node", ref node)) return;
             DA.GetData("Weight", ref weight);
-
-            if (weight.X <= 0 || weight.Y <= 0 || weight.Z <= 0)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Each component of weight vector must be > 0");
-                return;
-            }
-
-            GH_Node new_node = new GH_Node(node); // same identity, so Build Model merges it with the other copies
-            new_node.Value.Attributes.Add(new NodeWeightAttributeModel(weight));
-            DA.SetData("Node", new_node);
+            if (weight.X <= 0 || weight.Y <= 0 || weight.Z <= 0) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Each component of weight vector must be > 0"); return; }
+            var copy = new GH_Node(node); // same identity, so Build Model merges it with the other copies
+            copy.Value.Attributes.Add(new FormFindingCoordinateAttribute(new GPC.Geometry.Vector3d(weight.X, weight.Y, weight.Z)));
+            DA.SetData("Node", copy);
         }
 
         /// <summary>

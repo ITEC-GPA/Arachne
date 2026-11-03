@@ -1,5 +1,6 @@
 using Arachne.Common.Helpers;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using System.Linq;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -34,8 +35,8 @@ namespace Arachne.Grasshopper.Components.Tools
             pManager[pManager.ParamCount - 1].Optional = true;
             pManager.AddIntegerParameter("Units", "U", "The measure units", GH_ParamAccess.item, 2);
             Param_Integer type_param = (Param_Integer)pManager[pManager.ParamCount - 1];
-            Array names = Enum.GetValues(typeof(ModelModel.ModelUnits));
-            foreach (ModelModel.ModelUnits name in names)
+            Array names = Enum.GetValues(typeof(ModelUnits));
+            foreach (ModelUnits name in names)
                 type_param.AddNamedValue(name.GetDescription(), (int)name);
             pManager.AddTextParameter("Properties name", "PNs", "The beam property names to search", GH_ParamAccess.list);
             pManager[pManager.ParamCount - 1].Optional = true;
@@ -93,7 +94,7 @@ namespace Arachne.Grasshopper.Components.Tools
                 for (int i1 = 0; i1 < ids.Count; i1++)
                 {
                     string id = ids[i1];
-                    if (b.Value.HasId(id))
+                    if (ElementDrafts.HasLabel(b.Value, id))
                     {
                         add = true;
                         break;
@@ -104,7 +105,7 @@ namespace Arachne.Grasshopper.Components.Tools
                     for (int j = 0; j < groups.Count; j++)
                     {
                         GH_Group g = groups[j];
-                        if (b.Value.HasGroup(g.Value))
+                        if (b.Value.Groups.Values.Any(x => x.Guid == g.Value.Guid))
                         {
                             add = true;
                             break;
@@ -115,7 +116,7 @@ namespace Arachne.Grasshopper.Components.Tools
                         for (int k = 0; k < props.Count; k++)
                         {
                             string bp = props[k];
-                            if (bp == b.Value.BeamProperty.Name)
+                            if (bp == b.Value.BeamProperty?.Name)
                             {
                                 add = true;
                                 break;
@@ -126,7 +127,7 @@ namespace Arachne.Grasshopper.Components.Tools
                             for (int k = 0; k < iniPositions.Count; k++)
                             {
                                 Point3d p = iniPositions[k];
-                                if (b.Value.PointFrom.DistanceTo(p) < tol)
+                                if (b.PointFrom.DistanceTo(p) < tol)
                                 {
                                     add = true;
                                     break;
@@ -137,7 +138,7 @@ namespace Arachne.Grasshopper.Components.Tools
                                 for (int j = 0; j < endPositions.Count; j++)
                                 {
                                     Point3d p = endPositions[j];
-                                    if (b.Value.PointTo.DistanceTo(p) < tol)
+                                    if (b.PointTo.DistanceTo(p) < tol)
                                     {
                                         add = true;
                                         break;
@@ -169,4 +170,4 @@ namespace Arachne.Grasshopper.Components.Tools
         /// </summary>
         public override Guid ComponentGuid => new Guid("8d3cb7f2-7de6-4594-a437-9756dc36b47c");
     }
-}
+}

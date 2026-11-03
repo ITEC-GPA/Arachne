@@ -1,4 +1,4 @@
-using Arachne.Common.Models;
+using Arachne.Common.Geometry;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -51,17 +51,17 @@ namespace Arachne.Grasshopper.Components.Sections
             if (!DA.GetData(3, ref t2))
                 return;
 
-            SectionModel sectionModel = new SectionModel()
+            var sectionModel = new SectionCalculator()
             {
-                SectionType = SectionModel.SectionTypes.HollowRectangle,
+                Type = SectionCalculator.Kind.HollowRectangle,
                 D = d,
                 B = b,
                 T1 = t1,
                 T2 = t2
             };
-            sectionModel.CalculateSection();
+            sectionModel.Calculate();
 
-            GH_BeamSection section = new GH_BeamSection(sectionModel);
+            GH_BeamSection section = new GH_BeamSection(sectionModel.ToSection());
             DA.SetData(0, section);
         }
 
@@ -75,4 +75,4 @@ namespace Arachne.Grasshopper.Components.Sections
         /// </summary>
         public override Guid ComponentGuid => new Guid("c37923d7-be85-4846-92f3-79ae601f4f52");
     }
-}
+}
