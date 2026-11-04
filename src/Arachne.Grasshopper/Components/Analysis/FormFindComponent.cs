@@ -224,9 +224,15 @@ namespace Arachne.Grasshopper.Components.Analysis
                 // The reactions are stored only for an equilibrium configuration; the shape is published also at the iteration limit
                 if (!outcome.Converged) AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Not converged. The maximum number of iteration has been reached.");
                 TensileModelAdapter.Attach(input.Model, exported, outcome, input);
-                var view = FormFindingOutputProjection.Project(model.Value, input.Model, options, model.Units);
-                SetResult(iteration, new GH_Model(view.Model, model.Units), view.Mesh == null ? null : new GH_Mesh(view.Mesh));
+                // The sidecar of the run is prepared in the background from here, while the outputs are projected: the projection
+                // only reads the analysis graph and its results (lane L9), so a save right after the run waits less, or not at all.
                 _analysisState.Prepare(iteration, input.Model, exported.Map);
+                var run = _analysisState.Keep(iteration);
+                FormFindingOutputProjection.Output view;
+                try { view = FormFindingOutputProjection.Project(model.Value, input.Model, options, model.Units); }
+                catch { _analysisState.Clear(iteration); throw; }
+                SetResult(iteration, new GH_Model(view.Model, model.Units), view.Mesh == null ? null : new GH_Mesh(view.Mesh));
+                _analysisState.Put(iteration, run);
                 Message = "Done";
             }
             catch (Exception e)
