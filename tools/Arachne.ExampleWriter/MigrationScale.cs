@@ -113,6 +113,18 @@ internal static class MigrationScale
                 }
                 GPC.Model.Models.Model model = null; FormFindingInputBuilder.Input input = null; TensileModelAdapter.Exported exported = null; TensileModelAdapter.Outcome outcome = null;
                 Measure("build-model", () => model = Grid(k, out n, out b, out t));
+                // MIGRATION_SCALE_COPIES_ONLY=1: only the copies of the model (complete, shared properties, shared properties and
+                // coordinate systems), e.g. at 60,000 nodes without the form finding
+                if (Environment.GetEnvironmentVariable("MIGRATION_SCALE_COPIES_ONLY") == "1")
+                {
+                    for (int round = 0; round < 2; round++)
+                    {
+                        Measure("copy-model (complete)", () => ModelValues.Copy(model));
+                        Measure("copy-model (shared properties only)", () => ModelValues.Copy(model, ModelCopyOptions.ShareProperties));
+                        Measure("copy-model (GH Duplicate, shared properties and coordinate systems)", () => ModelValues.Copy(model, SharedCopies.Options));
+                    }
+                    continue;
+                }
                 Measure("analysis-graph", () => input = FormFindingInputBuilder.Build(model, ModelUnits.Nmm, 0, new FormFindingOptions(), R.Plane.WorldXY));
                 // parts of the export, measured alone: domain preflight, identity map, fingerprint of the analysis input
                 Measure("export: preflight (ValidateDomain)", () => TensileModelAdapter.Preflight(input.Model));
