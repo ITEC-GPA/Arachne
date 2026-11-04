@@ -1,275 +1,115 @@
+using System;
+using System.Linq;
+using Arachne.Common.Analysis;
 using Arachne.Common.Helpers;
-using Arachne.Common.Models;
+using Arachne.Grasshopper.Helpers;
 using GH_IO.Serialization;
+using GPC.Model.Core;
+using GPC.Model.Elements;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Rhino;
 using Rhino.DocObjects;
 using Rhino.Geometry;
-using System;
 
 namespace Arachne.Grasshopper.DataTypes
 {
-    public class GH_Beam : GH_GeometricGoo<BeamModel>, IGH_BakeAwareData, IGH_PreviewData
+    /// <summary>A beam: a GPC <see cref="BeamElement"/> with its property (draft in the document units until Build Model), its
+    /// loads (<see cref="GPC.Model.Loads.Assignments.BeamLoadAssignment"/>) and its form-finding objectives
+    /// (<see cref="GPC.Model.Analysis.FormFindingGoalAttribute"/>).</summary>
+    public class GH_Beam : GH_GeometricGoo<BeamElement>, IGH_BakeAwareData, IGH_PreviewData
     {
-        protected Guid _guid;
-        BoundingBox _boundingBox;
-
-        #region Properties
-
-        public Guid Guid => _guid;
-        internal void SetInputIdentity(Guid identity)
-        {
-            if (identity == Guid.Empty) throw new ArgumentException("EmptyComponentInputIdentity");
-            _guid = identity;
-        }
-
-        public override bool IsValid => Value == null ? false : Value.IsValid;
-
-        public override string IsValidWhyNot
-        {
-            get
-            {
-                if (Value == null)
-                    return "No internal BeamModel instance";
-                if (Value.IsValid)
-                    return string.Empty;
-                return "Invalid BeamModel instance";
-            }
-        }
-
+        public Guid Guid => Value?.Guid ?? Guid.Empty;
+        public Point3d PointFrom => Value == null ? Point3d.Unset : ElementPreview.Rh(Value.StartPoint);
+        public Point3d PointTo => Value == null ? Point3d.Unset : ElementPreview.Rh(Value.EndPoint);
+        public override bool IsValid => Value != null && PointFrom.IsValid && PointTo.IsValid && Value.BeamProperty != null;
+        public override string IsValidWhyNot => Value == null ? "No internal beam" : IsValid ? string.Empty : "Invalid beam";
         public override string TypeName => "Beam";
-
         public override string TypeDescription => "Define a single beam";
+        public override BoundingBox Boundingbox => Value == null ? BoundingBox.Empty : new BoundingBox(new[] { PointFrom, PointTo });
+        /// <summary>The preview solids: the section outline swept along the axis, in the document units.</summary>
+        public Brep[] Shapes => Value == null ? new Brep[0] : ElementPreview.Shapes(Value);
 
-        public override BoundingBox Boundingbox
+        public GH_Beam() { }
+        public GH_Beam(Point3d from, Point3d to, GH_BeamProperty property, GH_Group[] groups, Guid identity)
         {
-            get
-            {
-                if (m_value != null && !_boundingBox.IsValid)
-                {
-                    _boundingBox = new BoundingBox();
-                    foreach (Brep shape in m_value.Shapes)
-                        _boundingBox.Union(shape.GetBoundingBox(true));
-                }
-                return _boundingBox;
-            }
+            Value = new BeamElement(identity, new GPC.Geometry.Point3d(from.X, from.Y, from.Z), new GPC.Geometry.Point3d(to.X, to.Y, to.Z), ModelValues.CopyValue(property.Value));
+            Value.Assignments.Formulation = property.Formulation;
+            foreach (var group in groups ?? new GH_Group[0]) if (group?.Value != null && !Value.Groups.Values.Any(g => g.Guid == group.Value.Guid)) Value.AddGroup(ModelValues.CopyValue(group.Value));
         }
-
-        #endregion
-
-        #region Constructors
-
-        public GH_Beam()
-        {
-            _guid = Guid.NewGuid();
-            _boundingBox = BoundingBox.Unset;
-        }
-
-        public GH_Beam(Point3d from, Point3d to, GH_BeamProperty bp, GH_Group[] groups = null)
-            : this()
-        {
-            Value = new BeamModel(from, to, bp.Value);
-            if (groups != null && groups.Length > 0)
-            {
-                foreach (GH_Group group in groups)
-                {
-                    Value.Groups.Add(group.Value);
-                }
-            }
-        }
-
-        public GH_Beam(BeamModel beam, Guid? guid = null)
-            : this()
-        {
-            if (beam == null)
-                beam = new BeamModel();
-            Value = beam;
-            if (guid.HasValue)
-                _guid = guid.Value;
-            //_beamProperty = new GH_BeamProperty(beam.BeamProperty);
-            /*if (beam.Groups.Count > 0)
-            {
-                foreach (string group in beam.Groups)
-                {
-                    _groups.Add(new GH_Group(group));
-                }
-            }*/
-        }
-
-        /// <summary>
-        /// Copy constructor. Use to duplicate the object to add data through the components.
-        /// NOTE: It keeps the Guid original value
-        /// </summary>
-        /// <param name="beam">The beam to duplicate</param>
-        public GH_Beam(GH_Beam beam)
-        {
-            _guid = beam._guid;
-            //_beamProperty = beam._beamProperty;
-            //_groups = beam._groups;
-            Value = new BeamModel(beam.Value);
-        }
-
-        #endregion
-
-        #region PreviewData methods
+        /// <summary>A detached copy of <paramref name="beam"/> (same identity).</summary>
+        public GH_Beam(BeamElement beam) { Value = beam == null ? null : ModelValues.CopyValue(beam); }
+        public GH_Beam(GH_Beam beam) : this(beam?.Value) { }
 
         public BoundingBox ClippingBox => Boundingbox;
-
-        public void DrawViewportMeshes(GH_PreviewMeshArgs args)
-        {
-        }
-
-        public void DrawViewportWires(GH_PreviewWireArgs args)
-        {
-            Value.DrawWireframe(args.Pipeline, args.Viewport, args.Color);
-            if (Settings.Instance.ShowSolids)
-                Value.DrawSolid(args.Pipeline, args.Viewport, args.Color);
-            if (Settings.Instance.ShowAttributes)
-                Value.DrawAttributes(args.Pipeline, args.Viewport);
-        }
-
-        #endregion
-
-        #region Transformation methods
+        public void DrawViewportMeshes(GH_PreviewMeshArgs args) { }
+        public void DrawViewportWires(GH_PreviewWireArgs args) { if (Value != null) ElementPreview.Beam(Value, args.Pipeline, args.Color); }
 
         // As for the nodes, a transformed beam becomes plain geometry (its axis line).
         public override IGH_GeometricGoo Morph(SpaceMorph xmorph)
         {
-            if (Value == null || !Value.IsValid)
-                return null;
-
-            LineCurve line = new LineCurve(Value.PointFrom, Value.PointTo);
-            xmorph.Morph(line);
-            return new GH_Curve(line);
+            if (!IsValid) return null;
+            var line = new LineCurve(PointFrom, PointTo); xmorph.Morph(line); return new GH_Curve(line);
         }
-
         public override IGH_GeometricGoo Transform(Transform xform)
         {
-            if (Value == null || !Value.IsValid)
-                return null;
-
-            LineCurve line = new LineCurve(Value.PointFrom, Value.PointTo);
-            line.Transform(xform);
-            return new GH_Curve(line);
+            if (!IsValid) return null;
+            var line = new LineCurve(PointFrom, PointTo); line.Transform(xform); return new GH_Curve(line);
         }
 
-        #endregion
-
-        #region BakeAwareData methods
-
-        // Arachne has no FeMM Rhino plug-in objects: the beam is baked as its axis line.
         public bool BakeGeometry(RhinoDoc doc, ObjectAttributes att, out Guid obj_guid)
         {
-            obj_guid = doc.Objects.AddLine(Value.PointFrom, Value.PointTo, att);
+            obj_guid = doc.Objects.AddLine(PointFrom, PointTo, att);
             return obj_guid != Guid.Empty;
         }
 
-        #endregion
-
-        #region Casting methods
-
         public override bool CastTo<Q>(out Q target)
         {
-            if (typeof(Q) == typeof(GH_Curve))
+            if (Value != null && typeof(Q) == typeof(GH_Curve)) { target = (Q)(object)new GH_Curve(new LineCurve(PointFrom, PointTo)); return true; }
+            if (Value != null && typeof(Q) == typeof(GH_Brep))
             {
-                LineCurve line = new LineCurve(Value.PointFrom, Value.PointTo);
-                target = (Q)Convert.ChangeType(new GH_Curve(line), typeof(Q));
-                return true;
+                var shapes = ElementPreview.Shapes(Value);
+                if (shapes.Length == 1) { target = (Q)(object)new GH_Brep(shapes[0]); return true; }
             }
-            else if (typeof(Q) == typeof(GH_Brep))
-            {
-                if (Value.Shapes.Length == 1)
-                {
-                    Brep brep = Value.Shapes[0].DuplicateBrep();
-                    target = (Q)Convert.ChangeType(new GH_Brep(brep), typeof(Q));
-                    return true;
-                }
-                /*else
-                {
-                    GH_Structure<GH_Brep> breps = new GH_Structure<GH_Brep>();
-                    for (int i = 0; i < Value.Shapes.Length; i++)
-                    {
-                        Brep brep = Value.Shapes[i].DuplicateBrep();
-                        breps.Append(new GH_Brep(brep));
-                    }
-                    target = (Q)Convert.ChangeType(breps, typeof(Q));
-                }*/
-                target = default;
-                return false;
-            }
-            else if (typeof(Q).IsAssignableFrom(typeof(GH_BeamResults)))
-            {
-                if (Value != null && Value.IsValid)
-                {
-                    GH_BeamResults results = new GH_BeamResults(this);
-                    target = (Q)Convert.ChangeType(results, typeof(Q));
-                    return true;
-                }
-            }
+            if (IsValid && typeof(Q).IsAssignableFrom(typeof(GH_BeamResults))) { target = (Q)(object)new GH_BeamResults(this); return true; }
+            target = default; return false;
+        }
 
-            target = default;
+        public override bool CastFrom(object source)
+        {
+            if (source is BeamElement beam) { Value = ModelValues.CopyValue(beam); return true; }
             return false;
         }
 
-        #endregion
-
-        public override IGH_GeometricGoo DuplicateGeometry()
-        {
-            return new GH_Beam(this);
-        }
-
-        public override BoundingBox GetBoundingBox(Transform xform)
-        {
-            var boundingbox = Boundingbox;
-            boundingbox.Transform(xform);
-            return boundingbox;
-        }
+        public override IGH_GeometricGoo DuplicateGeometry() => new GH_Beam(this);
+        public override BoundingBox GetBoundingBox(Transform xform) { var bb = Boundingbox; bb.Transform(xform); return bb; }
 
         public override bool Write(GH_IWriter writer)
         {
-            if (base.Write(writer))
-            {
-                try
-                {
-                    writer.SetGuid("Guid", _guid);
-                    writer.SetByteArray("Data", SerializationHelper.ToBytes(Value));
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("GH_Beam.Write: {0}", e.Message);
-                    return false;
-                }
-            }
-            return false;
+            if (!base.Write(writer)) return false;
+            if (Value != null) writer.SetByteArray("Data", ContractArchive.Value(Value));
+            return true;
         }
 
         public override bool Read(GH_IReader reader)
         {
-            if (base.Read(reader))
-            {
-                try
-                {
-                    _guid = reader.GetGuid("Guid");
-                    Value = SerializationHelper.FromBytes<BeamModel>(reader.GetByteArray("Data"));
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("GH_Beam.Read: {0}", e.Message);
-                    return false;
-                }
-            }
-            return false;
+            if (!base.Read(reader)) return false;
+            try { Value = reader.ItemExists("Data") ? ContractArchive.ReadValue<BeamElement>(reader.GetByteArray("Data")) : null; return true; }
+            catch (Exception e) { reader.AddMessage("Beam: " + e.Message, GH_Message_Type.error); return false; }
         }
 
         public override string ToString()
         {
-            if (Value == null)
-                return "Null Beam";
-            else
-                return Value.ToString();
+            if (Value == null) return "Null Beam";
+            string text = "Arachne Beam" + (string.IsNullOrEmpty(Value.Name) ? "" : " #" + Value.Name);
+            text += "\nGroups: " + string.Join(", ", Value.Groups.Values.Select(g => g.Name));
+            text += $"\nFrom {PointFrom} to {PointTo}";
+            text += "\nProperty: " + Value.BeamProperty?.Name + " (" + Value.Assignments.Formulation + ")";
+            var label = ElementDrafts.Label(Value); if (label != null) text += "\nID: " + label;
+            foreach (var goal in ElementDrafts.Goals(Value)) text += $"\n{goal.Goal.Kind}: {goal.Goal.Target}, weight {goal.Goal.Weight}, load case {goal.LoadCase?.Name}";
+            if (Value.Assignments.Loads.Count > 0) text += "\nLoads: " + Value.Assignments.Loads.Count;
+            if (Value.Results.Count > 0) text += "\nWith results";
+            return text;
         }
     }
 }

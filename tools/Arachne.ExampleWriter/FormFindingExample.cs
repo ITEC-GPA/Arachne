@@ -160,7 +160,7 @@ internal static class FormFindingExample
         var model = ff.Params.Output[0].VolatileData.AllData(true).OfType<GH_Model>().SingleOrDefault()?.Value;
         var mesh = ff.Params.Output[1].VolatileData.AllData(true).OfType<GH_Mesh>().SingleOrDefault()?.Value;
         if (model == null || mesh == null || mesh.Faces.Count == 0) throw new InvalidOperationException(name + ": Form Find produced no result.");
-        if (nodes > 0 && (model.Nodes.Count != nodes || model.Beams.Count != beams))
-            throw new InvalidOperationException($"{name}: {model.Nodes.Count} nodes / {model.Beams.Count} beams.");
+        if (nodes > 0 && (model.NodesElements.Count != nodes || model.BeamElements.Count != beams))
+            throw new InvalidOperationException($"{name}: {model.NodesElements.Count} nodes / {model.BeamElements.Count} beams.");
     }
 }

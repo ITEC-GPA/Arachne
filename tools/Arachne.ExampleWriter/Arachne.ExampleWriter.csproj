@@ -1,12 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net48</TargetFramework><OutputType>Exe</OutputType><PlatformTarget>x64</PlatformTarget></PropertyGroup>
-  <PropertyGroup Condition="'$(GpcPilot)' == 'true'"><DefineConstants>$(DefineConstants);GPC_PILOT</DefineConstants></PropertyGroup>
-  <ItemGroup Condition="'$(GpcPilot)' == 'true'">
-    <Reference Include="System.IO.Compression" />
-    <ProjectReference Include="..\..\..\Model\GPC.Model.Persistence\GPC.Model.Persistence.csproj" />
-  </ItemGroup>
   <ItemGroup>
-    <None Include="Fixtures\Legacy\*.nrbf" CopyToOutputDirectory="PreserveNewest" />
     <Reference Include="GPCUtilities"><HintPath>$(GpcUtilitiesPath)</HintPath><Private>true</Private></Reference>
     <ProjectReference Include="..\..\src\Arachne.Grasshopper\Arachne.Grasshopper.csproj" />
     <Reference Include="Grasshopper"><HintPath>$(GrasshopperDir)\Grasshopper.dll</HintPath><Private>false</Private></Reference>

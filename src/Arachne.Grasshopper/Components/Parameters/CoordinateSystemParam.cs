@@ -34,7 +34,7 @@ namespace Arachne.Grasshopper.Components.Parameters
 
             Menu_AppendItem(menu, "Local", (s, e) => { PersistentData.Clear(); ExpireSolution(true); }, true,
                 PersistentData.DataCount == 0 ? true : false);
-            Menu_AppendItem(menu, "Global", (s, e) => { SetPersistentData(new GH_CoordinateSystem()); ExpireSolution(true); }, true,
+            Menu_AppendItem(menu, "Global", (s, e) => { SetPersistentData(GH_CoordinateSystem.Global); ExpireSolution(true); }, true,
                 PersistentData.DataCount == 0 ? false : true);
 
             Menu_AppendSeparator(menu);

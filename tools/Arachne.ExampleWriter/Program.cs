@@ -12,12 +12,9 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-#if !GPC_PILOT
-        if(args.Contains("--gpc-pilot")) { Console.Error.WriteLine("F4 requires a build with -p:GpcPilot=true."); return 2; }
-#endif
         if (args.Length < 3) { Console.Error.WriteLine(Usage); return 2; }
         var root = Path.GetFullPath(args[0]);
-        string mode = args.Skip(3).FirstOrDefault(a => a == "--tests-only" || a == "--examples" || a == "--icons" || a == "--migration-scale" || a == "--gpc-pilot" || a == "--f6-contracts");
+        string mode = args.Skip(3).FirstOrDefault(a => a == "--tests-only" || a == "--examples" || a == "--icons" || a == "--migration-scale" || a == "--f6-contracts");
         int femmIndex = Array.IndexOf(args, "--femm");
         string femm = femmIndex >= 0 && femmIndex + 1 < args.Length ? Path.GetFullPath(args[femmIndex + 1])
             : Path.GetFullPath(Path.Combine(root, "..", "FeMM 30-5-2024", "Test1", "FeMM"));
@@ -75,9 +72,6 @@ internal static class Program
         if (loader == null || !(bool)loader.Invoke(Grasshopper.Instances.ComponentServer, new object[] { new GH_ExternalFile(pluginPath), false }))
             throw new InvalidOperationException("Could not register the Arachne plugin for archive verification.");
         GH_Document.EnableSolutions = true;
-#if GPC_PILOT
-        if (mode == "--gpc-pilot") return GpcPilot.Run(root);
-#endif
         if (mode == "--migration-scale") return MigrationScale.Run();
         if (mode == "--f6-contracts") return F6ContractsChecks.Run();
 

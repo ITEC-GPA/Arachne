@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Arachne.Common.Helpers;
-using Arachne.Common.Models;
+using GPC.Model.Analysis;
 using Rhino.Geometry;
 using TensileLib.Geometry;
 using TensileLib.FormFinding;
@@ -14,7 +14,7 @@ namespace Arachne.Grasshopper.Services
         /// Compensates a flat panel. The mesh is returned also when the solver stops at the
         /// iteration limit (<paramref name="code"/> tells it); solver failures throw.
         /// </summary>
-        public static Mesh Apply(Mesh panel, Vector3d warp_dir, double waPerc, double wePerc, IReadOnlyList<BeamModel> fixedBeams, int maxIterNL, double tol, int maxIterSolver, double epsS, double geometryTolerance, out Solver.ResultCodes code)
+        public static Mesh Apply(Mesh panel, Vector3d warp_dir, double waPerc, double wePerc, IReadOnlyList<GPC.Model.Elements.BeamElement> fixedBeams, int maxIterNL, double tol, int maxIterSolver, double epsS, double geometryTolerance, out Solver.ResultCodes code)
         {
             if(panel==null || !panel.IsValid || panel.Faces.Count==0)throw new ArgumentException("A valid non-empty panel is required.");
             if(!warp_dir.IsValid || warp_dir.IsTiny())throw new ArgumentException("Warp direction must be non-zero and finite.");
@@ -117,22 +117,21 @@ namespace Arachne.Grasshopper.Services
                     //serching fixed beam
                     for (int j = 0; j < fixedBeams.Count; j++)
                     {
-                        BeamModel beam = fixedBeams[j];
-                        if (beam.PointFrom.DistanceTo(firstPOriginal) < geometryTolerance &&
-                            beam.PointTo.DistanceTo(secondPOriginal) < geometryTolerance ||
-                            beam.PointTo.DistanceTo(firstPOriginal) < geometryTolerance &&
-                             beam.PointFrom.DistanceTo(secondPOriginal) < geometryTolerance)
+                        var beam = fixedBeams[j];
+                        Point3d from = new Point3d(beam.StartPoint.X, beam.StartPoint.Y, beam.StartPoint.Z), to = new Point3d(beam.EndPoint.X, beam.EndPoint.Y, beam.EndPoint.Z);
+                        if (from.DistanceTo(firstPOriginal) < geometryTolerance &&
+                            to.DistanceTo(secondPOriginal) < geometryTolerance ||
+                            to.DistanceTo(firstPOriginal) < geometryTolerance &&
+                             from.DistanceTo(secondPOriginal) < geometryTolerance)
                         {
                             //found
                             //searching if beam have fixed length
-                            for (int k = 0; k < beam.Loads.Count; k++)
+                            foreach (var goal in beam.Attributes.Values.OfType<FormFindingGoalAttribute>())
                             {
-                                LoadModel lm = beam.Loads[k];
-                                FixedLengthModel flm = lm as FixedLengthModel;
-                                if (flm != null)
+                                if (goal.Goal.Kind == FormFindingGoalKind.Length)
                                 {
-                                    fixedLength = flm.Value;
-                                    weigth = flm.Weight;
+                                    fixedLength = goal.Goal.Target;
+                                    weigth = goal.Goal.Weight;
                                     break;
                                 }
                             }

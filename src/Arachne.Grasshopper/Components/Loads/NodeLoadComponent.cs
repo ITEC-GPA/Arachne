@@ -1,7 +1,7 @@
 using System;
-using Arachne.Common.Models;
-using Arachne.Grasshopper.DataTypes;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.Helpers;
+using Arachne.Grasshopper.DataTypes;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
@@ -44,17 +44,12 @@ namespace Arachne.Grasshopper.Components.Loads
             GH_Node node = null;
             GH_LoadCase lc = null;
             Vector3d force = Vector3d.Unset;
-            if (!DA.GetData("Node", ref node))
-                return;
-            if (!DA.GetData("LoadCase", ref lc))
-                return;
-            if (!DA.GetData("Force", ref force))
-                return;
-
-            NodeForceLoadModel load = new NodeForceLoadModel(lc.Value, new Vector3d(force.X, force.Y, force.Z));
-            GH_Node newNode = new GH_Node(node);
-            newNode.Value.Loads.Add(load);
-            DA.SetData("Node", newNode);
+            if (!DA.GetData("Node", ref node)) return;
+            if (!DA.GetData("LoadCase", ref lc)) return;
+            if (!DA.GetData("Force", ref force)) return;
+            var copy = new GH_Node(node);
+            copy.Value.Loads.Add(new GPC.Model.Loads.PointLoad(force.X, force.Y, force.Z, 0, 0, 0, copy.Value.Position, GPC.Model.Core.ModelValues.CopyValue(lc.Value), GPC.Geometry.CoordinateSystem.Global));
+            DA.SetData("Node", copy);
         }
 
         /// <summary>

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Arachne.Common.Models;
-using Arachne.Grasshopper.DataTypes;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.Helpers;
+using Arachne.Grasshopper.DataTypes;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
 using Rhino.Geometry;
@@ -57,9 +57,9 @@ namespace Arachne.Grasshopper.Components.Materials
 
             Message = _grades[grade];
 
-            MaterialModel material = new MaterialModel
+            MaterialInput material = new MaterialInput
             {
-                Kind = MaterialModel.MaterialKind.Concrete,
+                Kind = MaterialInput.MaterialKind.Concrete,
                 Name = name
             };
             // Note: Values are in N, m, C. Remember to convert them in the export if the model units are different
@@ -167,7 +167,7 @@ namespace Arachne.Grasshopper.Components.Materials
             material.UsePoisson = true;
             material.Density = 2.549E-09;//t/mm3
 
-            DA.SetData(0, new GH_Material(material));
+            DA.SetData(0, new GH_Material(material.ToGpc()));
         }
 
         /// <summary>

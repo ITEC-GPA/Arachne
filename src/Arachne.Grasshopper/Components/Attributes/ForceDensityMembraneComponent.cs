@@ -1,4 +1,7 @@
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using GPC.Model.Analysis;
+using GPC.Model.Attributes;
+using GPC.Model.Core;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -54,21 +57,17 @@ namespace Arachne.Grasshopper.Components.Attributes
         {
             GH_Beam beam = null;
             GH_LoadCase lc = null;
-            double value = 0;
-            int type = 0;
-
-            if (!DA.GetData("Beam", ref beam))
-                return;
-            if (!DA.GetData("LoadCase", ref lc))
-                return;
-            if (!DA.GetData("Value", ref value))
-                return;
-            if (!DA.GetData("Type", ref type))
-                return;
-
-            GH_Beam new_beam = new GH_Beam(beam);
-            new_beam.Value.Loads.Add(new ForceDensityModel(lc.Value, value, ForceDensityModel.ForceDensityTypes.Membrane, true, 1.0, value, (ForceDensityModel.MembraneTypes)type));
-            DA.SetData(0, new_beam);
+            double value = 0; int type = 0;
+            if (!DA.GetData("Beam", ref beam)) return;
+            if (!DA.GetData("LoadCase", ref lc)) return;
+            if (!DA.GetData("Value", ref value)) return;
+            if (!DA.GetData("Type", ref type)) return;
+            var direction = type == 0 ? FabricDirection.Warp : type == 1 ? FabricDirection.Weft : FabricDirection.Unspecified;
+            var goal = new FormFindingGoal { Kind = FormFindingGoalKind.MembraneForcePerWidth, Target = value, ProjectToPlane = true, Weight = 1.0, Direction = direction };
+            // Same identity, so Build Model merges it with the other copies
+            var copy = new GH_Beam(beam);
+            copy.Value.Attributes.Add(new FormFindingGoalAttribute(goal, ModelValues.CopyValue(lc.Value)));
+            DA.SetData(0, copy);
         }
 
         public override GH_Exposure Exposure => GH_Exposure.secondary;

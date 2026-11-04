@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -22,7 +22,7 @@ namespace Arachne.Grasshopper.Components.Analysis
 
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
-            var defaults = new SolverOptionsModel();
+            var defaults = new FormFindingOptions();
             pManager.AddNumberParameter("Gravity", "G", "The gravity acceleration for self-weight calculation purpose, in model units (9806.65 in N/mm). It applies to the beams and to the plates with a Plate Property", GH_ParamAccess.item, defaults.Gravity);
             pManager.AddNumberParameter("Pressure", "P", "The normal pressure applied to the model", GH_ParamAccess.item, defaults.Pressure);
             int i = pManager.AddGenericParameter("Pressure Load Case", "LC", "The load case used for the resulting pressure forces", GH_ParamAccess.item);
@@ -46,7 +46,7 @@ namespace Arachne.Grasshopper.Components.Analysis
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            var options = new SolverOptionsModel();
+            var options = new FormFindingOptions();
             double gravity = 0, pressure = 0, tolerance = 0, solverToleranceA = 0, solverToleranceB = 0;
             int maxIterations = 0, solverMaxIterations = 0;
             bool createMesh = true;
@@ -83,7 +83,7 @@ namespace Arachne.Grasshopper.Components.Analysis
             options.Gravity = gravity;
             options.Pressure = pressure;
             options.PressureLoadCase = loadCase?.Value;
-            options.LoadCases = loadCases.Where(lc => lc?.Value != null).Select(lc => lc.Value).ToList();
+            options.LoadCases.AddRange(loadCases.Where(lc => lc?.Value != null).Select(lc => GPC.Model.Core.ModelValues.CopyValue(lc.Value)));
             options.MaxIterations = maxIterations;
             options.Tolerance = tolerance;
             options.SolverMaxIterations = solverMaxIterations;

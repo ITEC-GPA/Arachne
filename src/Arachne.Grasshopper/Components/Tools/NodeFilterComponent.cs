@@ -1,5 +1,6 @@
 using Arachne.Common.Helpers;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using System.Linq;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -36,8 +37,8 @@ namespace Arachne.Grasshopper.Components.Tools
             // Default as in the Beam Filter: without it the filter did nothing until Units was connected
             pManager.AddIntegerParameter("Units", "U", "The measure units", GH_ParamAccess.item, 2);
             Param_Integer type_param = (Param_Integer)pManager[pManager.ParamCount - 1];
-            Array names = Enum.GetValues(typeof(ModelModel.ModelUnits));
-            foreach (ModelModel.ModelUnits name in names)
+            Array names = Enum.GetValues(typeof(ModelUnits));
+            foreach (ModelUnits name in names)
                 type_param.AddNamedValue(name.GetDescription(), (int)name);
 
             pManager.AddGenericParameter("Groups", "G", "The node groups to search", GH_ParamAccess.list);
@@ -88,7 +89,7 @@ namespace Arachne.Grasshopper.Components.Tools
                 for (int j = 0; j < ids.Count; j++)
                 {
                     string id = ids[j];
-                    if (n.Value.HasId(id))
+                    if (ElementDrafts.HasLabel(n.Value, id))
                     {
                         add = true;
                         break;
@@ -99,7 +100,7 @@ namespace Arachne.Grasshopper.Components.Tools
                     for (int j = 0; j < groups.Count; j++)
                     {
                         GH_Group g = groups[j];
-                        if (n.Value.HasGroup(g.Value))
+                        if (n.Value.Groups.Values.Any(x => x.Guid == g.Value.Guid))
                         {
                             add = true;
                             break;
@@ -110,7 +111,7 @@ namespace Arachne.Grasshopper.Components.Tools
                         for (int k = 0; k < positions.Count; k++)
                         {
                             Point3d p = positions[k];
-                            if (n.Value.Position.DistanceTo(p) < tol)
+                            if (n.Position.DistanceTo(p) < tol)
                             {
                                 add = true;
                                 break;
@@ -140,4 +141,4 @@ namespace Arachne.Grasshopper.Components.Tools
         /// </summary>
         public override Guid ComponentGuid => new Guid("f322b12d-ddb7-4287-aaa6-67813e6cc864");
     }
-}
+}

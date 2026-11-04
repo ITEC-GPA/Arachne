@@ -1,4 +1,4 @@
-using Arachne.Common.Models;
+using Arachne.Common.Geometry;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -53,78 +53,28 @@ namespace Arachne.Grasshopper.Components.Sections
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             GH_BeamSection gH_BeamProperty = null;
-
-            if (!DA.GetData(0, ref gH_BeamProperty))
-                return;
-
-            SectionModel section = gH_BeamProperty.Value;
-
-            string name = string.Empty;
-            double area = 0;
-            double j11 = 0;
-            double j22 = 0;
-            double jxx = 0;
-            double jyy = 0;
-            double w11 = 0;
-            double w22 = 0;
-            double j = 0;
-            double xg = 0;
-            double yg = 0;
-            double angle = 0;
-            double rho1 = 0;
-            double rho2 = 0;
-
-            if (section.SectionType != SectionModel.SectionTypes.Generic || section.SectionType != SectionModel.SectionTypes.Composite)
-            {
-                name = section.Name;
-                area = section.SectionArea;
-                xg = section.Centroid.X;
-                yg = section.Centroid.Y;
-                jxx = section.Ixx;
-                jyy = section.Iyy;
-                angle = section.AngleX1Rad;
-                j11 = section.I11;
-                j22 = section.I22;
-                w11 = section.W11;
-                w22 = section.W22;
-                rho1 = section.Rho11;
-                rho2 = section.Rho22;
-                j = section.J;
-            }
-
-            if (section.SectionType != SectionModel.SectionTypes.Composite)
-            {
-                name = section.Name;
-                area = section.SectionArea;
-                xg = section.Centroid.X;
-                yg = section.Centroid.Y;
-                jxx = section.Ixx;
-                jyy = section.Iyy;
-                angle = section.AngleX1Rad;
-                j11 = section.I11;
-                j22 = section.I22;
-                w11 = section.W11;
-                w22 = section.W22;
-                rho1 = section.Rho11;
-                rho2 = section.Rho22;
-                j = section.J;
-            }
-
+            if (!DA.GetData(0, ref gH_BeamProperty) || gH_BeamProperty.Value == null) return;
+            var section = gH_BeamProperty.Value;
+            // The values declared by the section components (computed as FeMM). The radii of gyration are those of FeMM: computed
+            // for the sections given by their outline (with the X-Y moments), 0 for circles and generic sections.
+            bool outlined = section.Jxx != 0 || section.Jyy != 0;
+            double rho1 = outlined && section.Area > 0 ? Math.Sqrt(section.J11 / section.Area) : 0;
+            double rho2 = outlined && section.Area > 0 ? Math.Sqrt(section.J22 / section.Area) : 0;
             int item = 0;
-            DA.SetData(item++, name);
-            DA.SetData(item++, area);
-            DA.SetData(item++, xg);
-            DA.SetData(item++, yg);
-            DA.SetData(item++, jxx);
-            DA.SetData(item++, jyy);
-            DA.SetData(item++, angle);
-            DA.SetData(item++, j11);
-            DA.SetData(item++, j22);
-            DA.SetData(item++, w11);
-            DA.SetData(item++, w22);
+            DA.SetData(item++, string.IsNullOrEmpty(section.Name) ? null : section.Name);
+            DA.SetData(item++, section.Area);
+            DA.SetData(item++, section.Centroid.X);
+            DA.SetData(item++, section.Centroid.Y);
+            DA.SetData(item++, section.Jxx);
+            DA.SetData(item++, section.Jyy);
+            DA.SetData(item++, section.AngleX1);
+            DA.SetData(item++, section.J11);
+            DA.SetData(item++, section.J22);
+            DA.SetData(item++, section.Wel1);
+            DA.SetData(item++, section.Wel2);
             DA.SetData(item++, rho1);
             DA.SetData(item++, rho2);
-            DA.SetData(item++, j);
+            DA.SetData(item++, section.Jt);
         }
 
         /// <summary>

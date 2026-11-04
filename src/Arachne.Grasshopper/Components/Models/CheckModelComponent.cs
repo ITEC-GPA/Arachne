@@ -1,3 +1,5 @@
+using System.Linq;
+using Arachne.Common.Analysis;
 using System;
 using Arachne.Common.Helpers;
 using Arachne.Grasshopper.DataTypes;
@@ -45,15 +47,10 @@ namespace Arachne.Grasshopper.Components.Models
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             GH_Model model = null;
-            if (!DA.GetData(0, ref model) || model?.Value == null)
-                return;
-
-            ModelChecks.Report report = ModelChecks.Check(model.Value, Helpers.ModelHelper.GetTolerance());
-            foreach (string error in report.Errors)
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, error);
-            foreach (string warning in report.Warnings)
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, warning);
-
+            if (!DA.GetData(0, ref model) || model?.Value == null) return;
+            ModelChecks.Report report = ModelChecks.Check(model.Value, model.Units, Helpers.ModelHelper.GetTolerance());
+            foreach (string error in report.Errors) AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, error);
+            foreach (string warning in report.Warnings) AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, warning);
             DA.SetData(0, report.IsValid);
             DA.SetDataList(1, report.Errors);
             DA.SetDataList(2, report.Warnings);

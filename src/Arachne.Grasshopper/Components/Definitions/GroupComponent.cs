@@ -1,5 +1,8 @@
 using System;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using GPC.Model.Analysis;
+using GPC.Model.Attributes;
+using GPC.Model.Core;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -42,14 +45,10 @@ namespace Arachne.Grasshopper.Components.Definitions
         {
             string name = "";
             GH_Group parent = null;
-            if (!DA.GetData(0, ref name))
-                return;
+            if (!DA.GetData(0, ref name)) return;
             bool haveParent = DA.GetData(1, ref parent);
-
             Message = name;
-
-            GroupModel group = new GroupModel(name, haveParent ? parent.Value : null);
-            DA.SetData(0, new GH_Group(group));
+            DA.SetData(0, new GH_Group(name, haveParent ? parent.Value : null));
         }
 
         /// <summary>

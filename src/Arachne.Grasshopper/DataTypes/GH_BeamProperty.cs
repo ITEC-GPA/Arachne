@@ -1,92 +1,27 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Grasshopper.Kernel.Types;
 using GH_IO.Serialization;
-using Arachne.Common.Models;
+using GPC.Model.ElementProperties;
+using GPC.Model.Structure.Assignments;
+using Grasshopper.Kernel.Types;
 
 namespace Arachne.Grasshopper.DataTypes
 {
-    public class GH_BeamProperty : GH_Goo<BeamPropertyModel>
+    /// <summary>A beam property: a GPC <see cref="ElasticBeamProperty"/> (material and section). The type chosen in Beam Property
+    /// (cable, truss, beam, cut-off bar...) is the <see cref="BeamFormulation"/> that Beam assigns to its elements.</summary>
+    public class GH_BeamProperty : GpcGoo<ElasticBeamProperty>
     {
-
-        public GH_BeamProperty()
-        {
-        }
-
-        public GH_BeamProperty(BeamPropertyModel beamProperty)
-        {
-            Value = beamProperty;
-        }
-
-        public GH_BeamProperty(BeamPropertyModel beamProperty, GH_Material material)
-        {
-            Value = beamProperty;
-            if (material != null) Value.Material = material.Value;
-        }
-
-        #region Properties
-
-        public override bool IsValid => Value == null ? false : Value.IsValid;
-
+        public BeamFormulation Formulation { get; set; } = BeamFormulation.StraightTwoNode;
         public override string TypeName => "BeamProperty";
-
         public override string TypeDescription => "Define a beam property";
-
-        #endregion
-
-        public override IGH_Goo Duplicate()
+        public GH_BeamProperty() { }
+        public GH_BeamProperty(ElasticBeamProperty property, BeamFormulation formulation) : base(property) { Formulation = formulation; }
+        public override IGH_Goo Duplicate() => new GH_BeamProperty(Copy(Value), Formulation);
+        public override bool CastFrom(object source)
         {
-            return new GH_BeamProperty(Arachne.Common.Helpers.SerializationHelper.Clone(Value));
-        }
-
-        public override bool Write(GH_IWriter writer)
-        {
-            if (base.Write(writer))
-            {
-                try
-                {
-                    writer.SetByteArray("GpcData", Arachne.Common.Helpers.SerializationHelper.ToBytes(Value));
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("GH_BeamProperty.Write: {0}", e.Message);
-                    return false;
-                }
-                return true;
-            }
-
+            if (source is ElasticBeamProperty p) { Value = Copy(p); return true; }
             return false;
         }
-
-        public override bool Read(GH_IReader reader)
-        {
-            if (base.Read(reader))
-            {
-                try
-                {
-                    if (!reader.ItemExists("GpcData"))
-                        throw new System.Runtime.Serialization.SerializationException("IncompleteLegacyBeamPropertyArchive: the old writer did not save the section. Recompute the upstream property component.");
-                    Value = Arachne.Common.Helpers.SerializationHelper.FromBytes<BeamPropertyModel>(reader.GetByteArray("GpcData"));
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("GH_BeamProperty.Read: {0}", e.Message);
-                    return false;
-                }
-                return true;
-            }
-            return false;
-        }
-
-        public override string ToString()
-        {
-            if (Value == null)
-                return "Null Beam property";
-            else
-                return Value.ToString();
-        }
+        protected override void WriteExtra(GH_IWriter writer) => writer.SetInt32("Formulation", (int)Formulation);
+        protected override void ReadExtra(GH_IReader reader) { int f = 0; if (reader.TryGetInt32("Formulation", ref f)) Formulation = (BeamFormulation)f; }
+        public override string ToString() => Value == null ? "Null BeamProperty" : $"Beam property {Value.Name} ({Formulation}): section {Value.Section?.Name}, material {Value.Material?.Name}";
     }
 }

@@ -1,262 +1,158 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using Arachne.Common.Models;
 using GPC.Model.Analysis;
 using GPC.Model.Core;
-using GPC.Model.Core.Identity;
+using GPC.Model.ElementProperties;
 using GPC.Model.Elements;
 using GPC.Model.LoadCases;
 using GPC.Model.Loads;
-using GPC.Model.Loads.Assignments;
 using GPC.Model.Models;
-using GPC.Model.Restraints;
-using GPC.Model.Structure.Assignments;
+using GPC.Model.Results.Locations;
+using GPC.Model.Results.State;
 using G = GPC.Geometry;
 using R = Rhino.Geometry;
 
 namespace Arachne.Common.Analysis
 {
-    /// <summary>Application input boundary. Produces a detached, normalized GPC analysis graph;
-    /// Rhino preview data and inactive compatibility controls remain in their wrappers.</summary>
+    /// <summary>
+    /// The analysis graph of one Form Find run: a copy of the Build Model output (GPC, N-mm) with the loads of the selected cases
+    /// only, the element objectives moved into <see cref="FormFindingDefinition"/>, no results of a previous run, and the cases of the
+    /// results. The messages are the ones of the former assembly (Arachne 7b1108d, FormFindingHelper.AssemblyModel).
+    /// </summary>
     public static class FormFindingInputBuilder
     {
         public sealed class Input
         {
             public Model Model { get; internal set; }
-            public LoadCaseBase ResultCase { get; internal set; }
-            public LoadCaseBase PressureCase { get; internal set; }
             public FormFindingUnits Units { get; internal set; }
-            public List<string> Diagnostics { get; } = new List<string>();
+            public int SolverType { get; internal set; }
+            public LoadCaseBase ReactionCase { get; internal set; }
+            public LoadCaseBase PressureCase { get; internal set; }
+            /// <summary>The case of the pre-load of each beam with a force density, fixed axial force or fixed length (FeMM order).</summary>
+            public Dictionary<Guid, LoadCaseBase> PreloadCases { get; } = new Dictionary<Guid, LoadCaseBase>();
+            /// <summary>Beams with more than one objective of a family: FeMM used the first and said so.</summary>
+            public HashSet<Guid> MultipleForceDensities { get; } = new HashSet<Guid>();
+            public HashSet<Guid> MultipleLengths { get; } = new HashSet<Guid>();
+            public HashSet<Guid> MultipleAxialForces { get; } = new HashSet<Guid>();
+            public bool CreateMesh { get; internal set; }
+            /// <summary>The property of the generated plates, in N-mm (null: weightless plates).</summary>
+            public PlateProperty GeneratedPlateProperty { get; internal set; }
+            /// <summary>The projection plane of the solver in the document units, exactly as given.</summary>
+            public G.Plane SolverPlane { get; internal set; }
+            public List<string> Remarks { get; } = new List<string>();
+            /// <summary>Messages written after the solver model is assembled (FeMM order).</summary>
+            public List<string> FinalRemarks { get; } = new List<string>();
         }
-        public static Guid Identity(Guid owner, string key)
-        {
-            if (owner == Guid.Empty) throw new ArgumentException("EmptyInputOwner");
-            using (var sha = SHA256.Create()) return new Guid(sha.ComputeHash(Encoding.UTF8.GetBytes(owner.ToString("D") + "\n" + key)).Take(16).ToArray());
-        }
-        private static G.Vector3d Vector(R.Vector3d value) => new G.Vector3d(value.X, value.Y, value.Z);
-        private static R.Vector3d Global(CoordinateSystemModel axes, R.Vector3d value)
-        {
-            if (axes == null) return value;
-            if (!axes.GetAxes(out var x, out var y, out var z)) throw new ArgumentException("InvalidLoadCoordinateSystem");
-            return x * value.X + y * value.Y + z * value.Z;
-        }
-        public static Input Build(ModelModel source, R.Plane plane, int solverType, SolverOptionsModel options,
-            Guid owner, IDictionary<ElementModel, Guid> identities = null)
+
+        public static Input Build(Model source, ModelUnits documentUnits, int solverType, FormFindingOptions options, R.Plane plane)
         {
             if (source == null || options == null) throw new ArgumentNullException();
-            if (solverType < 0 || solverType > 2) throw new ArgumentOutOfRangeException(nameof(solverType));
-            var input = new Input { Units = FormFindingUnits.From(source.Units) };
-            var u = input.Units;
-            G.Point3d Point(R.Point3d p) => new G.Point3d(p.X * u.LengthToMm, p.Y * u.LengthToMm, p.Z * u.LengthToMm);
-            Guid Key(ElementModel wrapper, string slot) => identities != null && identities.TryGetValue(wrapper, out var id) ? id : Identity(owner, slot);
-            var ff = ModelValues.CopyValue(options.Definition);
+            if (solverType < 0 || solverType > 2) throw new ArgumentException("Unknown solver type");
+            if (options.MaxIterations < 1) throw new ArgumentException("Max Iter must be at least 1");
+            var u = FormFindingUnits.From(documentUnits);
+            var input = new Input { Units = u, SolverType = solverType, CreateMesh = options.CreateMesh };
+            var model = ModelValues.Copy(source);
+            input.Model = model;
+            // The pressure forces of a previous form finding are results, not loads.
+            bool previousPressure = model.NodesElements.Values.Any(n => n.Results.SelectMany(r => r.Results).OfType<NodeResultForces>().Any(f => f.Kind == NodalForceKind.AppliedPressure));
+            foreach (var e in model.AllElements) if (e.Results.Count != 0) e.Results.Clear();
+            model.Datasets.Remove("form-finding");
+
+            var selected = new HashSet<Guid>((options.LoadCases ?? new List<LoadCaseBase>()).Where(c => c != null).Select(c => c.Guid));
+            var used = new HashSet<Guid>();
+            bool Applies(LoadCaseBase loadCase)
+            {
+                if (selected.Count == 0) return true;
+                if (loadCase == null || !selected.Contains(loadCase.Guid)) return false;
+                used.Add(loadCase.Guid); return true;
+            }
+            var ff = ModelValues.CopyValue(options.Settings);
             ff.Goals.Clear(); ff.CoordinateGoals.Clear(); ff.SurfaceMasses.Clear();
             ff.Method = solverType == 0 ? FormFindingMethod.LinearForceDensity : solverType == 1 ? FormFindingMethod.SteppedLinearForceDensity : FormFindingMethod.NonlinearForceDensity;
-            ff.Gravity *= u.LengthToMm; ff.Pressure *= u.PressureToMPa;
-            if (plane == R.Plane.Unset) plane = R.Plane.WorldXY;
-            var projection = new G.Plane(Point(plane.Origin), Vector(plane.Normal));
+            ff.Gravity = options.Gravity * u.LengthToMm; ff.Pressure = options.Pressure * u.PressureToMPa;
+            if (plane == R.Plane.Unset) input.SolverPlane = new G.Plane(G.Point3d.Origin, G.Vector3d.ZAxis);
+            else input.SolverPlane = new G.Plane(new G.Point3d(plane.Origin.X, plane.Origin.Y, plane.Origin.Z), new G.Vector3d(plane.Normal.X, plane.Normal.Y, plane.Normal.Z));
+            var projection = new G.Plane(new G.Point3d(input.SolverPlane.Origin.X * u.LengthToMm, input.SolverPlane.Origin.Y * u.LengthToMm, input.SolverPlane.Origin.Z * u.LengthToMm), input.SolverPlane.Normal);
             ff.ProjectionPlane = new G.CoordinateSystem(projection.P1, projection.P2, projection.P3);
-            var elements = new List<Element>();
-            var nodes = new List<NodeElement>();
-            var beams = new List<BeamElement>();
-            var points = new Dictionary<(double, double, double), NodeElement>();
-            var cases = new Dictionary<string, LoadCaseBase>(StringComparer.Ordinal);
-            var caseIds = new Dictionary<string, string>(StringComparer.Ordinal);
-            var usedCases = new HashSet<LoadCaseModel>();
-            LoadCaseBase Case(LoadCaseModel sourceCase)
+
+            foreach (var node in model.NodesElements.Values)
             {
-                if (sourceCase == null || string.IsNullOrWhiteSpace(sourceCase.Name)) throw new ArgumentException("MissingFormFindingLoadCase");
-                if (caseIds.TryGetValue(sourceCase.Name, out var previousId) && previousId != sourceCase.Id)
-                    throw new ArgumentException("ConflictingLoadCaseName: " + sourceCase.Name);
-                caseIds[sourceCase.Name] = sourceCase.Id;
-                if (!cases.TryGetValue(sourceCase.Name, out var item))
-                    cases.Add(sourceCase.Name, item = new LoadCaseBase(Identity(owner, "case:" + sourceCase.Name), sourceCase.Name));
-                return item;
-            }
-            bool Applies(LoadModel load)
-            {
-                bool included = options.LoadCases == null || options.LoadCases.Count == 0 || options.LoadCases.Any(c => c == load.LoadCase);
-                if (included) usedCases.Add(load.LoadCase);
-                return included;
-            }
-            void Register(Element element, EntityFamily family, int slot)
-            {
-                element.Source = new SourceIdentity("Arachne", owner.ToString("D"), family, slot.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                elements.Add(element);
-            }
-            NodeElement AddNode(R.Point3d p, Guid id, NodeElement original = null)
-            {
-                var node = original == null ? new NodeElement(id, Point(p)) : ModelValues.CopyValue(original);
-                if (node.Guid != id) throw new ArgumentException("ConflictingNodeWrapperIdentity");
-                node.Position = Point(p);
-                Register(node, EntityFamily.Node, nodes.Count); nodes.Add(node);
-                if (!points.ContainsKey((p.X, p.Y, p.Z))) points.Add((p.X, p.Y, p.Z), node);
-                return node;
-            }
-            NodeElement At(R.Point3d p, Guid element, string endpoint) => points.TryGetValue((p.X, p.Y, p.Z), out var node)
-                ? node : AddNode(p, Identity(element, endpoint));
-            for (int i = 0; i < source.Nodes.Count; i++)
-            {
-                var old = source.Nodes[i];
-                var id = identities != null && identities.TryGetValue(old, out var bound) ? bound : old.Identity;
-                var node = AddNode(old.Position, id, old.Input);
-                if (old.HasAttribute(typeof(NodeRestraintAttributeModel)))
+                foreach (var load in node.Loads.Values.ToArray())
+                    if (!(load is PointLoad) || !Applies(load.LoadCase)) node.Loads.Remove(load.Id);
+                var weight = node.Attributes.Values.OfType<FormFindingCoordinateAttribute>().FirstOrDefault();
+                if (weight != null)
                 {
-                    var r = NodeRestraintAttributeModel.GetRestraint(old);
-                    var axes = r.Axes();
-                    node.Assignments.Restrains.Add(new RestrainAssignment { Restrain = new NodeRestrain(node,
-                        new G.CoordinateSystem(node.Position, Vector(axes[0]), Vector(axes[1])),
-                        ModelValues.CopyValue(r.InputDofs.ToList())) });
+                    ff.CoordinateGoals.Add(new FormFindingCoordinateGoal { NodeGuid = node.Guid, Weights = ModelValues.CopyValue(weight.Weights) });
+                    if (solverType == 0) input.Remarks.Add("Weights on nodes coordinates are ignored on the linear solver.");
                 }
-                foreach (var load in old.Loads)
-                {
-                    if (load is NodePressureLoadModel) { input.Diagnostics.Add("The pressure forces of a previous form finding are results; only the current pressure is applied."); continue; }
-                    if (load is NodeForceLoadModel force && Applies(load))
-                    {
-                        var physicalLoad = ModelValues.CopyValue(force.Input);
-                        physicalLoad.F1 *= u.ForceToN; physicalLoad.F2 *= u.ForceToN; physicalLoad.F3 *= u.ForceToN;
-                        physicalLoad.Point = node.Position; physicalLoad.LoadCase = Case(load.LoadCase);
-                        node.Loads.Add(physicalLoad);
-                    }
-                    else if (!(load is NodeForceLoadModel)) throw new NotSupportedException("UnsupportedFormFindingNodeLoad: " + load.GetType().Name);
-                }
-                if (old.HasAttribute(typeof(NodeWeightAttributeModel)))
-                {
-                    var weights = NodeWeightAttributeModel.GetWeight(old);
-                    if (solverType == 2)
-                    {
-                        var goal = ModelValues.CopyValue(old.Attributes.OfType<NodeWeightAttributeModel>().First().Goal);
-                        goal.NodeGuid = node.Guid; ff.CoordinateGoals.Add(goal);
-                    }
-                    else if (weights != R.Vector3d.Zero) input.Diagnostics.Add("Coordinate objectives are ignored by the selected linear method.");
-                }
+                Strip(node);
             }
-            for (int i = 0; i < source.Beams.Count; i++)
+            foreach (var beam in model.BeamElements.Values)
             {
-                var old = source.Beams[i]; var id = Key(old, "beam:" + i);
-                var beam = new BeamElement(id, Point(old.PointFrom), Point(old.PointTo), null);
-                beam.ConnectNodes(At(old.PointFrom, id, "I"), At(old.PointTo, id, "J"));
-                beam.Assignments.Formulation = BeamFormulation.Cable;
-                if (old.BeamProperty?.Material == null) throw new ArgumentException("MissingFormFindingBeamProperty");
-                double mass = old.BeamProperty.SectionArea * u.LengthToMm * u.LengthToMm * old.BeamProperty.Material.Density;
-                beam.Assignments.AnalysisProfile = new BeamAnalysisProfile();
-                foreach (double station in new[] { 0.0, 1.0 }) beam.Assignments.AnalysisProfile.Stations.Add(new BeamAnalysisStation
-                    { Station = station, EA = 0, EI1 = 0, EI2 = 0, GA1 = 0, GA2 = 0, GJ = 0, MassPerLength = mass });
-                var densities = old.Loads.OfType<ForceDensityModel>().ToArray();
-                if (densities.Length > 1) input.Diagnostics.Add("Multiple force density objectives: the first is used, as in the previous component.");
-                var primary = densities.Length == 0 ? new FormFindingGoal { Kind = FormFindingGoalKind.ForceDensity, Target = 0, Weight = 0 }
-                    : ModelValues.CopyValue(densities[0].Goal);
-                if (densities.Length == 0 && old.Loads.OfType<FixedAxialForceModel>().FirstOrDefault() is FixedAxialForceModel onlyAxial)
-                { primary.Kind = FormFindingGoalKind.CableForce; primary.Target = onlyAxial.Value; }
-                primary.BeamGuid = id;
-                if (primary.Kind == FormFindingGoalKind.ForceDensity || primary.Kind == FormFindingGoalKind.MembraneForcePerWidth) primary.Target *= u.ForceDensityToNPerMm;
-                else if (primary.Kind == FormFindingGoalKind.CableForce) primary.Target *= u.ForceToN;
-                if (primary.ChordLengthMm.HasValue) primary.ChordLengthMm *= u.LengthToMm;
-                ff.Goals.Add(primary);
-                foreach (var family in new[] { typeof(FixedLengthModel), typeof(FixedAxialForceModel) })
+                for (int i = beam.Assignments.Loads.Count - 1; i >= 0; i--)
                 {
-                    var goals = old.Loads.Where(l => l.GetType() == family).ToArray();
-                    if (goals.Length == 0) continue;
-                    if (solverType == 0) { input.Diagnostics.Add("Length and axial-force objectives are ignored by the linear method."); continue; }
-                    if (goals.Length > 1) input.Diagnostics.Add("Multiple " + family.Name + " objectives: the first is used.");
-                    var goal = ModelValues.CopyValue(goals[0] is FixedLengthModel length ? length.Goal : ((FixedAxialForceModel)goals[0]).Goal);
-                    goal.BeamGuid = id; goal.Target *= goal.Kind == FormFindingGoalKind.Length ? u.LengthToMm : u.ForceToN; ff.Goals.Add(goal);
+                    var a = beam.Assignments.Loads[i];
+                    var loadCase = (a.Concentrated ?? (Load)a.StartIntensity)?.LoadCase;
+                    if (!Applies(loadCase)) beam.Assignments.Loads.RemoveAt(i);
                 }
-                foreach (var load in old.Loads.Where(l => !(l is ForceDensityModel) && !(l is FixedLengthModel) && !(l is FixedAxialForceModel)).Where(Applies))
+                var goals = ElementDrafts.Goals(beam).ToList();
+                var primary = goals.Where(g => ElementDrafts.IsPrimary(g.Goal.Kind)).ToList();
+                var lengths = goals.Where(g => g.Goal.Kind == FormFindingGoalKind.Length).ToList();
+                var axial = goals.Where(g => g.Goal.Kind == FormFindingGoalKind.AxialForce).ToList();
+                if (primary.Count > 0)
                 {
-                    if (load is BeamPreLoadModel) { input.Diagnostics.Add("Beam preloads from a previous form finding are results and are not reapplied."); continue; }
-                    if (load is BeamPointLoadModel point)
-                    {
-                        if (point.PointLoadType != BeamPointLoadModel.LoadType.Force) throw new NotSupportedException("FormFindingDoesNotSupportBeamMoments");
-                        if (point.RequiresCoordinateSystemRecovery) throw new InvalidOperationException("LegacyPointLoadCoordinateSystemWasNotSaved: recompute the upstream load component or explicitly assign its coordinate system.");
-                        var assignment = ModelValues.CopyValue(point.Input);
-                        var p = Global(point.Value.CoordinateSystem, point.Value.P);
-                        var force = assignment.Concentrated;
-                        force.F1 = p.X * u.ForceToN; force.F2 = p.Y * u.ForceToN; force.F3 = p.Z * u.ForceToN;
-                        force.CoordinateSystem = G.CoordinateSystem.Global; force.Point = beam.StartPoint; force.LoadCase = Case(load.LoadCase);
-                        beam.Assignments.Loads.Add(assignment);
-                    }
-                    else if (load is BeamDistributedLoadModel distributed)
-                    {
-                        var d = distributed.Value;
-                        if (distributed.DistributedLoadType != BeamDistributedLoadModel.LoadType.Force) throw new NotSupportedException("FormFindingDoesNotSupportBeamMoments");
-                        if (d.LoadSchema != BeamDistributedLoadModel.LoadSchema.Uniform && d.LoadSchema != BeamDistributedLoadModel.LoadSchema.Keystone)
-                            throw new NotSupportedException("UnsupportedFormFindingLoadSchema: " + d.LoadSchema);
-                        R.Vector3d direction; bool projected = false;
-                        switch (d.LoadDirection)
-                        {
-                            case BeamDistributedLoadModel.LoadDirection.X_Projected: projected = true; goto case BeamDistributedLoadModel.LoadDirection.X;
-                            case BeamDistributedLoadModel.LoadDirection.Y_Projected: projected = true; goto case BeamDistributedLoadModel.LoadDirection.Y;
-                            case BeamDistributedLoadModel.LoadDirection.Z_Projected: projected = true; goto case BeamDistributedLoadModel.LoadDirection.Z;
-                            case BeamDistributedLoadModel.LoadDirection.Gravity_Projected: projected = true; goto case BeamDistributedLoadModel.LoadDirection.Gravity;
-                            case BeamDistributedLoadModel.LoadDirection.X: direction = Global(d.CoordinateSystem, R.Vector3d.XAxis); break;
-                            case BeamDistributedLoadModel.LoadDirection.Y: direction = Global(d.CoordinateSystem, R.Vector3d.YAxis); break;
-                            case BeamDistributedLoadModel.LoadDirection.Z: direction = Global(d.CoordinateSystem, R.Vector3d.ZAxis); break;
-                            case BeamDistributedLoadModel.LoadDirection.Gravity: direction = -R.Vector3d.ZAxis; break;
-                            default: throw new NotSupportedException("UnknownFormFindingLoadDirection");
-                        }
-                        var start = Vector(direction) * (d.PA * u.ForceDensityToNPerMm);
-                        var end = Vector(direction) * ((d.LoadSchema == BeamDistributedLoadModel.LoadSchema.Uniform ? d.PA : d.PB) * u.ForceDensityToNPerMm);
-                        beam.Assignments.Loads.Add(new BeamLoadAssignment { Start = d.A, End = 1 - d.B,
-                            StartIntensity = new LineLoad(start, new G.Vector3d(0, 0, 0), beam.Line, Case(load.LoadCase)),
-                            EndIntensity = new LineLoad(end, new G.Vector3d(0, 0, 0), beam.Line, Case(load.LoadCase)),
-                            LengthConvention = projected ? BeamLoadLengthConvention.ProjectedLength : BeamLoadLengthConvention.ActualLength,
-                            ProjectionPlaneNormal = projected ? Vector(direction) : null });
-                    }
-                    else throw new NotSupportedException("UnsupportedFormFindingBeamLoad: " + load.GetType().Name);
+                    var goal = Bound(primary[0].Goal, beam.Guid); ff.Goals.Add(goal);
+                    if (goal.Weight > 0 && solverType == 0) input.Remarks.Add("Weights on force densities are ignored on the linear solver.");
+                    if (primary.Count > 1) input.MultipleForceDensities.Add(beam.Guid);
                 }
-                Register(beam, EntityFamily.Beam, i); beams.Add(beam);
-            }
-            double SurfaceMass(PlatePropertyModel property) => property?.Material == null || !(property.Thickness > 0) ? 0
-                : property.Material.Kind == MaterialModel.MaterialKind.Membrane ? property.Material.AreaDensity
-                : property.Thickness * u.LengthToMm * property.Material.Density;
-            void AddArea(Guid id, NodeElement[] connectivity, PlatePropertyModel property)
-            {
-                var area = new AreaElement(id, null, null); area.ConnectNodes(connectivity);
-                Register(area, EntityFamily.Shell, ff.SurfaceMasses.Count + 1);
-                ff.SurfaceMasses.Add(new FormFindingSurfaceMass { AreaGuid = id, MassPerArea = SurfaceMass(property) });
-            }
-            if (options.CreateMesh)
-                for (int i = 0; i < source.Plates.Count; i++)
+                if (lengths.Count > 0)
                 {
-                    var old = source.Plates[i]; var id = Key(old, "area:" + i);
-                    if (old.Points.Count != 3 && old.Points.Count != 4) throw new NotSupportedException("FormFindingRequiresLinearShell");
-                    AddArea(id, old.Points.Select((p, slot) => At(p, id, "vertex:" + slot)).ToArray(), old.PlateProperty);
+                    ff.Goals.Add(Bound(lengths[0].Goal, beam.Guid));
+                    if (solverType == 0) input.Remarks.Add("Fixed length is used only on the non-linear solver. In linear solver is ignored.");
+                    if (lengths.Count > 1) { input.MultipleLengths.Add(beam.Guid); input.Remarks.Add("More than one fixed length is set on a beam. It's considered only the first one."); }
                 }
-            if (ff.SurfaceMasses.Count == 0)
-            {
-                // Reuse TensileLib's topology algorithm only; this temporary graph carries no
-                // loads, material, goals or solver state. The discovered faces enter GPC before export.
-                var topology = new TensileLib.Geometry.Model { Plane = projection };
-                var ids = nodes.ToDictionary(n => n.Guid, n => topology.AddNewNode(n.Position.X, n.Position.Y, n.Position.Z));
-                foreach (var beam in beams) topology.AddNewBeam(ids[beam.NodeI.Guid], ids[beam.NodeJ.Guid], projection);
-                var bySolverId = nodes.ToDictionary(n => ids[n.Guid]);
-                topology.GeneratePlatesFromBeams();
-                foreach (var face in topology.Plates)
+                if (axial.Count > 0)
                 {
-                    var connectivity = new[] { face.Node1, face.Node2, face.Node3, face.Node4 }.Where(n => n != null).Select(n => bySolverId[n.Id]).ToArray();
-                    AddArea(Identity(owner, "generated-area:" + string.Join("/", connectivity.Select(n => n.Guid.ToString("N")).OrderBy(x => x, StringComparer.Ordinal))), connectivity, options.PlateProperty);
+                    ff.Goals.Add(Bound(axial[0].Goal, beam.Guid));
+                    if (solverType == 0) input.Remarks.Add("Fixed axial force is used only on the non-linear solver. In linear solver is ignored.");
+                    if (axial.Count > 1) { input.MultipleAxialForces.Add(beam.Guid); input.Remarks.Add("More than one fixed axial force is set on a beam. It's considered only the first one."); }
                 }
+                // The pre-load uses the case of the force density, else of the fixed axial force, else of the fixed length.
+                var preload = primary.FirstOrDefault() ?? axial.FirstOrDefault() ?? lengths.FirstOrDefault();
+                if (preload != null) input.PreloadCases[beam.Guid] = Registered(model, preload.LoadCase ?? throw new ArgumentException("MissingFormFindingLoadCase"));
+                Strip(beam);
             }
-            input.Model = ModelAssembly.Assemble(elements, owner, source.Name ?? "", supportsWarpedQuads: true);
-            input.Model.FormFinding = ff;
-            if (ff.Pressure != 0)
-            {
-                input.PressureCase = Case(options.PressureLoadCase);
-                if (!input.Model.LoadCases.Values.Any(c => ReferenceEquals(c, input.PressureCase))) input.Model.LoadCases.Add(input.PressureCase);
-            }
-            var resultName = "Form finding";
-            while (cases.ContainsKey(resultName)) resultName += " (result)";
-            input.ResultCase = new LoadCaseBase(Identity(owner, "case:form-finding-result"), resultName);
-            input.Model.LoadCases.Add(input.ResultCase);
-            ff.Validate(input.Model);
-            if (ff.Gravity == 0 && ff.SurfaceMasses.Any(m => m.MassPerArea > 0)) input.Diagnostics.Add("The plates have a mass but Gravity is 0: self weight is not applied.");
-            foreach (var lc in (options.LoadCases ?? new List<LoadCaseModel>()).Where(c => !usedCases.Contains(c))) input.Diagnostics.Add("No node or beam load in the load case " + lc.Name + ".");
-            if (source.Units == ModelModel.ModelUnits.IPS) input.Diagnostics.Add("IPS self weight uses force/acceleration mass consistently; the former lbm-as-inertial-mass convention is corrected.");
+            foreach (var area in model.AreaElements.Values) Strip(area);
+            if (!options.CreateMesh)
+                foreach (var area in model.AreaElements.Values.ToArray()) model.AreaElements.Remove(area.Id);
+            input.GeneratedPlateProperty = new ElementDrafts.Scale(u, true).Property(options.PlateProperty);
+            input.ReactionCase = Registered(model, InputIdentity.LoadCase("FF", "Form Finding"));
+            if (options.PressureLoadCase != null) input.PressureCase = Registered(model, options.PressureLoadCase);
+            model.FormFinding = ff;
+            // Validated by the preflight of the export (TensileModelAdapter.Preflight)
+
+            foreach (var lc in (options.LoadCases ?? new List<LoadCaseBase>()).Where(c => c != null && !used.Contains(c.Guid)))
+                input.FinalRemarks.Add($"No node or beam load in the load case {lc.Name}.");
+            if (previousPressure)
+                input.FinalRemarks.Add("The pressure forces of a previous form finding are not applied: the Pressure of the Solver Options acts on the new shape.");
             return input;
+        }
+
+        private static FormFindingGoal Bound(FormFindingGoal goal, Guid beam) { var copy = ModelValues.CopyValue(goal); copy.BeamGuid = beam; return copy; }
+        private static void Strip(Element element)
+        {
+            foreach (var attribute in element.Attributes.Values.Where(a => a is FormFindingGoalAttribute || a is FormFindingCoordinateAttribute).ToArray())
+                element.Attributes.Remove(attribute.Id);
+        }
+        /// <summary>The case of the model with the identity of <paramref name="value"/>, registering it when missing (a case of the same
+        /// name with another identity is used instead: one name, one case in a GPC model).</summary>
+        internal static LoadCaseBase Registered(Model model, LoadCaseBase value)
+        {
+            var same = model.LoadCases.Values.FirstOrDefault(c => c.Guid == value.Guid);
+            if (same != null) return same;
+            if (model.LoadCases.TryGetValue(value.Name, out var named)) return named;
+            var copy = ModelValues.CopyValue(value); model.AddLoadCase(copy); return copy;
         }
     }
 }

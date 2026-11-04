@@ -1,3 +1,6 @@
+using Arachne.Common.Helpers;
+using System.Linq;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -50,22 +53,14 @@ namespace Arachne.Grasshopper.Components.Models
             List<GH_Group> groups = new List<GH_Group>();
             double angle = 0;
             Vector3d offset = Vector3d.Unset;
-
-            if (!DA.GetData("Line", ref line))
-                return;
-            if (!DA.GetData("Property", ref bp))
-                return;
+            if (!DA.GetData("Line", ref line)) return;
+            if (!DA.GetData("Property", ref bp)) return;
             DA.GetDataList("Groups", groups);
             DA.GetData("Angle", ref angle);
             bool has_offset = DA.GetData("Offset", ref offset);
-
-            GH_Beam beam = new GH_Beam(line.PointAtStart, line.PointAtEnd, bp, groups.ToArray());
-            if (angle != 0)
-                beam.Value.AngleDeg = angle;
-            if (has_offset)
-                beam.Value.Offset = new Vector2d(offset.X, offset.Y);
-
-            beam.SetInputIdentity(Helpers.ComponentInputIdentity.For(this, DA));
+            var beam = new GH_Beam(line.PointAtStart, line.PointAtEnd, bp, groups.ToArray(), Helpers.ComponentInputIdentity.For(this, DA));
+            if (angle != 0) beam.Value.RotationAroundFirstAxis = angle * Math.PI / 180;
+            if (has_offset) beam.Value.Assignments.SectionCentroidOffset = new GPC.Geometry.Vector2d(offset.X, offset.Y);
             DA.SetData("Beam", beam);
         }
 

@@ -1,5 +1,5 @@
 using System;
-using Arachne.Common.Models;
+using Arachne.Common.Geometry;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -41,14 +41,14 @@ namespace Arachne.Grasshopper.Components.Sections
             if (!DA.GetData(0, ref d))
                 return;
 
-            SectionModel sectionModel = new SectionModel()
+            var sectionModel = new SectionCalculator()
             {
-                SectionType = SectionModel.SectionTypes.SolidCircle,
+                Type = SectionCalculator.Kind.SolidCircle,
                 D = d
             };
-            sectionModel.CalculateSection();
+            sectionModel.Calculate();
 
-            GH_BeamSection section = new GH_BeamSection(sectionModel);
+            GH_BeamSection section = new GH_BeamSection(sectionModel.ToSection());
             DA.SetData(0, section);
         }
 
@@ -62,4 +62,4 @@ namespace Arachne.Grasshopper.Components.Sections
         /// </summary>
         public override Guid ComponentGuid => new Guid("3562882c-f91f-445b-be98-2494b937fd07");
     }
-}
+}

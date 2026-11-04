@@ -1,3 +1,5 @@
+using Arachne.Common.Helpers;
+using Arachne.Common.Analysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,45 +50,21 @@ namespace Arachne.Grasshopper.Components.Models
             Mesh face = new Mesh();
             GH_PlateProperty pp = null;
             List<GH_Group> groups = new List<GH_Group>();
-            double angle = 0;
-            double offset = 0;
-
-            if (!DA.GetData("Mesh", ref face))
-                return;
-            if (!DA.GetData("Property", ref pp))
-                return;
+            double angle = 0, offset = 0;
+            if (!DA.GetData("Mesh", ref face)) return;
+            if (!DA.GetData("Property", ref pp)) return;
             DA.GetDataList("Groups", groups);
             DA.GetData("Angle", ref angle);
             DA.GetData("Offset", ref offset);
-
-            if (face.Vertices.Count < 3)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Mesh with less than 3 vertices");
-                return;
-            }
-            if (face.Vertices.Count > 4)
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Warning: Mesh have more than 4 vertices");
-
+            if (face.Vertices.Count < 3) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Mesh with less than 3 vertices"); return; }
+            if (face.Vertices.Count > 4) AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Warning: Mesh have more than 4 vertices");
             Polyline edges = face.GetNakedEdges()?.FirstOrDefault();
-            if (edges == null)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The mesh has no open border to define the plate");
-                return;
-            }
-
-            Point3d[] vertexes = new Point3d[edges.Count - 1];
-            for (int i = 0; i < edges.Count - 1; i++)
-                vertexes[i] = edges[i];
-
-            GH_Plate plate = new GH_Plate(vertexes, pp, groups.ToArray());
-
-            if (angle != 0)
-                plate.Value.AngleDeg = angle;
-
-            if (offset != 0)
-                plate.Value.Offset = offset;
-
-            plate.SetInputIdentity(Helpers.ComponentInputIdentity.For(this, DA));
+            if (edges == null) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The mesh has no open border to define the plate"); return; }
+            var vertexes = new Point3d[edges.Count - 1];
+            for (int i = 0; i < edges.Count - 1; i++) vertexes[i] = edges[i];
+            var plate = new GH_Plate(vertexes, pp, groups.ToArray(), Helpers.ComponentInputIdentity.For(this, DA));
+            // The angle was a preview datum of FeMM, not used by the form finding (see correzioni-P2A.md)
+            if (offset != 0) plate.Value.Assignments.Offset = offset;
             DA.SetData("Plate", plate);
         }
 

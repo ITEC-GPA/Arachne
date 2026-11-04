@@ -1,4 +1,7 @@
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using GPC.Model.Analysis;
+using GPC.Model.Attributes;
+using GPC.Model.Core;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -58,26 +61,22 @@ namespace Arachne.Grasshopper.Components.Attributes
         {
             GH_Beam beam = null;
             GH_LoadCase lc = null;
-            int type = 0;
-            double value = 0;
-            double weight = 0;
-            bool project = false;
-
-            if (!DA.GetData("Beam", ref beam))
-                return;
-            if (!DA.GetData("Type", ref type))
-                return;
-            if (!DA.GetData("LoadCase", ref lc))
-                return;
-            if (!DA.GetData("Value", ref value))
-                return;
-            if (!DA.GetData("Project", ref project))
-                return;
+            int type = 0; double value = 0, weight = 0; bool project = false;
+            if (!DA.GetData("Beam", ref beam)) return;
+            if (!DA.GetData("Type", ref type)) return;
+            if (!DA.GetData("LoadCase", ref lc)) return;
+            if (!DA.GetData("Value", ref value)) return;
+            if (!DA.GetData("Project", ref project)) return;
             DA.GetData("Weight", ref weight);
-
-            GH_Beam new_beam = new GH_Beam(beam);
-            new_beam.Value.Loads.Add(new ForceDensityModel(lc.Value, value, (ForceDensityModel.ForceDensityTypes)type, project, weight, 0, ForceDensityModel.MembraneTypes.Undefined));
-            DA.SetData(0, new_beam);
+            if (type < 0 || type > 3) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unknown force density type"); return; }
+            // FeMM types: 0 force density, 1 cable (axial force), 2 membrane, 3 curvature (chord 0)
+            var kind = type == 1 ? FormFindingGoalKind.CableForce : type == 2 ? FormFindingGoalKind.MembraneForcePerWidth : type == 3 ? FormFindingGoalKind.CurvatureRatio : FormFindingGoalKind.ForceDensity;
+            var goal = new FormFindingGoal { Kind = kind, Target = value, ProjectToPlane = project, Weight = weight };
+            if (kind == FormFindingGoalKind.CurvatureRatio) goal.ChordLengthMm = 0;
+            // Same identity, so Build Model merges it with the other copies
+            var copy = new GH_Beam(beam);
+            copy.Value.Attributes.Add(new FormFindingGoalAttribute(goal, ModelValues.CopyValue(lc.Value)));
+            DA.SetData(0, copy);
         }
 
         public override GH_Exposure Exposure => GH_Exposure.secondary;

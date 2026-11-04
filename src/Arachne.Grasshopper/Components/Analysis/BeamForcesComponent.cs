@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -50,33 +50,25 @@ namespace Arachne.Grasshopper.Components.Analysis
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             GH_Model model = null;
-            if (!DA.GetData(0, ref model) || model?.Value == null)
-                return;
-
-            List<BeamModel> beams = model.Value.Beams;
-            if (!beams.Any(b => b.Loads.Any(IsTension)))
+            if (!DA.GetData(0, ref model) || model?.Value == null) return;
+            var units = model.Scale;
+            var beams = model.Value.BeamElements.Values.ToList();
+            var preloads = beams.Select(b => FormFindingOutputProjection.Preload(b, units)).ToList();
+            if (!preloads.Any(p => p.HasValue))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "The model has no axial forces: connect the model computed by the Form Find component");
                 return;
             }
-
-            List<Line> lines = new List<Line>(beams.Count);
-            List<double> forces = new List<double>(beams.Count);
-            List<double> densities = new List<double>(beams.Count);
-            List<double> lengths = new List<double>(beams.Count);
-            List<string> ids = new List<string>(beams.Count);
-            foreach (BeamModel beam in beams)
+            var lines = new List<Line>(beams.Count); var forces = new List<double>(beams.Count); var densities = new List<double>(beams.Count);
+            var lengths = new List<double>(beams.Count); var ids = new List<string>(beams.Count);
+            for (int i = 0; i < beams.Count; i++)
             {
-                Line line = new Line(beam.PointFrom, beam.PointTo);
-                // The Form Find replaces the pre-load at every run, so a beam has one at most
-                double force = beam.Loads.Where(IsTension).Cast<BeamPreLoadModel>().Select(l => l.Value).LastOrDefault();
-                lines.Add(line);
-                forces.Add(force);
-                densities.Add(line.Length > 0 ? force / line.Length : 0);
-                lengths.Add(line.Length);
-                ids.Add(beam.BeamId);
+                var beam = beams[i];
+                var line = new Line(FormFindingOutputProjection.Position(beam.NodeI, units), FormFindingOutputProjection.Position(beam.NodeJ, units));
+                // The beams without force density, fixed axial force or fixed length carry no force
+                double force = preloads[i] ?? 0;
+                lines.Add(line); forces.Add(force); densities.Add(line.Length > 0 ? force / line.Length : 0); lengths.Add(line.Length); ids.Add(beam.Name);
             }
-
             DA.SetDataList(0, lines);
             DA.SetDataList(1, forces);
             DA.SetDataList(2, densities);
@@ -84,10 +76,6 @@ namespace Arachne.Grasshopper.Components.Analysis
             DA.SetDataList(4, ids);
         }
 
-        private static bool IsTension(LoadModel load)
-        {
-            return load is BeamPreLoadModel preLoad && preLoad.PreLoadType == BeamPreLoadModel.LoadType.Tension;
-        }
 
         public override GH_Exposure Exposure => GH_Exposure.secondary;
 
