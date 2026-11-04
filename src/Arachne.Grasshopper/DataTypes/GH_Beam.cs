@@ -38,7 +38,7 @@ namespace Arachne.Grasshopper.DataTypes
             foreach (var group in groups ?? new GH_Group[0]) if (group?.Value != null && !Value.Groups.Values.Any(g => g.Guid == group.Value.Guid)) Value.AddGroup(ModelValues.CopyValue(group.Value));
         }
         /// <summary>A detached copy of <paramref name="beam"/> (same identity) that shares its property (see <see cref="GpcGoo{T}"/>).</summary>
-        public GH_Beam(BeamElement beam) { Value = beam == null ? null : ModelValues.CopyValue(beam, ModelCopyOptions.ShareProperties); }
+        public GH_Beam(BeamElement beam) { Value = beam == null ? null : ModelValues.CopyValue(beam, Arachne.Common.Analysis.SharedCopies.Options); }
         public GH_Beam(GH_Beam beam) : this(beam?.Value) { }
 
         public BoundingBox ClippingBox => Boundingbox;
@@ -77,7 +77,7 @@ namespace Arachne.Grasshopper.DataTypes
 
         public override bool CastFrom(object source)
         {
-            if (source is BeamElement beam) { Value = ModelValues.CopyValue(beam, ModelCopyOptions.ShareProperties); return true; }
+            if (source is BeamElement beam) { Value = ModelValues.CopyValue(beam, Arachne.Common.Analysis.SharedCopies.Options); return true; }
             return false;
         }
 

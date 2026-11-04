@@ -54,7 +54,7 @@ namespace Arachne.Common.Analysis
             var input = new Input { Units = u, SolverType = solverType, CreateMesh = options.CreateMesh };
             // The analysis graph shares the properties of the Build Model output (immutable: nothing below or in the export changes
             // them, the generated plates get their own property), as the Grasshopper copies do.
-            var model = ModelValues.Copy(source, ModelCopyOptions.ShareProperties);
+            var model = ModelValues.Copy(source, Arachne.Common.Analysis.SharedCopies.Options);
             input.Model = model;
             // The pressure forces of a previous form finding are results, not loads.
             bool previousPressure = model.NodesElements.Values.Any(n => n.Results.SelectMany(r => r.Results).OfType<NodeResultForces>().Any(f => f.Kind == NodalForceKind.AppliedPressure));

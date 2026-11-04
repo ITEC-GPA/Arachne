@@ -148,7 +148,8 @@ internal static class F6ContractsChecks
             var chain = FormFindingChecks.Start(canvas); var grid = FormFindingChecks.SaddleGrid(2, 4000, 1000);
             var beams = FormFindingChecks.Beams(chain, grid.lines);
             var fd = FormFindingChecks.ForceDensity(chain, beams, 1);
-            var supports = FormFindingChecks.Supports(chain, grid.border);
+            // restraints along the axes of an inclined plane (all three translations: the same form, coordinate systems off the global axes)
+            var supports = FormFindingChecks.Supports(chain, grid.border, true, true, true, new R.Plane(new R.Point3d(10, 20, 30), new R.Vector3d(1, 0, 0.25), new R.Vector3d(0, 1, 0)));
             // two plate properties made from one membrane material, on explicit plates
             var membrane = canvas.Add(new Arachne.Grasshopper.Components.Materials.MaterialMembraneComponent());
             Canvas.Set(membrane, 0, new GH_String("PTFE")); Canvas.Set(membrane, 1, new GH_Number(1500)); Canvas.Set(membrane, 2, new GH_Number(5000)); Canvas.Set(membrane, 3, new GH_Number(4500));
@@ -180,11 +181,28 @@ internal static class F6ContractsChecks
             var fabric = Canvas.Single<GH_Material>(membrane).Value;
             var a = Canvas.Single<GH_PlateProperty>(propertyA).Value; var b = Canvas.Single<GH_PlateProperty>(propertyB).Value;
             string Print(object value) => ModelValues.Fingerprint(new[] { value });
+            // A coordinate system bit for bit: origin, axes, name, and what its cached components give (ToGlobal/ToLocal of a point)
+            string Bits(double v) => BitConverter.DoubleToInt64Bits(v).ToString("X16");
+            string Xyz(double x, double y, double z) => Bits(x) + Bits(y) + Bits(z);
+            string Frame(G.CoordinateSystem cs)
+            {
+                var g = cs.ToGlobal(new G.Point3d(1.5, -2.5, 3.25)); var l = cs.ToLocal(new G.Point3d(1.5, -2.5, 3.25));
+                return cs.Name + "|" + Xyz(cs.Origin.X, cs.Origin.Y, cs.Origin.Z) + Xyz(cs.V1.X, cs.V1.Y, cs.V1.Z) + Xyz(cs.V2.X, cs.V2.Y, cs.V2.Z) + Xyz(cs.V3.X, cs.V3.Y, cs.V3.Z)
+                    + Xyz(g.X, g.Y, g.Z) + Xyz(l.X, l.Y, l.Z);
+            }
+            IEnumerable<G.CoordinateSystem> Frames(Element e) => new[] { e.CoordinateSystem }
+                .Concat(e is NodeElement n ? n.Assignments.Restrains.Select(r => r.Restrain?.CoordinateSystem) : Enumerable.Empty<G.CoordinateSystem>())
+                .Concat(e.Loads.Values.Select(x => x.CoordinateSystem)).Where(cs => cs != null);
+            Element[] Elements() => Canvas.Out(beams).Concat(Canvas.Out(fd)).Select(g => (Element)((GH_Beam)g).Value)
+                .Concat(Canvas.Out(supports).Select(g => (Element)((GH_Node)g).Value)).Concat(plates.Select(p => (Element)Canvas.Single<GH_Plate>(p).Value)).ToArray();
             string[] Upstream() => new object[] { property, section, steel, fabric, a, b }.Select(Print)
                 .Concat(Canvas.Out(beams).Concat(Canvas.Out(fd)).Select(g => Print(((GH_Beam)g).Value)))
                 .Concat(plates.Select(p => Print(Canvas.Single<GH_Plate>(p).Value)))
+                .Concat(Elements().SelectMany(Frames).Select(Frame))
                 .Concat(new[] { Canvas.Single<GH_Model>(build).Value.AnalysisFingerprint(), Canvas.Single<GH_Model>(buildPlates).Value.AnalysisFingerprint() }).ToArray();
             var before = Upstream();
+            var restrained = Canvas.Out(supports).Cast<GH_Node>().ToArray();
+            Check(restrained.Length > 0 && restrained.All(x => x.Value.Assignments.Restrains.Single().Restrain.CoordinateSystem.V1.Z != 0), "Restraints in the axes of the plane");
 
             // Shared instances
             var fdBeams = Canvas.Out(fd).Cast<GH_Beam>().ToArray();
@@ -197,6 +215,14 @@ internal static class F6ContractsChecks
             Check(!ReferenceEquals(scaled, property) && ReferenceEquals(scaled.Material, steel) && !ReferenceEquals(scaled.Section, section) && knm.BeamElements.Values.All(x => ReferenceEquals(x.BeamProperty, scaled)),
                 "Build Model (kN-m) cites a new, scaled property sharing the material");
             Check(Canvas.Out(decompose, 1).Cast<GH_Beam>().All(x => ReferenceEquals(x.Value.BeamProperty, property)), "Decompose shares the property");
+            // Shared coordinate systems: the copies of the beams (Force Density), Decompose and the restraints of its nodes
+            var beamOutputs = Canvas.Out(beams).Cast<GH_Beam>().ToDictionary(x => x.Guid);
+            Check(fdBeams.All(x => ReferenceEquals(x.Value.CoordinateSystem, beamOutputs[x.Guid].Value.CoordinateSystem)), "Force Density shares the coordinate systems of the beams");
+            var modelBeams = model.BeamElements.Values.ToDictionary(x => x.Guid); var modelNodes = model.NodesElements.Values.ToDictionary(x => x.Guid);
+            Check(Canvas.Out(decompose, 1).Cast<GH_Beam>().All(x => ReferenceEquals(x.Value.CoordinateSystem, modelBeams[x.Guid].CoordinateSystem))
+                && Canvas.Out(decompose, 0).Cast<GH_Node>().Where(x => x.Value.Assignments.Restrains.Count != 0)
+                    .All(x => ReferenceEquals(x.Value.Assignments.Restrains[0].Restrain.CoordinateSystem, modelNodes[x.Guid].Assignments.Restrains[0].Restrain.CoordinateSystem)),
+                "Decompose shares the coordinate systems of the elements and of the restraints");
             var output = Canvas.Single<GH_Model>(run).Value;
             Check(output.BeamElements.Values.All(x => ReferenceEquals(x.BeamProperty, property)) && output.AreaElements.Count > 0 && output.AreaElements.Values.All(x => ReferenceEquals(x.PlateProperty, a)),
                 "The form-found model shares the beam property and gives the plate property of the options to the generated plates");
@@ -210,8 +236,14 @@ internal static class F6ContractsChecks
             var copy = (GH_Model)Canvas.Single<GH_Model>(build).Duplicate();
             Check(!ReferenceEquals(copy.Value, model) && copy.Value.AllElements.Zip(model.AllElements, (x, y) => !ReferenceEquals(x, y) && x.Guid == y.Guid).All(z => z)
                 && ReferenceEquals(copy.Value.BeamProperties["Cable"], property) && copy.Value.BeamElements.Values.All(x => ReferenceEquals(x.BeamProperty, property)), "Duplicate: a real copy of the model sharing its properties");
+            Check(copy.Value.AllElements.Zip(model.AllElements, (x, y) => ReferenceEquals(x.CoordinateSystem, y.CoordinateSystem)).All(z => z), "Duplicate shares the coordinate systems");
             foreach (var node in copy.Value.NodesElements.Values) node.Position = new G.Point3d(node.Position.X, node.Position.Y, node.Position.Z + 1);
             foreach (var beam in copy.Value.BeamElements.Values) beam.Attributes.Clear();
+            // a changed coordinate system is a new one: the beam axes turned, the restraints in other axes
+            foreach (var beam in copy.Value.BeamElements.Values) beam.CoordinateSystem = new G.CoordinateSystem(beam.StartPoint, new G.Vector3d(0, 0, 1), new G.Vector3d(1, 0, 0));
+            foreach (var node in copy.Value.NodesElements.Values)
+                foreach (var r in node.Assignments.Restrains)
+                    r.Restrain = new GPC.Model.Restraints.NodeRestrain(node, new G.CoordinateSystem(node.Position, new G.Vector3d(0, 1, 0), new G.Vector3d(0, 0, 1)), r.Restrain.Restrains.ToList());
             var stiffer = ModelValues.CopyValue(property); stiffer.ShearArea1 = 1;
             copy.Value.BeamElements.Values.First().BeamProperty = stiffer;
             var beamCopy = (GH_Beam)fdBeams[0].Duplicate();

@@ -151,7 +151,7 @@ namespace Arachne.Common.Analysis
         /// one of the draft (immutable, shared: user decision of 4/11/2026); the scaling to N-mm replaces it with a new one.</summary>
         private static T Detached<T>(T draft) where T : Element
         {
-            var copy = ModelValues.CopyValue(draft, ModelCopyOptions.ShareProperties);
+            var copy = ModelValues.CopyValue(draft, Arachne.Common.Analysis.SharedCopies.Options);
             if (copy.Results.Count != 0) copy.Results.Clear();
             return copy;
         }

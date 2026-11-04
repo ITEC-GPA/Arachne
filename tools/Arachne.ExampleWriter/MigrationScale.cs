@@ -137,7 +137,8 @@ internal static class MigrationScale
                 // the compaction at the end of the projection alone: the results decoded again, then encoded and sealed again
                 foreach (var element in view.Model.AllElements) { var count = element.Results.Count; }
                 Measure("project-outputs: result compaction alone", () => bytes = view.Model.CompactResults());
-                Measure("copy-model (GH Duplicate, shared properties)", () => ModelValues.Copy(model, ModelCopyOptions.ShareProperties));
+                Measure("copy-model (GH Duplicate, shared properties and coordinate systems)", () => ModelValues.Copy(model, SharedCopies.Options));
+                Measure("copy-model (shared properties only)", () => ModelValues.Copy(model, ModelCopyOptions.ShareProperties));
                 Measure("copy-model (complete)", () => ModelValues.Copy(model));
                 byte[] archive = null, archived = null;
                 byte[] rawModel = null;

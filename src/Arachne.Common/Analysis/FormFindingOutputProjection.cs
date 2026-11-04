@@ -82,7 +82,7 @@ namespace Arachne.Common.Analysis
             var units = FormFindingUnits.From(documentUnits); double length = units.LengthToMm;
             // The output shares the properties of the input model (immutable, user decision of 4/11/2026): only positions, results and
             // the generated plates change below.
-            var output = ModelValues.Copy(source, ModelCopyOptions.ShareProperties);
+            var output = ModelValues.Copy(source, Arachne.Common.Analysis.SharedCopies.Options);
             foreach (var e in output.AllElements) if (e.Results.Count != 0) e.Results.Clear();
             output.Datasets.Remove("form-finding");
             output.Datasets.Add("form-finding", ModelValues.CopyValue(dataset));

@@ -33,7 +33,7 @@ namespace Arachne.Grasshopper.DataTypes
             Value.ConnectNodes(points.Select((p, k) => new NodeElement(Arachne.Common.Analysis.InputIdentity.Of(identity, "vertex:" + k), new GPC.Geometry.Point3d(p.X, p.Y, p.Z))).ToArray());
             foreach (var group in groups ?? new GH_Group[0]) if (group?.Value != null && !Value.Groups.Values.Any(g => g.Guid == group.Value.Guid)) Value.AddGroup(ModelValues.CopyValue(group.Value));
         }
-        public GH_Plate(AreaElement plate) { Value = plate == null ? null : ModelValues.CopyValue(plate, ModelCopyOptions.ShareProperties); }
+        public GH_Plate(AreaElement plate) { Value = plate == null ? null : ModelValues.CopyValue(plate, Arachne.Common.Analysis.SharedCopies.Options); }
         public GH_Plate(GH_Plate plate) : this(plate?.Value) { }
 
         public BoundingBox ClippingBox => Boundingbox;
@@ -72,7 +72,7 @@ namespace Arachne.Grasshopper.DataTypes
 
         public override bool CastFrom(object source)
         {
-            if (source is AreaElement area) { Value = ModelValues.CopyValue(area, ModelCopyOptions.ShareProperties); return true; }
+            if (source is AreaElement area) { Value = ModelValues.CopyValue(area, Arachne.Common.Analysis.SharedCopies.Options); return true; }
             return false;
         }
 

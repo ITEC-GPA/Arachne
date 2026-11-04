@@ -88,7 +88,7 @@ namespace Arachne.Common.Analysis
         /// have (by value) are added, in their order. <paramref name="other"/> is not changed.</summary>
         public static void Merge(Element target, Element other)
         {
-            other = ModelValues.CopyValue(other, ModelCopyOptions.ShareProperties);
+            other = ModelValues.CopyValue(other, Arachne.Common.Analysis.SharedCopies.Options);
             foreach (var group in other.Groups.Values) if (!target.Groups.Values.Any(g => g.Guid == group.Guid)) target.AddGroup(group);
             var loads = new HashSet<string>(target.Loads.Values.Select(Key));
             foreach (var load in other.Loads.Values.ToArray())
@@ -229,7 +229,7 @@ namespace Arachne.Common.Analysis
                 if (!(property is ElasticBeamProperty elastic)) throw new NotSupportedException("UnsupportedArachneBeamProperty: " + property.GetType().Name);
                 // Copy on modify: a new property (same identity, the one of every element that cites the original in these drafts)
                 // with a new section; the material, unchanged, is shared.
-                var scaled = ModelValues.CopyValue(elastic, ModelCopyOptions.ShareProperties);
+                var scaled = ModelValues.CopyValue(elastic, Arachne.Common.Analysis.SharedCopies.Options);
                 scaled.Section = Section(elastic.Section as GSection);
                 beams.Add(property.Guid, scaled); return scaled;
             }
@@ -237,7 +237,7 @@ namespace Arachne.Common.Analysis
             {
                 if (Identity || property == null) return property;
                 if (plates.TryGetValue(property.Guid, out var done)) return done;
-                PlateProperty scaled = ModelValues.CopyValue(property, ModelCopyOptions.ShareProperties);
+                PlateProperty scaled = ModelValues.CopyValue(property, Arachne.Common.Analysis.SharedCopies.Options);
                 if (scaled is ElasticPlateProperty elastic) { elastic.BendingThickness *= L; elastic.MembraneThickness *= L; }
                 else if (!(scaled is MembranePlateProperty)) throw new NotSupportedException("UnsupportedArachnePlateProperty: " + property.GetType().Name);
                 plates.Add(property.Guid, scaled); return scaled;

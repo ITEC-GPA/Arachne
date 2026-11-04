@@ -29,7 +29,7 @@ namespace Arachne.Grasshopper.DataTypes
         public GH_Node() { }
         public GH_Node(Point3d point, Guid identity) { Value = new NodeElement(identity, new GPC.Geometry.Point3d(point.X, point.Y, point.Z)); }
         /// <summary>A detached copy of <paramref name="node"/> (same identity).</summary>
-        public GH_Node(NodeElement node) { Value = node == null ? null : ModelValues.CopyValue(node, ModelCopyOptions.ShareProperties); }
+        public GH_Node(NodeElement node) { Value = node == null ? null : ModelValues.CopyValue(node, Arachne.Common.Analysis.SharedCopies.Options); }
         public GH_Node(GH_Node node) : this(node?.Value) { }
 
         public BoundingBox ClippingBox => Boundingbox;
@@ -64,7 +64,7 @@ namespace Arachne.Grasshopper.DataTypes
 
         public override bool CastFrom(object source)
         {
-            if (source is NodeElement node) { Value = ModelValues.CopyValue(node, ModelCopyOptions.ShareProperties); return true; }
+            if (source is NodeElement node) { Value = ModelValues.CopyValue(node, Arachne.Common.Analysis.SharedCopies.Options); return true; }
             return false;
         }
 

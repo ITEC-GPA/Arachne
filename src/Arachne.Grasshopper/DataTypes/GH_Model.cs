@@ -28,7 +28,7 @@ namespace Arachne.Grasshopper.DataTypes
         /// <summary>A real copy of the model (GPC model copy: elements, nodes, cases, groups, results) that shares the property, material
         /// and section instances of the source (user decision of 4/11/2026, see <see cref="GpcGoo{T}"/>): its elements cite the properties
         /// registered in the copy, which are those of the source.</summary>
-        public override IGH_Goo Duplicate() => new GH_Model(Value == null ? null : ModelValues.Copy(Value, ModelCopyOptions.ShareProperties), Units);
+        public override IGH_Goo Duplicate() => new GH_Model(Value == null ? null : ModelValues.Copy(Value, Arachne.Common.Analysis.SharedCopies.Options), Units);
 
         public override bool Write(GH_IWriter writer)
         {
