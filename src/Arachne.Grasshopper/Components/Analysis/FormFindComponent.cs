@@ -21,8 +21,9 @@ namespace Arachne.Grasshopper.Components.Analysis
     public class FormFindComponent : GH_Component
     {
         private readonly AnalysisDocumentState _analysisState = new AnalysisDocumentState();
-        private List<GPC.Model.Persistence.ExternalModelReference> _analysisReferences => _analysisState.References;
-        public IReadOnlyList<GPC.Model.Persistence.ExternalModelReference> AnalysisReferences => _analysisReferences.AsReadOnly();
+
+        /// <summary>The references of the runs in the archive (waits for their preparation).</summary>
+        public IReadOnlyList<GPC.Model.Persistence.ExternalModelReference> AnalysisReferences => _analysisState.References;
         public GPC.Model.Persistence.ExternalModelRun ReadAnalysis(int iteration) => _analysisState.Open(iteration);
         private bool _run;
         // Last result of every data tree iteration, kept on the outputs until the next run
@@ -155,7 +156,7 @@ namespace Arachne.Grasshopper.Components.Analysis
                 }
             }
 
-            if (!execute && DA.Iteration < _analysisReferences.Count && _analysisReferences[DA.Iteration] != null)
+            if (!execute && _analysisState.Has(DA.Iteration))
                 RestoreAnalysis(DA.Iteration, model, solverType, options, plane);
 
             if (DA.Iteration < _models.Count && _models[DA.Iteration] != null)
@@ -167,21 +168,20 @@ namespace Arachne.Grasshopper.Components.Analysis
 
         private void RestoreAnalysis(int iteration, GH_Model model, int solverType, FormFindingOptions options, Plane plane)
         {
-            var reference = _analysisReferences[iteration];
+            var run = _analysisState.Keep(iteration);
             try
             {
                 var current = FormFindingInputBuilder.Build(model.Value, model.Units, solverType, options, plane);
-                TensileModelAdapter.Export(current.Model, current.Units, current);
-                if (!reference.IsCurrent(current.Model))
+                var exported = TensileModelAdapter.Export(current.Model, current.Units, current);
+                if (!_analysisState.IsCurrent(iteration, current.Model.Guid, exported.Map.AnalysisFingerprint))
                 {
                     if (iteration < _models.Count) { _models[iteration] = null; _meshes[iteration] = null; }
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Saved form-finding results belong to different inputs. Run the analysis again.");
                     Message = "Inputs changed"; return;
                 }
-                var saved = _analysisState.Open(iteration);
-                var view = FormFindingOutputProjection.Project(model.Value, saved.Model, options, model.Units);
+                var view = FormFindingOutputProjection.Project(model.Value, _analysisState.Analysis(iteration), options, model.Units);
                 SetResult(iteration, new GH_Model(view.Model, model.Units), view.Mesh == null ? null : new GH_Mesh(view.Mesh));
-                _analysisReferences[iteration] = reference;
+                _analysisState.Put(iteration, run);
                 Message = "Restored";
             }
             catch (Exception error)
@@ -243,8 +243,7 @@ namespace Arachne.Grasshopper.Components.Analysis
                 _models.Add(null);
                 _meshes.Add(null);
             }
-            while (_analysisReferences.Count <= iteration) _analysisReferences.Add(null);
-            _analysisReferences[iteration] = null;
+            _analysisState.Clear(iteration);
             _models[iteration] = model;
             _meshes[iteration] = mesh;
         }

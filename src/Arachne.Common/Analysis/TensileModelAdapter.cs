@@ -391,15 +391,20 @@ namespace Arachne.Common.Analysis
         /// <summary>The results of the run on the graph (form-finding dataset, semantics FormFinding): final coordinates (as displacements
         /// from the input geometry, with the exact solver coordinates), the pre-loads of the beams with an objective, in its case, the
         /// pressure forces in their case and, when converged, the support reactions.</summary>
+        /// <remarks>The dataset is bound to the fingerprint of the exported graph (the solver map of <paramref name="exported"/>): the
+        /// model must be the one exported, unchanged. No analysis snapshot is captured: a form-found shape is a new design input, not an
+        /// analysis for verification, and the snapshot (a second image of the whole input in the model) cost 59 of the 65 s of this step
+        /// at 10,000 nodes. The results stay decoded: the projection reads them and the sidecar encodes them once.</remarks>
         public static void Attach(Model model, Exported exported, Outcome outcome, FormFindingInputBuilder.Input input)
         {
-            if (model.AnalysisFingerprint() != exported.Map.AnalysisFingerprint) throw new InvalidOperationException("StaleFormFindingResult");
-            model.CaptureAnalysis();
+            if (model == null || exported?.Map == null || outcome == null || input == null) throw new ArgumentNullException();
+            if (model.Guid != exported.Map.ModelGuid || model.Datasets.ContainsKey("form-finding") || model.Analysis != null) throw new InvalidOperationException("StaleFormFindingResult");
+            string fingerprint = exported.Map.AnalysisFingerprint;
             var units = exported.Units; double length = units.LengthToMm, force = units.ForceToN;
             model.Datasets.Add("form-finding", new AnalysisDataset { Id = "form-finding", Program = "TensileLib", SolverVersion = "2.5.0.1", AnalysisId = "FormFinding/" + outcome.Status,
-                InputFingerprint = model.Analysis.InputFingerprint, AnalysisSnapshotId = model.Analysis.Id, NormalizedUnits = "N,mm,s,tonne", Semantics = AnalysisSemantics.FormFinding });
+                InputFingerprint = fingerprint, NormalizedUnits = "N,mm,s,tonne", Semantics = AnalysisSemantics.FormFinding });
             ComponentAvailability[] Translations() => new[] { ComponentAvailability.Available, ComponentAvailability.Available, ComponentAvailability.Available, ComponentAvailability.NotApplicable, ComponentAvailability.NotApplicable, ComponentAvailability.NotApplicable };
-            ResultState State(OriginalResultData original, ComponentAvailability[] components) => new ResultState { DatasetId = "form-finding", InputFingerprint = model.Analysis.InputFingerprint,
+            ResultState State(OriginalResultData original, ComponentAvailability[] components) => new ResultState { DatasetId = "form-finding", InputFingerprint = fingerprint,
                 Step = "equilibrium", Semantics = AnalysisSemantics.FormFinding, SourceRecord = "TensileLib form-finding: " + outcome.Status, Components = components, Original = original };
             var native = exported.Solver;
             var reactions = outcome.Converged ? Reactions(native) : null;
@@ -438,7 +443,6 @@ namespace Arachne.Common.Analysis
                 { State = State(Original(units, "N", b.AxialForce), components) };
                 beam.Results.Add(new BeamResult(new[] { Station(0), Station(1) }));
             }
-            model.CompactResults();
         }
 
         private static CoordinateSystem Axes(Vector3d axis, Point3d origin)

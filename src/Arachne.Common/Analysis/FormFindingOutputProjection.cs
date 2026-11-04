@@ -75,9 +75,9 @@ namespace Arachne.Common.Analysis
         public static Output Project(Model source, Model analysis, FormFindingOptions options, ModelUnits documentUnits)
         {
             if (source == null || analysis == null || options == null) throw new ArgumentNullException();
-            if (analysis.Analysis == null || analysis.Analysis.InputFingerprint != analysis.AnalysisFingerprint())
-                throw new InvalidOperationException("StaleFormFindingAnalysis");
-            if (!analysis.Datasets.TryGetValue("form-finding", out var dataset) || dataset.InputFingerprint != analysis.Analysis.InputFingerprint)
+            // The binding of the dataset to the graph is checked where the graph comes from: Attach takes the fingerprint of the
+            // exported graph, the sidecar compares it with the graph it reads (ExternalModelArchive.Open). It is not recomputed here.
+            if (!analysis.Datasets.TryGetValue("form-finding", out var dataset) || string.IsNullOrEmpty(dataset.InputFingerprint) || dataset.Semantics != AnalysisSemantics.FormFinding)
                 throw new InvalidOperationException("MissingFormFindingDataset");
             var units = FormFindingUnits.From(documentUnits); double length = units.LengthToMm;
             var output = ModelValues.Copy(source);

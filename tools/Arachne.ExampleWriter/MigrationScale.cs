@@ -75,6 +75,18 @@ internal static class MigrationScale
 
     internal static int Run()
     {
+        // MIGRATION_SCALE_DUMP: the GPC archive (XML) of a net of 3 x 3 nodes, before and after the form finding, to read what it holds
+        string dump = Environment.GetEnvironmentVariable("MIGRATION_SCALE_DUMP");
+        if (!string.IsNullOrEmpty(dump))
+        {
+            var small = Grid(3, out _, out _, out _);
+            var smallInput = FormFindingInputBuilder.Build(small, ModelUnits.Nmm, 0, new FormFindingOptions(), R.Plane.WorldXY);
+            var smallExport = TensileModelAdapter.Export(smallInput.Model, smallInput.Units, smallInput);
+            TensileModelAdapter.Attach(smallInput.Model, smallExport, TensileModelAdapter.Solve(smallExport.Solver, smallInput.Model.FormFinding), smallInput);
+            using (var file = File.Create(dump + ".model.xml")) GPC.Model.Persistence.ModelArchive.SaveDocument(small, file);
+            using (var file = File.Create(dump + ".analysis.xml")) GPC.Model.Persistence.ModelArchive.SaveDocument(smallInput.Model, file);
+            return 0;
+        }
         string path = Environment.GetEnvironmentVariable("MIGRATION_SCALE_OUTPUT");
         if (string.IsNullOrEmpty(path)) throw new ArgumentException("Set MIGRATION_SCALE_OUTPUT to a new CSV file.");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)));
@@ -82,7 +94,7 @@ internal static class MigrationScale
         {
             output.WriteLine("nodes,bars,triangles,operation,seconds,bytes");
             Grid(5, out _, out _, out _);
-            foreach (int k in new[] { 32, 100 })
+            foreach (int k in (Environment.GetEnvironmentVariable("MIGRATION_SCALE_SIZES") ?? "32,100").Split(',').Select(int.Parse))
             {
                 int n = 0, b = 0, t = 0; long bytes = 0;
                 void Measure(string name, Action action)
@@ -103,10 +115,32 @@ internal static class MigrationScale
                 Measure("export (A1)", () => exported = TensileModelAdapter.Export(input.Model, input.Units, input));
                 Measure("solve-linear", () => outcome = TensileModelAdapter.Solve(exported.Solver, input.Model.FormFinding));
                 Measure("attach-results", () => TensileModelAdapter.Attach(input.Model, exported, outcome, input));
+                // The sidecar of the Form Find (AnalysisDocumentState): prepare at the end of the run, save with the document, open
+                var sidecar = new GPC.Model.Persistence.ExternalModelArchive(); GPC.Model.Persistence.ExternalModelReference reference = null;
+                string file = Path.Combine(Path.GetTempPath(), "arachne-scale-" + Guid.NewGuid().ToString("N") + GPC.Model.Persistence.ExternalModelArchive.Extension);
+                try
+                {
+                    Measure("sidecar: prepare", () => reference = sidecar.Prepare(input.Model, exported.Map));
+                    Measure("sidecar: save", () => { sidecar.SaveSnapshot(file, new[] { reference }); bytes = new FileInfo(file).Length; });
+                    Measure("sidecar: open", () => sidecar.Open(reference));
+                }
+                catch (Exception e) { Console.WriteLine("SCALE sidecar failed: " + e.GetBaseException().Message); output.WriteLine(string.Join(",", n, b, t, "sidecar failed: " + e.GetBaseException().Message.Replace(',', ';'), 0, 0)); }
+                finally { try { File.Delete(file); } catch (IOException) { } }
                 FormFindingOutputProjection.Output view = null;
                 Measure("project-outputs", () => view = FormFindingOutputProjection.Project(model, input.Model, new FormFindingOptions(), ModelUnits.Nmm));
                 Measure("copy-model (GH Duplicate)", () => ModelValues.Copy(model));
                 byte[] archive = null, archived = null;
+                byte[] rawModel = null;
+                Measure("archive-model: GPC ModelArchive alone (not deflated)", () => { using (var raw = new MemoryStream()) { GPC.Model.Persistence.ModelArchive.Save(model, raw); rawModel = raw.ToArray(); bytes = raw.Length; } });
+                foreach (var level in new[] { System.IO.Compression.CompressionLevel.Fastest, System.IO.Compression.CompressionLevel.Optimal })
+                    Measure("archive-model: deflate " + level + " of the GPC bytes", () =>
+                    {
+                        using (var packed = new MemoryStream())
+                        {
+                            using (var deflate = new System.IO.Compression.DeflateStream(packed, level, true)) deflate.Write(rawModel, 0, rawModel.Length);
+                            bytes = packed.Length;
+                        }
+                    });
                 Measure("archive-model", () => { archive = ContractArchive.Model(model); bytes = archive.Length; });
                 Measure("read-model", () => ContractArchive.ReadModel(archive));
                 Measure("archive-form-found-model", () => { archived = ContractArchive.Model(view.Model); bytes = archived.Length; });

@@ -78,7 +78,8 @@ namespace Arachne.Common.Helpers
             using (var output = new MemoryStream())
             {
                 output.Write(Header, 0, Header.Length); output.WriteByte(Version); output.WriteByte(kind);
-                using (var deflate = new DeflateStream(output, CompressionLevel.Fastest, true)) write(deflate);
+                // Optimal: the GPC XML of a 1,000-node model is 54 MB, 5.4 MB with Fastest and 3.5 MB with Optimal for 0.15 s more
+                using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, true)) write(deflate);
                 if (output.Length > MaximumBytes) throw new SerializationException("ArachneArchiveTooLarge");
                 return output.ToArray();
             }
