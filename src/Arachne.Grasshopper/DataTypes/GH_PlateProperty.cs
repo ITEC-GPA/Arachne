@@ -1,3 +1,4 @@
+using Arachne.Common.Helpers;
 using GPC.Model.ElementProperties;
 using Grasshopper.Kernel.Types;
 
@@ -13,6 +14,8 @@ namespace Arachne.Grasshopper.DataTypes
         public GH_PlateProperty(PlateProperty property) : base(property) { }
         public override bool IsValid => Value is ElasticPlateProperty || Value is MembranePlateProperty;
         public override IGH_Goo Duplicate() => new GH_PlateProperty(Copy(Value));
+        protected override byte[] Archive(PlateProperty value) => ContractArchive.Member(value);
+        protected override PlateProperty Restore(byte[] data) => ContractArchive.ReadMember<PlateProperty>(data);
         public override bool CastFrom(object source)
         {
             if (source is ElasticPlateProperty || source is MembranePlateProperty) { Value = Copy((PlateProperty)source); return true; }

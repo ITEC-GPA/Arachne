@@ -20,7 +20,7 @@ namespace Arachne.Common.Helpers
     {
         private static readonly byte[] Header = Encoding.ASCII.GetBytes("ARCGPC3");
         private const byte Version = 1;
-        private const byte KindValue = 1, KindModel = 2;
+        private const byte KindValue = 1, KindModel = 2, KindMaterial = 3, KindElasticPlate = 4, KindMembranePlate = 5;
         public const int MaximumBytes = 256 * 1024 * 1024;
 
         public const string LegacyMessage = "These Arachne data were saved by a version before the GPC objects (0.3 or an F6 development build) and are no longer read. " +
@@ -42,6 +42,36 @@ namespace Arachne.Common.Helpers
         }
 
         public static GModel ReadModel(byte[] data) => Unpack(data, KindModel, ModelArchive.Load);
+
+        /// <summary>A value that the GH data carry by a base type (Material: isotropic material or membrane; Plate Property: elastic or
+        /// membrane). The GPC archive needs a registered root type: the concrete type, from this closed list, is the kind byte of the
+        /// archive and <see cref="ReadMember{T}"/> selects the root type from it.</summary>
+        public static byte[] Member(GPC.Model.ModelObject value)
+        {
+            switch (value)
+            {
+                case null: throw new ArgumentNullException(nameof(value));
+                case GPC.Model.Materials.Material material: return Pack(KindMaterial, stream => ModelValueArchive.Save(material, stream));
+                case GPC.Model.ElementProperties.ElasticPlateProperty plate: return Pack(KindElasticPlate, stream => ModelValueArchive.Save(plate, stream));
+                case GPC.Model.ElementProperties.MembranePlateProperty membrane: return Pack(KindMembranePlate, stream => ModelValueArchive.Save(membrane, stream));
+                default: throw new SerializationException("UnsupportedArachneValue: " + value.GetType().Name);
+            }
+        }
+
+        public static T ReadMember<T>(byte[] data) where T : class
+        {
+            byte kind = data != null && data.Length >= Header.Length + 2 && data.Take(Header.Length).SequenceEqual(Header) ? data[Header.Length + 1] : KindValue;
+            object value;
+            switch (kind)
+            {
+                case KindMaterial: value = Unpack(data, kind, stream => ModelValueArchive.Load<GPC.Model.Materials.Material>(stream)); break;
+                case KindElasticPlate: value = Unpack(data, kind, stream => ModelValueArchive.Load<GPC.Model.ElementProperties.ElasticPlateProperty>(stream)); break;
+                case KindMembranePlate: value = Unpack(data, kind, stream => ModelValueArchive.Load<GPC.Model.ElementProperties.MembranePlateProperty>(stream)); break;
+                // not an archive or an unknown kind: the messages of a plain value (legacy payload, unsupported archive, kind mismatch)
+                default: value = Unpack(data, KindMaterial, stream => ModelValueArchive.Load<GPC.Model.Materials.Material>(stream)); break;
+            }
+            return value as T ?? throw new SerializationException("ArachneArchiveKindMismatch");
+        }
 
         private static byte[] Pack(byte kind, Action<Stream> write)
         {

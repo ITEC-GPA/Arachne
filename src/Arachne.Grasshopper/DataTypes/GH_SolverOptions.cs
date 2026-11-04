@@ -29,7 +29,7 @@ namespace Arachne.Grasshopper.DataTypes
             writer.SetInt32("LoadCaseCount", Value.LoadCases.Count);
             for (int i = 0; i < Value.LoadCases.Count; i++) writer.SetByteArray("LoadCase", i, ContractArchive.Value(Value.LoadCases[i]));
             writer.SetBoolean("CreateMesh", Value.CreateMesh);
-            if (Value.PlateProperty != null) writer.SetByteArray("PlateProperty", ContractArchive.Value(Value.PlateProperty));
+            if (Value.PlateProperty != null) writer.SetByteArray("PlateProperty", ContractArchive.Member(Value.PlateProperty));
             return true;
         }
         public override bool Read(GH_IReader reader)
@@ -48,7 +48,7 @@ namespace Arachne.Grasshopper.DataTypes
                 if (count < 0 || count > 100000) throw new System.Runtime.Serialization.SerializationException("InvalidLoadCaseCount");
                 var cases = new List<LoadCaseBase>();
                 for (int i = 0; i < count; i++) cases.Add(ContractArchive.ReadValue<LoadCaseBase>(reader.GetByteArray("LoadCase", i)));
-                var property = reader.ItemExists("PlateProperty") ? ContractArchive.ReadValue<PlateProperty>(reader.GetByteArray("PlateProperty")) : null;
+                var property = reader.ItemExists("PlateProperty") ? ContractArchive.ReadMember<PlateProperty>(reader.GetByteArray("PlateProperty")) : null;
                 Value = new FormFindingOptions(settings, pressure, cases, reader.GetBoolean("CreateMesh"), property);
                 return true;
             }

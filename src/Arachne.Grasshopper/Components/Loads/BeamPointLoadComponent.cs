@@ -4,7 +4,6 @@ using GH_IO.Serialization;
 using Rhino.Geometry;
 using Arachne.Common.Analysis;
 using Arachne.Grasshopper.Helpers;
-using Arachne.Grasshopper.Helpers;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Components.Parameters;
 

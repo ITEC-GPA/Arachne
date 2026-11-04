@@ -1,3 +1,4 @@
+using Arachne.Common.Helpers;
 using GPC.Model;
 using GPC.Model.ElementProperties;
 using GPC.Model.Materials;
@@ -17,6 +18,8 @@ namespace Arachne.Grasshopper.DataTypes
         public MembranePlateProperty Membrane => Value as MembranePlateProperty;
         public override bool IsValid => Value is Material || Value is MembranePlateProperty;
         public override IGH_Goo Duplicate() => new GH_Material(Value);
+        protected override byte[] Archive(ModelObject value) => ContractArchive.Member(value);
+        protected override ModelObject Restore(byte[] data) => ContractArchive.ReadMember<ModelObject>(data);
         public override bool CastFrom(object source)
         {
             if (source is Material || source is MembranePlateProperty) { Value = Copy((ModelObject)source); return true; }

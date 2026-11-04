@@ -3,7 +3,6 @@ using System.Windows.Forms;
 using Arachne.Common.Analysis;
 using Arachne.Grasshopper.Helpers;
 using Arachne.Grasshopper.DataTypes;
-using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
 

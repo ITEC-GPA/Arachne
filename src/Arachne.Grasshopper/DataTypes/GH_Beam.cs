@@ -27,6 +27,8 @@ namespace Arachne.Grasshopper.DataTypes
         public override string TypeName => "Beam";
         public override string TypeDescription => "Define a single beam";
         public override BoundingBox Boundingbox => Value == null ? BoundingBox.Empty : new BoundingBox(new[] { PointFrom, PointTo });
+        /// <summary>The preview solids: the section outline swept along the axis, in the document units.</summary>
+        public Brep[] Shapes => Value == null ? new Brep[0] : ElementPreview.Shapes(Value);
 
         public GH_Beam() { }
         public GH_Beam(Point3d from, Point3d to, GH_BeamProperty property, GH_Group[] groups, Guid identity)

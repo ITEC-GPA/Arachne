@@ -2,7 +2,6 @@ using System;
 using Arachne.Common.Analysis;
 using Arachne.Grasshopper.Helpers;
 using Arachne.Grasshopper.DataTypes;
-using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 

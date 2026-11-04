@@ -5,7 +5,6 @@ using Arachne.Grasshopper.Helpers;
 using Arachne.Grasshopper.ComponentAttributes;
 using Arachne.Grasshopper.Components.Parameters;
 using Arachne.Grasshopper.DataTypes;
-using Arachne.Grasshopper.Helpers;
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
