@@ -20,7 +20,7 @@ internal static class Persistence
         using (var report = new StreamWriter(output, false))
         {
             report.WriteLine("nodes,beams,build_s,duplicate_s,model_gh_bytes,model_save_s,model_open_s,model_reopened_ok,ff_s,ff_gh_bytes,ff_sidecar_bytes,ff_save_s,ff_open_s");
-            foreach (int k in new[] { 32, 100 })
+            foreach (int k in (Environment.GetEnvironmentVariable("ARACHNE_IO_SIZES") ?? "32,100").Split(',').Select(int.Parse))
             {
                 var line = Measure(work, k);
                 report.WriteLine(line); report.Flush();
