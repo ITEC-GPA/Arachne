@@ -13,7 +13,8 @@ namespace Arachne.Grasshopper.DataTypes
         public GH_PlateProperty() { }
         public GH_PlateProperty(PlateProperty property) : base(property) { }
         public override bool IsValid => Value is ElasticPlateProperty || Value is MembranePlateProperty;
-        public override IGH_Goo Duplicate() => new GH_PlateProperty(Copy(Value));
+        // The property is immutable (GpcGoo): a copy of the data shares it, as in FeMM.
+        public override IGH_Goo Duplicate() => new GH_PlateProperty(Value);
         protected override byte[] Archive(PlateProperty value) => ContractArchive.Member(value);
         protected override PlateProperty Restore(byte[] data) => ContractArchive.ReadMember<PlateProperty>(data);
         public override bool CastFrom(object source)

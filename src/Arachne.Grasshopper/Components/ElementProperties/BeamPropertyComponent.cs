@@ -200,8 +200,9 @@ namespace Arachne.Grasshopper.Components.ElementProperties
                 if (!DA.GetData(7, ref keepMassCB)) return;
             }
             if (material.Material == null) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "A beam needs a material (a Membrane Material is for plates)"); return; }
-            // The section with the values computed by its component (FeMM: area, principal moments, moduli, torsion and centroid)
-            var property = new GPC.Model.ElementProperties.ElasticBeamProperty(name, GPC.Model.Core.ModelValues.CopyValue(material.Material), GPC.Model.Core.ModelValues.CopyValue(section.Value));
+            // The section with the values computed by its component (FeMM: area, principal moments, moduli, torsion and centroid).
+            // A new property (new identity) citing the material and the section it receives, which are immutable and shared (GpcGoo).
+            var property = new GPC.Model.ElementProperties.ElasticBeamProperty(name, material.Material, section.Value);
             if ((BeamPropertyType)type == BeamPropertyType.CutoffBar)
                 property.CutoffLaw = new GPC.Model.ElementProperties.BeamCutoffLaw { TensionLimit = maxTensionCB, CompressionLimit = maxCompressionCB,
                     Failure = (CutoffType)cutOffTypeCB == CutoffType.Ductile ? GPC.Model.ElementProperties.BeamCutoffFailure.Ductile : GPC.Model.ElementProperties.BeamCutoffFailure.Brittle, KeepMass = keepMassCB };

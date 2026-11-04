@@ -11,7 +11,8 @@ namespace Arachne.Grasshopper.DataTypes
         public override string TypeDescription => "Defines a beam section";
         public GH_BeamSection() { }
         public GH_BeamSection(Section section) : base(section) { }
-        public override IGH_Goo Duplicate() => new GH_BeamSection(Copy(Value));
+        // The section is immutable (GpcGoo): a copy of the data shares it.
+        public override IGH_Goo Duplicate() => new GH_BeamSection(Value);
         public override bool CastFrom(object source)
         {
             if (source is Section s) { Value = Copy(s); return true; }

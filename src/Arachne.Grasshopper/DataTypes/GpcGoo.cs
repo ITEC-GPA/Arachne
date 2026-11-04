@@ -7,14 +7,21 @@ using Grasshopper.Kernel.Types;
 namespace Arachne.Grasshopper.DataTypes
 {
     /// <summary>Base of the Grasshopper data that carry one GPC value: detached copies by GPC contract (no serialization) and
-    /// persistence by the GPC codec (<see cref="ContractArchive"/>).</summary>
+    /// persistence by the GPC codec (<see cref="ContractArchive"/>).
+    /// <para>Copies of the Grasshopper data share the immutable properties (user decision of 4/11/2026, «Condividi proprietà», as FeMM
+    /// did): an element is copied, its property, material and section are the instances of the source
+    /// (<see cref="ModelCopyOptions.ShareProperties"/>), and the data that carry a property, a material or a section share it. No
+    /// component changes a property, a material or a section it receives: one that needs another value creates a new one.</para></summary>
     public abstract class GpcGoo<T> : GH_Goo<T> where T : class
     {
         protected GpcGoo() { }
         protected GpcGoo(T value) { Value = value; }
         public override bool IsValid => Value != null;
         public override string IsValidWhyNot => Value == null ? "No value" : string.Empty;
+        /// <summary>A complete copy (nothing shared with <paramref name="value"/>).</summary>
         protected static T Copy(T value) => value == null ? null : ModelValues.CopyValue(value);
+        /// <summary>A copy sharing the properties, materials and sections that <paramref name="value"/> cites.</summary>
+        protected static T CopySharing(T value) => value == null ? null : ModelValues.CopyValue(value, ModelCopyOptions.ShareProperties);
         /// <summary>The archive of the value; the data carried by a base type override it with <see cref="ContractArchive.Member"/>.</summary>
         protected virtual byte[] Archive(T value) => ContractArchive.Value(value);
         protected virtual T Restore(byte[] data) => ContractArchive.ReadValue<T>(data);

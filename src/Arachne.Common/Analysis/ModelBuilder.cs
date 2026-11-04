@@ -147,10 +147,11 @@ namespace Arachne.Common.Analysis
             return model;
         }
 
-        /// <summary>A detached copy of a draft without the results of a previous form finding (they are not inputs).</summary>
+        /// <summary>A detached copy of a draft without the results of a previous form finding (they are not inputs). Its property is the
+        /// one of the draft (immutable, shared: user decision of 4/11/2026); the scaling to N-mm replaces it with a new one.</summary>
         private static T Detached<T>(T draft) where T : Element
         {
-            var copy = ModelValues.CopyValue(draft);
+            var copy = ModelValues.CopyValue(draft, ModelCopyOptions.ShareProperties);
             if (copy.Results.Count != 0) copy.Results.Clear();
             return copy;
         }

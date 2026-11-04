@@ -100,9 +100,15 @@ internal static class MigrationScale
                 void Measure(string name, Action action)
                 {
                     GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+                    // the garbage collections and the memory allocated meanwhile (all threads), to tell allocation from computation
+                    AppDomain.MonitoringIsEnabled = true;
+                    int[] collections = { GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2) };
+                    long allocated = AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize;
                     var watch = Stopwatch.StartNew(); action(); watch.Stop();
+                    string gc = $"GC {GC.CollectionCount(0) - collections[0]}/{GC.CollectionCount(1) - collections[1]}/{GC.CollectionCount(2) - collections[2]}, "
+                        + $"{(AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize - allocated) / 1048576} MB allocated";
                     output.WriteLine(string.Join(",", n, b, t, name, watch.Elapsed.TotalSeconds.ToString("F4", CultureInfo.InvariantCulture), bytes)); output.Flush();
-                    Console.WriteLine($"SCALE {n}/{b}/{t} {name}: {watch.Elapsed.TotalSeconds:F3} s {(bytes > 0 ? bytes + " bytes" : "")}");
+                    Console.WriteLine($"SCALE {n}/{b}/{t} {name}: {watch.Elapsed.TotalSeconds:F3} s {(bytes > 0 ? bytes + " bytes" : "")} ({gc})");
                     bytes = 0;
                 }
                 GPC.Model.Models.Model model = null; FormFindingInputBuilder.Input input = null; TensileModelAdapter.Exported exported = null; TensileModelAdapter.Outcome outcome = null;
@@ -128,7 +134,11 @@ internal static class MigrationScale
                 finally { try { File.Delete(file); } catch (IOException) { } }
                 FormFindingOutputProjection.Output view = null;
                 Measure("project-outputs", () => view = FormFindingOutputProjection.Project(model, input.Model, new FormFindingOptions(), ModelUnits.Nmm));
-                Measure("copy-model (GH Duplicate)", () => ModelValues.Copy(model));
+                // the compaction at the end of the projection alone: the results decoded again, then encoded and sealed again
+                foreach (var element in view.Model.AllElements) { var count = element.Results.Count; }
+                Measure("project-outputs: result compaction alone", () => bytes = view.Model.CompactResults());
+                Measure("copy-model (GH Duplicate, shared properties)", () => ModelValues.Copy(model, ModelCopyOptions.ShareProperties));
+                Measure("copy-model (complete)", () => ModelValues.Copy(model));
                 byte[] archive = null, archived = null;
                 byte[] rawModel = null;
                 Measure("archive-model: GPC ModelArchive alone (not deflated)", () => { using (var raw = new MemoryStream()) { GPC.Model.Persistence.ModelArchive.Save(model, raw); rawModel = raw.ToArray(); bytes = raw.Length; } });

@@ -41,9 +41,10 @@ namespace Arachne.Common.Analysis
             PressureLoadCase = pressureCase; LoadCases = (loadCases ?? Enumerable.Empty<LoadCaseBase>()).ToList(); CreateMesh = createMesh; PlateProperty = plateProperty;
         }
 
-        /// <summary>A detached copy (GPC contract copies; the selected cases keep their identities).</summary>
+        /// <summary>A detached copy (GPC contract copies; the selected cases keep their identities). The plate property is immutable and
+        /// shared, as by the copies of the other Grasshopper data (user decision of 4/11/2026).</summary>
         public FormFindingOptions Copy() => new FormFindingOptions(ModelValues.CopyValue(Settings), ModelValues.CopyValue(PressureLoadCase),
-            LoadCases.Select(c => ModelValues.CopyValue(c)), CreateMesh, ModelValues.CopyValue(PlateProperty));
+            LoadCases.Select(c => ModelValues.CopyValue(c)), CreateMesh, PlateProperty);
 
         public override string ToString()
             => $"Solver options:\nGravity: {Gravity}\nPressure: {Pressure}" + (PressureLoadCase == null ? "" : $" ({PressureLoadCase.Name})") +

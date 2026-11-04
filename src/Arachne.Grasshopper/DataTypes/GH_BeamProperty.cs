@@ -14,7 +14,8 @@ namespace Arachne.Grasshopper.DataTypes
         public override string TypeDescription => "Define a beam property";
         public GH_BeamProperty() { }
         public GH_BeamProperty(ElasticBeamProperty property, BeamFormulation formulation) : base(property) { Formulation = formulation; }
-        public override IGH_Goo Duplicate() => new GH_BeamProperty(Copy(Value), Formulation);
+        // The property is immutable (GpcGoo): a copy of the data shares it, as in FeMM.
+        public override IGH_Goo Duplicate() => new GH_BeamProperty(Value, Formulation);
         public override bool CastFrom(object source)
         {
             if (source is ElasticBeamProperty p) { Value = Copy(p); return true; }

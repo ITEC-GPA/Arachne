@@ -13,10 +13,13 @@ namespace Arachne.Grasshopper.DataTypes
         public override string TypeName => "Material";
         public override string TypeDescription => "Material definition";
         public GH_Material() { }
-        public GH_Material(ModelObject material) : base(Copy(material)) { }
+        /// <summary>The material itself, not a copy: the material components hand over a new one, and a material is immutable
+        /// (<see cref="GpcGoo{T}"/>).</summary>
+        public GH_Material(ModelObject material) : base(material) { }
         public Material Material => Value as Material;
         public MembranePlateProperty Membrane => Value as MembranePlateProperty;
         public override bool IsValid => Value is Material || Value is MembranePlateProperty;
+        // Immutable: a copy of the data shares it, as in FeMM.
         public override IGH_Goo Duplicate() => new GH_Material(Value);
         protected override byte[] Archive(ModelObject value) => ContractArchive.Member(value);
         protected override ModelObject Restore(byte[] data) => ContractArchive.ReadMember<ModelObject>(data);

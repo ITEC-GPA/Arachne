@@ -25,8 +25,10 @@ namespace Arachne.Grasshopper.DataTypes
         public GH_Model() { }
         public GH_Model(GModel model, ModelUnits units) { Value = model; Units = units; }
 
-        /// <summary>A complete copy (GPC model copy: elements, cases, properties, results).</summary>
-        public override IGH_Goo Duplicate() => new GH_Model(Value == null ? null : ModelValues.Copy(Value), Units);
+        /// <summary>A real copy of the model (GPC model copy: elements, nodes, cases, groups, results) that shares the property, material
+        /// and section instances of the source (user decision of 4/11/2026, see <see cref="GpcGoo{T}"/>): its elements cite the properties
+        /// registered in the copy, which are those of the source.</summary>
+        public override IGH_Goo Duplicate() => new GH_Model(Value == null ? null : ModelValues.Copy(Value, ModelCopyOptions.ShareProperties), Units);
 
         public override bool Write(GH_IWriter writer)
         {

@@ -52,7 +52,9 @@ namespace Arachne.Common.Analysis
             if (options.MaxIterations < 1) throw new ArgumentException("Max Iter must be at least 1");
             var u = FormFindingUnits.From(documentUnits);
             var input = new Input { Units = u, SolverType = solverType, CreateMesh = options.CreateMesh };
-            var model = ModelValues.Copy(source);
+            // The analysis graph shares the properties of the Build Model output (immutable: nothing below or in the export changes
+            // them, the generated plates get their own property), as the Grasshopper copies do.
+            var model = ModelValues.Copy(source, ModelCopyOptions.ShareProperties);
             input.Model = model;
             // The pressure forces of a previous form finding are results, not loads.
             bool previousPressure = model.NodesElements.Values.Any(n => n.Results.SelectMany(r => r.Results).OfType<NodeResultForces>().Any(f => f.Kind == NodalForceKind.AppliedPressure));

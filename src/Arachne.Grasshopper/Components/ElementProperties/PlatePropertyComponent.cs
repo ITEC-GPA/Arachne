@@ -48,17 +48,27 @@ namespace Arachne.Grasshopper.Components.ElementProperties
             GPC.Model.ElementProperties.PlateProperty property;
             if (material.Membrane != null)
             {
-                // A fabric: its own values per unit width (the thickness only says that the plates weigh, as before)
-                var membrane = GPC.Model.Core.ModelValues.CopyValue(material.Membrane); membrane.Name = name; property = membrane;
+                // A fabric: its own values per unit width (the thickness only says that the plates weigh, as before). A new property
+                // with its own identity and name: the membrane material it comes from is immutable and shared (GpcGoo), and a copy that
+                // kept its identity would be one property with two names for Build Model, which merges the properties by identity.
+                property = Renamed(material.Membrane, name);
             }
             else if (material.Material != null)
             {
-                try { property = new GPC.Model.ElementProperties.ElasticPlateProperty(name, GPC.Model.Core.ModelValues.CopyValue(material.Material), thickness, thickness, GPC.Model.ElementProperties.ElasticPlateFormulation.Membrane); }
+                try { property = new GPC.Model.ElementProperties.ElasticPlateProperty(name, material.Material, thickness, thickness, GPC.Model.ElementProperties.ElasticPlateFormulation.Membrane); }
                 catch (ArgumentException e) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message); return; }
             }
             else { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid material"); return; }
             DA.SetData(0, new GH_PlateProperty(property));
         }
+
+        /// <summary>The values of <paramref name="membrane"/> in a new property named <paramref name="name"/> (new identity).</summary>
+        internal static GPC.Model.ElementProperties.MembranePlateProperty Renamed(GPC.Model.ElementProperties.MembranePlateProperty membrane, string name)
+            => new GPC.Model.ElementProperties.MembranePlateProperty(name)
+            {
+                PhysicalThickness = membrane.PhysicalThickness, MassPerArea = membrane.MassPerArea, StiffnessWarp = membrane.StiffnessWarp, StiffnessWeft = membrane.StiffnessWeft,
+                ShearStiffness = membrane.ShearStiffness, NuWarpWeft = membrane.NuWarpWeft, StrengthWarp = membrane.StrengthWarp, StrengthWeft = membrane.StrengthWeft
+            };
 
         /// <summary>
         /// Provides an Icon for the component.
