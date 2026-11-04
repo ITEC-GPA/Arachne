@@ -453,5 +453,21 @@ internal static class Scenarios
             var run = FormFind(c, build, 0, 100, 1e-10, 9806.65); Doc.Link(run.Options, 10, property);
             Results(o, c, "fabric", run);
         });
+        // User decision 4/11/2026 («cable e fixed axial force possono convivere»): a Cable force density and a Fixed Axial Force on the same
+        // bars, with the three solvers. Master sets the cable force as axial target, then the fixed axial force replaces it (also with the
+        // linear solver, whose message says that it ignores it); the order of the components does not matter.
+        Case(dump, "cable and fixed axial force on one bar", (d, o) =>
+        {
+            var c = Start(d);
+            foreach (var (solver, iterations, tolerance) in new[] { (0, 20, 1e-4), (1, 50, 1e-6), (2, 200, 1e-8) })
+            {
+                var cable = ForceDensity(c, Beams(c, new[] { new Line(A, M), new Line(M, B2) }), 3, 1, 1);
+                var axial = Goal(c, Id.FixedAxialForce, cable, 4, 2);
+                Results(o, c, "cable-axial" + solver, FormFind(c, Build(c, axial, Supports(c, new[] { A, B2 }), NodeLoad(c, Nodes(c, new[] { M }), new Vector3d(0, 0, -4))), solver, iterations, tolerance));
+            }
+            var first = Goal(c, Id.FixedAxialForce, Beams(c, new[] { new Line(A, M), new Line(M, B2) }), 4, 2);
+            var after = ForceDensity(c, first, 3, 1, 1);
+            Results(o, c, "axial-cable2", FormFind(c, Build(c, after, Supports(c, new[] { A, B2 }), NodeLoad(c, Nodes(c, new[] { M }), new Vector3d(0, 0, -4))), 2, 200, 1e-8));
+        });
     }
 }
