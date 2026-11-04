@@ -33,7 +33,12 @@ internal static class Persistence
     private static void Times(Doc d, string what, int k)
     {
         foreach (var component in d.Document.Objects.OfType<GH_Component>())
+        {
             Console.WriteLine("TIME " + k * k + " " + what + " " + component.Name + ": " + component.ProcessorTime.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture) + " s");
+            foreach (var level in new[] { GH_RuntimeMessageLevel.Error, GH_RuntimeMessageLevel.Warning })
+                foreach (var message in component.RuntimeMessages(level))
+                    Console.WriteLine("MESSAGE " + k * k + " " + what + " " + component.Name + " " + level + ": " + message);
+        }
     }
 
     private static string Measure(string work, int k)
@@ -77,12 +82,18 @@ internal static class Persistence
                 clock.Restart(); bool saved = new GH_DocumentIO(store).SaveQuiet(modelPath); modelSave = clock.Elapsed.TotalSeconds;
                 if (!saved) throw new InvalidOperationException("Save failed");
             }
-            clock.Restart(); var reopen = new GH_DocumentIO(); bool opened = reopen.Open(modelPath); double modelOpen = clock.Elapsed.TotalSeconds;
-            // A model the plug-in cannot read back is dropped by GH (empty parameter): reported as False, the run goes on
-            // (master 7b1108d at 60,025 nodes: the BinaryFormatter archive of FeMM is not read back).
-            var reopened = opened ? reopen.Document?.Objects.OfType<Param_GenericObject>().SingleOrDefault()?.PersistentData.AllData(true).ToList() : null;
-            bool ok = reopened != null && reopened.Count == 1 && reopened[0] != null && reopened[0].IsValid;
-            reopen.Document?.Dispose();
+            // ARACHNE_IO_REOPEN=0 skips reopening the internalized model (master 7b1108d at 60,025 nodes: 24 minutes, then not read back);
+            // open time and the reopened flag are then left empty.
+            double modelOpen = double.NaN; bool? ok = null;
+            if (Environment.GetEnvironmentVariable("ARACHNE_IO_REOPEN") != "0")
+            {
+                clock.Restart(); var reopen = new GH_DocumentIO(); bool opened = reopen.Open(modelPath); modelOpen = clock.Elapsed.TotalSeconds;
+                // A model the plug-in cannot read back is dropped by GH (empty parameter): reported as False, the run goes on
+                // (master 7b1108d at 60,025 nodes: the BinaryFormatter archive of FeMM is not read back).
+                var reopened = opened ? reopen.Document?.Objects.OfType<Param_GenericObject>().SingleOrDefault()?.PersistentData.AllData(true).ToList() : null;
+                ok = reopened != null && reopened.Count == 1 && reopened[0] != null && reopened[0].IsValid;
+                reopen.Document?.Dispose();
+            }
 
             // Form Find in the same document, saved with its results
             var options = d.Add(Id.SolverOptions); d.Set(options, 4, new GH_Integer(20)); d.Set(options, 9, new GH_Boolean(true));
@@ -97,7 +108,7 @@ internal static class Persistence
             clock.Restart(); var reopenFf = new GH_DocumentIO(); reopenFf.Open(ffPath); double ffOpen = clock.Elapsed.TotalSeconds; reopenFf.Document?.Dispose();
             var inv = CultureInfo.InvariantCulture;
             return string.Join(",", new object[] { k * k, lines.Count, buildTime.ToString("F3", inv), duplicate.ToString("F3", inv), new FileInfo(modelPath).Length,
-                modelSave.ToString("F3", inv), modelOpen.ToString("F3", inv), ok, ffTime.ToString("F3", inv), new FileInfo(ffPath).Length, sidecar, ffSave.ToString("F3", inv), ffOpen.ToString("F3", inv) });
+                modelSave.ToString("F3", inv), double.IsNaN(modelOpen) ? "" : modelOpen.ToString("F3", inv), ok?.ToString() ?? "", ffTime.ToString("F3", inv), new FileInfo(ffPath).Length, sidecar, ffSave.ToString("F3", inv), ffOpen.ToString("F3", inv) });
         }
     }
 }
