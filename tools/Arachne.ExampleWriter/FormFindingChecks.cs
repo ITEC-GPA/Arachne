@@ -722,6 +722,34 @@ internal static class FormFindingChecks
             Check((nmm.total - si.total).Length < 1e-6 * nmm.weight, $"Reactions {nmm.total} N in N/mm, {si.total} N in SI");
         });
 
+        // User decision 4/11/2026 («metti quello che pensi meglio»): the masses of an IPS document are pound-mass (lb/in³ in Custom
+        // Material, the GPC materials in t/mm³) and the solver works in lbf·s²/in, so the weight with g = 386.09 in/s² is in lbf. Arachne
+        // 7b1108d used the pound-mass as solver mass: weights 386 times too large.
+        Test("Self-weight in IPS (pound-mass): same sag and reactions as in SI", () =>
+        {
+            // The cable of the check above: lengths in the document unit (mm per unit: 1000 in SI, 25.4 in IPS), forces in N or lbf
+            (double sagMm, Vector3d reactionsN) Run(ModelUnits units, double mmPerUnit, double newtonPerUnit)
+            {
+                using (var c = new Canvas())
+                {
+                    double unit = 1 / mmPerUnit;
+                    var chain = Start(c, "FF", 10 * unit);
+                    var p0 = new Point3d(0, 0, 0); var p1 = new Point3d(1000 * unit, 0, 0); var p2 = new Point3d(2000 * unit, 0, 0);
+                    var beams = ForceDensity(chain, Beams(chain, new[] { new Line(p0, p1), new Line(p1, p2) }), 0.1 * mmPerUnit / newtonPerUnit);
+                    var ff = FormFind(chain, Build(chain, units, beams, Supports(chain, new[] { p0, p2 })), 0, 100, 1e-12, FormFindingUnits.GravityMmPerS2 * unit);
+                    var reactions = Analysis(chain, new SupportReactionsComponent(), ff);
+                    c.Solve();
+                    var model = Solved(ff);
+                    return (model.Nodes.Single(n => !n.Restrained).Position.Z * mmPerUnit, Canvas.Single<GH_Vector>(reactions, 3).Value * newtonPerUnit);
+                }
+            }
+            var si = Run(ModelUnits.SI, 1000, 1);
+            var ips = Run(ModelUnits.IPS, 25.4, 4.4482216152605);
+            Check(si.sagMm < -25 && si.sagMm > -35, "Sag " + si.sagMm + " mm in SI");
+            Check(Math.Abs(ips.sagMm - si.sagMm) < 1e-6 * Math.Abs(si.sagMm), $"Sag {ips.sagMm} mm in IPS, {si.sagMm} mm in SI");
+            Check((ips.reactionsN - si.reactionsN).Length < 1e-6 * si.reactionsN.Length, $"Reactions {ips.reactionsN} N in IPS, {si.reactionsN} N in SI");
+        });
+
         Test("Beam Forces: axial forces, force densities and lengths of the solved model", () =>
         {
             using (var c = new Canvas())

@@ -360,9 +360,14 @@ internal static class Scenarios
             lines.AddRange(g1.lines); lines.AddRange(g2.lines);
             Results(o, c, "backstay", FormFind(c, Build(c, ForceDensity(c, Beams(c, lines), 1), Supports(c, g1.border.Concat(g2.border).Concat(new[] { new Point3d(-3000, 0, 0) }))), 0));
         });
-        Case(dump, "self weight in Nmm, SI, kNm, IPS", (d, o) =>
+        // IPS on its own: by the user decision of 4/11/2026 the solver masses of IPS are in lbf·s²/in (pound-mass / 386.09), not the
+        // pound-mass of master 7b1108d, so this scenario differs from master by design; Nmm, SI and kNm stay bit-identical.
+        foreach (var (name, systems) in new[] {
+            ("self weight in Nmm, SI, kNm", new[] { (2, 1.0, "nmm"), (1, 0.001, "si"), (0, 0.001, "knm") }),
+            ("self weight in IPS (pound-mass, differs from master by decision)", new[] { (3, 1 / 25.4, "ips") }) })
+        Case(dump, name, (d, o) =>
         {
-            foreach (var (units, metres, label) in new[] { (2, 1.0, "nmm"), (1, 0.001, "si"), (0, 0.001, "knm"), (3, 1 / 25.4, "ips") })
+            foreach (var (units, metres, label) in systems)
             {
                 var c = Start(d, "FF", 10 * metres);
                 var p0 = new Point3d(0, 0, 0); var p1 = new Point3d(1000 * metres, 0, 0); var p2 = new Point3d(2000 * metres, 0, 0);
@@ -452,6 +457,22 @@ internal static class Scenarios
             var property = d.Add(Id.PlateProperty); d.Set(property, 0, S("Fabric")); d.Set(property, 1, N(0.8)); Doc.Link(property, 2, membrane);
             var run = FormFind(c, build, 0, 100, 1e-10, 9806.65); Doc.Link(run.Options, 10, property);
             Results(o, c, "fabric", run);
+        });
+        // User decision 4/11/2026 («cable e fixed axial force possono convivere»): a Cable force density and a Fixed Axial Force on the same
+        // bars, with the three solvers. Master sets the cable force as axial target, then the fixed axial force replaces it (also with the
+        // linear solver, whose message says that it ignores it); the order of the components does not matter.
+        Case(dump, "cable and fixed axial force on one bar", (d, o) =>
+        {
+            var c = Start(d);
+            foreach (var (solver, iterations, tolerance) in new[] { (0, 20, 1e-4), (1, 50, 1e-6), (2, 200, 1e-8) })
+            {
+                var cable = ForceDensity(c, Beams(c, new[] { new Line(A, M), new Line(M, B2) }), 3, 1, 1);
+                var axial = Goal(c, Id.FixedAxialForce, cable, 4, 2);
+                Results(o, c, "cable-axial" + solver, FormFind(c, Build(c, axial, Supports(c, new[] { A, B2 }), NodeLoad(c, Nodes(c, new[] { M }), new Vector3d(0, 0, -4))), solver, iterations, tolerance));
+            }
+            var first = Goal(c, Id.FixedAxialForce, Beams(c, new[] { new Line(A, M), new Line(M, B2) }), 4, 2);
+            var after = ForceDensity(c, first, 3, 1, 1);
+            Results(o, c, "axial-cable2", FormFind(c, Build(c, after, Supports(c, new[] { A, B2 }), NodeLoad(c, Nodes(c, new[] { M }), new Vector3d(0, 0, -4))), 2, 200, 1e-8));
         });
     }
 }

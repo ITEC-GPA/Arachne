@@ -152,14 +152,14 @@ namespace Arachne.Grasshopper.Helpers
                     if (model == null) { var opened = archive.Open(written[i]); model = opened.Model; map = opened.SolverMap; }
                     using (var stream = new MemoryStream())
                     {
-                        ModelArchive.Save(model, stream); portableBytes += stream.Length;
+                        ModelArchive.Save(model, stream, ModelArchiveFormat.Compact); portableBytes += stream.Length;
                         if (portableBytes > MaximumPortableBytes) throw new SerializationException("PortableAnalysisArchiveTooLarge");
                         chunk.SetByteArray("PortableModel", stream.ToArray());
                     }
                     if (map != null)
                         using (var stream = new MemoryStream())
                         {
-                            ModelValueArchive.Save(map, stream); portableBytes += stream.Length;
+                            ModelValueArchive.Save(map, stream, ModelArchiveFormat.Compact); portableBytes += stream.Length;
                             if (portableBytes > MaximumPortableBytes) throw new SerializationException("PortableAnalysisArchiveTooLarge");
                             chunk.SetByteArray("PortableMap", stream.ToArray());
                         }

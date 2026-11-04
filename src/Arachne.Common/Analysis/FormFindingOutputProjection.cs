@@ -87,6 +87,10 @@ namespace Arachne.Common.Analysis
             LoadCaseBase Case(LoadCaseBase value) => value == null ? null : FormFindingInputBuilder.Registered(output, value);
             ResultState State(ResultLocation sample) => ModelValues.CopyValue(sample.State);
 
+            // The compact results of the solver graph are decoded once, in parallel (each element under its own lock, as on its first
+            // access), then read in order below: 2.5 s of the 8 s of the outputs at 10,000 nodes were the decoding (lane L5).
+            var decoded = analysis.AllElements.ToArray();
+            System.Threading.Tasks.Parallel.For(0, decoded.Length, i => { var count = decoded[i].Results.Count; });
             var analysisNodes = analysis.NodesElements.Values.ToDictionary(n => n.Guid);
             var outputNodes = output.NodesElements.Values.ToDictionary(n => n.Guid);
             foreach (var node in output.NodesElements.Values)
