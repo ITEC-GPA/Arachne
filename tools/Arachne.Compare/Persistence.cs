@@ -78,7 +78,10 @@ internal static class Persistence
                 if (!saved) throw new InvalidOperationException("Save failed");
             }
             clock.Restart(); var reopen = new GH_DocumentIO(); bool opened = reopen.Open(modelPath); double modelOpen = clock.Elapsed.TotalSeconds;
-            bool ok = opened && reopen.Document.Objects.OfType<Param_GenericObject>().Single().PersistentData.AllData(true).Single().IsValid;
+            // A model the plug-in cannot read back is dropped by GH (empty parameter): reported as False, the run goes on
+            // (master 7b1108d at 60,025 nodes: the BinaryFormatter archive of FeMM is not read back).
+            var reopened = opened ? reopen.Document?.Objects.OfType<Param_GenericObject>().SingleOrDefault()?.PersistentData.AllData(true).ToList() : null;
+            bool ok = reopened != null && reopened.Count == 1 && reopened[0] != null && reopened[0].IsValid;
             reopen.Document?.Dispose();
 
             // Form Find in the same document, saved with its results
