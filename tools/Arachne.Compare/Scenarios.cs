@@ -360,9 +360,14 @@ internal static class Scenarios
             lines.AddRange(g1.lines); lines.AddRange(g2.lines);
             Results(o, c, "backstay", FormFind(c, Build(c, ForceDensity(c, Beams(c, lines), 1), Supports(c, g1.border.Concat(g2.border).Concat(new[] { new Point3d(-3000, 0, 0) }))), 0));
         });
-        Case(dump, "self weight in Nmm, SI, kNm, IPS", (d, o) =>
+        // IPS on its own: by the user decision of 4/11/2026 the solver masses of IPS are in lbf·s²/in (pound-mass / 386.09), not the
+        // pound-mass of master 7b1108d, so this scenario differs from master by design; Nmm, SI and kNm stay bit-identical.
+        foreach (var (name, systems) in new[] {
+            ("self weight in Nmm, SI, kNm", new[] { (2, 1.0, "nmm"), (1, 0.001, "si"), (0, 0.001, "knm") }),
+            ("self weight in IPS (pound-mass, differs from master by decision)", new[] { (3, 1 / 25.4, "ips") }) })
+        Case(dump, name, (d, o) =>
         {
-            foreach (var (units, metres, label) in new[] { (2, 1.0, "nmm"), (1, 0.001, "si"), (0, 0.001, "knm"), (3, 1 / 25.4, "ips") })
+            foreach (var (units, metres, label) in systems)
             {
                 var c = Start(d, "FF", 10 * metres);
                 var p0 = new Point3d(0, 0, 0); var p1 = new Point3d(1000 * metres, 0, 0); var p2 = new Point3d(2000 * metres, 0, 0);
