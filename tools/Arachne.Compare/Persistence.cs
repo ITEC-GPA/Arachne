@@ -29,6 +29,13 @@ internal static class Persistence
         }
     }
 
+    // The solve time of every component (GH ProcessorTime), to see where a solution goes.
+    private static void Times(Doc d, string what, int k)
+    {
+        foreach (var component in d.Document.Objects.OfType<GH_Component>())
+            Console.WriteLine("TIME " + k * k + " " + what + " " + component.Name + ": " + component.ProcessorTime.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture) + " s");
+    }
+
     private static string Measure(string work, int k)
     {
         var lines = new List<Line>(); var border = new List<Point3d>();
@@ -57,6 +64,7 @@ internal static class Persistence
             var clock = Stopwatch.StartNew();
             d.Solve();
             double buildTime = clock.Elapsed.TotalSeconds;
+            Times(d, "build", k);
             var model = build.Params.Output[0].VolatileData.AllData(true).Single();
             clock.Restart(); var copy = model.Duplicate(); double duplicate = clock.Elapsed.TotalSeconds;
 
@@ -77,6 +85,7 @@ internal static class Persistence
             var options = d.Add(Id.SolverOptions); d.Set(options, 4, new GH_Integer(20)); d.Set(options, 9, new GH_Boolean(true));
             var ff = d.Add(Id.FormFind); Doc.Link(ff, 0, build); d.Set(ff, 1, new GH_Integer(0)); Doc.Link(ff, 2, options); d.Set(ff, 4, new GH_Boolean(true));
             clock.Restart(); d.Solve(); double ffTime = clock.Elapsed.TotalSeconds;
+            Times(d, "form-find", k);
             string ffPath = Path.Combine(work, "formfind-" + k + ".gh");
             foreach (var old in Directory.GetFiles(work, "formfind-" + k + ".*")) File.Delete(old);
             clock.Restart(); bool ffSaved = new GH_DocumentIO(d.Document).SaveQuiet(ffPath); double ffSave = clock.Elapsed.TotalSeconds;
