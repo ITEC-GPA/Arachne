@@ -1,5 +1,12 @@
 # Registro delle modifiche
 
+## 0.3.0-rc.8 - 4 novembre 2026: il controllo al caricamento non blocca più Rhino
+
+Nessun componente cambia: GUID, ingressi, uscite e risultati sono quelli della rc.7.
+
+- **Versione delle DLL:** 0.3.0.8.
+- **Controllo al caricamento** (`PluginBuildCheck.cs`, copia identica di quella di BridGHe): una libreria condivisa (GPC*, DelaunayMesh, TensileLib) caricata per la prima volta da un thread di calcolo veniva segnalata con `RhinoApp.WriteLine`. La chiamata partiva da quel thread mentre il runtime teneva fermo il caricamento. `RhinoApp.WriteLine` aspetta il thread di Rhino: se anche questo aspettava la stessa libreria, Rhino si bloccava senza consumare CPU. Succedeva proprio quando c'era da avvisare, per esempio con librerie diverse caricate prima da un altro plug-in. Ora la riga va in coda al thread di Rhino senza attesa. L'avviso sui componenti resta immediato. Il caso è provato in BridGHe (regressione `plugin-build-check`, figlio `--plugin-check-load`).
+
 ## 0.3.0-rc.7 - 1 novembre 2026: librerie GPC attuali
 
 Nessun componente cambia: GUID, ingressi e uscite sono quelli della rc.6.
