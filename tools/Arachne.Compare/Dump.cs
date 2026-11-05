@@ -16,9 +16,11 @@ internal sealed class Dump : IDisposable
     public Dump(string path) { writer = new StreamWriter(path, false, new System.Text.UTF8Encoding(false)); }
     public void Scenario(string name) { scenario = name; writer.WriteLine("S " + name); Console.WriteLine("SCENARIO " + name); }
     public void Number(string key, double value)
-        => writer.WriteLine("V " + key + " " + BitConverter.DoubleToInt64Bits(value).ToString("X16") + " " + value.ToString("R", CultureInfo.InvariantCulture));
-    public void Text(string key, string value) => writer.WriteLine("T " + key + " " + (value ?? "<null>").Replace("\r", " ").Replace("\n", " | "));
-    public void Message(string key, string value) => writer.WriteLine("M " + key + " " + (value ?? "").Replace("\r", " ").Replace("\n", " | "));
+        => writer.WriteLine("V " + Key(key) + " " + BitConverter.DoubleToInt64Bits(value).ToString("X16") + " " + value.ToString("R", CultureInfo.InvariantCulture));
+    public void Text(string key, string value) => writer.WriteLine("T " + Key(key) + " " + (value ?? "<null>").Replace("\r", " ").Replace("\n", " | "));
+    public void Message(string key, string value) => writer.WriteLine("M " + Key(key) + " " + (value ?? "").Replace("\r", " ").Replace("\n", " | "));
+    // A key is one word: component and parameter names of the examples have spaces ("Beam Forces")
+    private static string Key(string key) => key.Replace(' ', '_');
     public void Point(string key, Point3d p) { Number(key + ".x", p.X); Number(key + ".y", p.Y); Number(key + ".z", p.Z); }
     public void Vector(string key, Vector3d v) { Number(key + ".x", v.X); Number(key + ".y", v.Y); Number(key + ".z", v.Z); }
 
@@ -53,6 +55,7 @@ internal sealed class Dump : IDisposable
             case GH_Point p: Point(key, p.Value); return;
             case GH_Vector v: Vector(key, v.Value); return;
             case GH_Line l: Point(key + ".a", l.Value.From); Point(key + ".b", l.Value.To); return;
+            case GH_Plane pl: Point(key + ".o", pl.Value.Origin); Vector(key + ".x", pl.Value.XAxis); Vector(key + ".y", pl.Value.YAxis); return;
             case GH_Mesh m: MeshValue(key, m.Value); return;
             case GH_Curve c: Point(key + ".a", c.Value.PointAtStart); Point(key + ".b", c.Value.PointAtEnd); Number(key + ".length", c.Value.GetLength()); return;
         }

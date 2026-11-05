@@ -6,6 +6,8 @@ using System.Runtime.CompilerServices;
 using Grasshopper.Kernel;
 
 // Arachne.Compare run <plug-in folder> <Rhino System> <Grasshopper dir> <dump file> [--io <work folder> <io file>]
+// Arachne.Compare examples <plug-in folder> <Rhino System> <Grasshopper dir> <dump file> <examples folder> <work folder>
+//   (writes <dump file>, <dump file>.resaved and <dump file>.restored: see Examples)
 // Arachne.Compare diff <reference dump> <candidate dump>
 internal static class Program
 {
@@ -13,9 +15,10 @@ internal static class Program
     private static int Main(string[] args)
     {
         if (args.Length >= 3 && args[0] == "diff") return Diff.Run(args[1], args[2]);
-        if (args.Length < 5 || args[0] != "run")
+        if (args.Length < 5 || (args[0] != "run" && !(args[0] == "examples" && args.Length >= 7)))
         {
-            Console.Error.WriteLine("Usage: Arachne.Compare run <plug-in folder> <Rhino System> <Grasshopper dir> <dump> [--io <work folder> <io file>] | diff <reference> <candidate>");
+            Console.Error.WriteLine("Usage: Arachne.Compare run <plug-in folder> <Rhino System> <Grasshopper dir> <dump> [--io <work folder> <io file>]" +
+                " | examples <plug-in folder> <Rhino System> <Grasshopper dir> <dump> <examples folder> <work folder> | diff <reference> <candidate>");
             return 2;
         }
         string plugin = Path.GetFullPath(args[1]);
@@ -59,6 +62,11 @@ internal static class Program
             throw new InvalidOperationException("Could not register the plug-in " + gha);
         GH_Document.EnableSolutions = true;
         Console.WriteLine("Arachne.Compare: " + gha + " " + System.Diagnostics.FileVersionInfo.GetVersionInfo(gha).FileVersion);
+        if (args[0] == "examples")
+        {
+            Examples.Run(Path.GetFullPath(args[5]), Path.GetFullPath(args[6]), args[4]);
+            return 0;
+        }
         using (var dump = new Dump(args[4]))
             Scenarios.Run(dump);
         int io = Array.IndexOf(args, "--io");
