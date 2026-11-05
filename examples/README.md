@@ -10,6 +10,8 @@ Ogni esempio è disponibile in formato binario (`.gh`) e XML (`.ghx`). Installar
 
 Negli esempi 01 e 03 Form Find ha **Auto Run** collegato a un interruttore attivo: il calcolo parte all'apertura. Disattivarlo per lavorare con il pulsante Run.
 
+Dalla 0.4.0, salvando un esempio dopo il calcolo, accanto al `.gh` si scrive il file `<nome>.<InstanceGuid>.gpc-results` con i risultati del Form Find: va copiato insieme al `.gh`. Gli esempi contengono solo dati Grasshopper standard e danno gli stessi risultati con la 0.3 e con la 0.4 (`tools/Arachne.Compare`, modo `examples`).
+
 Nel 03 gli ingressi delle Beam e l'ingresso Elements di Build Model sono appiattiti: le uscite di Cable Net sono alberi con un ramo per cavo.
 
 Gli esempi vengono generati da `scripts/build-examples.ps1` (`tools/Arachne.ExampleWriter`). Il generatore calcola ogni definizione, la salva nei due formati, la riapre e la ricalcola. Controlla anche che Form Find produca modello e mesh senza errori. Per l'esempio 02 confronta l'area compensata con `2*sqrt(5)*0.98*0.99` e verifica i quattro bordi decompensati.

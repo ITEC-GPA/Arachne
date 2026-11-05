@@ -14,11 +14,13 @@ Si lavora in N e mm: Build Model ha come predefinito Nmm (come FeMM), le sezioni
 
 I GUID sono nuovi, così FeMM e Arachne possono essere caricati insieme. Le definizioni FeMM non vengono convertite automaticamente. Le icone sono quelle nuove di Arachne (`tools/Arachne.ExampleWriter/IconArtwork.cs`).
 
+Dalla 0.4.0 il modello FEM portato da FeMM.Common (`Models`) è sostituito dagli oggetti GPC, con gli stessi numeri ([architettura](ARCHITECTURE.md), [registro modifiche](CHANGELOG.md)). I nomi delle classi FeMM citati qui sotto (`NodeReactResultModel`, `NodePressureLoadModel`, …) descrivono il porting fino alla 0.3; il comportamento dei componenti è rimasto quello.
+
 ## Progetti
 
 | FeMM | Arachne |
 | --- | --- |
-| FeMM.Common: modelli (Models), helper e geometria usati dal form finding | `src/Arachne.Common` |
+| FeMM.Common: modelli (Models, sostituiti dagli oggetti GPC nella 0.4.0), helper e geometria usati dal form finding | `src/Arachne.Common` |
 | FeMM.Grasshopper: data type, attributi grafici, componenti | `src/Arachne.Grasshopper` |
 | MaffeisIGL (ARAP nativo, libigl) | `src/Arachne.Arap`, motore C# riscritto |
 | TensileLib 2.0.6 (NuGet, non più disponibile) | TensileLib 2.5.0.1 da `../tensilelib` |
