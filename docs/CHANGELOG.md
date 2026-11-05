@@ -39,7 +39,7 @@ Versione proposta 0.4.0 (DLL 0.4.0.0); il branch è ancora 0.4.0-f6.4 e la versi
   - anteprima: le sezioni circolari sono disegnate come poligoni di 64 lati.
 - **Compilazione.**
   - Accanto ad Arachne serve anche il repository `../Model`, con i progetti GPC, oltre a Geometry, Utilities e tensilelib.
-  - `scripts/build.ps1` compila i progetti GPC in Release: prima la build della soluzione li compilava in Debug e li copiava nel plug-in Release. Compilare con lo script.
+  - `scripts/build.ps1` compila i progetti GPC in Release: prima la build della soluzione li compilava in Debug e li copiava nel plug-in Release. Ora anche Model tiene la configurazione dei suoi riferimenti (`Directory.Build.props`, `bc5a7a07`), e una `dotnet build Arachne.sln -c Release` semplice dà gli stessi byte dello script. Lo script resta il modo di compilare un rilascio.
   - Lo script controlla le DLL del plug-in (quelle attese e nessun'altra; niente Gmsh né pacchetti NRBF) e le elenca in `DEPENDENCIES.json`. Con `-ReleaseSet <release-set.json>` controlla che le librerie GPC siano i file del set, per SHA-256.
 - **Verifiche:** 164 controlli in Rhino/Grasshopper (66 inventario, 10 contratti GPC, 39 form finding, 43 patterning, 6 reti) e 54 del motore ARAP. `tools/Arachne.Compare` confronta con la 0.3 lo stesso insieme di definizioni (31 scenari identici, 1 diverso per decisione: IPS). Apre anche gli esempi con le due versioni, li risalva e li ripristina (6/6 identici), e prova il controllo al caricamento con un set candidato.
 - **Esempi:** invariati. Si aprono nella 0.4 con gli stessi risultati della 0.3, anche dopo un nuovo salvataggio, e la 0.3 apre quelli risalvati dalla 0.4.

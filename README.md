@@ -94,7 +94,7 @@ Prerequisiti: Windows x64, SDK .NET 8 o successivo, .NET Framework 4.8 Developer
 .\scripts\build.ps1 -RhinoTests -ReleaseSet <cartella del set>\release-set.json   # per un rilascio
 ```
 
-Compilare con lo script: i progetti GPC di `../Model` sono fuori dalla soluzione, e una `dotnet build Arachne.sln` senza `-p:ShouldUnsetParentConfigurationAndPlatform=false` li compila in Debug. Con `-ReleaseSet` lo script controlla che le librerie GPC del plug-in siano i file del set (stesso SHA-256), cioè quelli di BridGHe e ReBear; `-FemmSources` indica i sorgenti FeMM delle verifiche se non sono in `../FeMM 30-5-2024/Test1/FeMM`.
+Compilare con lo script, che passa `-p:ShouldUnsetParentConfigurationAndPlatform=false` a tutti i progetti: i progetti GPC di `../Model` sono fuori dalla soluzione, e con un Model che non ha ancora questa proprietà nel suo `Directory.Build.props` (prima di `bc5a7a07`) una `dotnet build Arachne.sln` semplice li compila in Debug. Con `-ReleaseSet` lo script controlla che le librerie GPC del plug-in siano i file del set (stesso SHA-256), cioè quelli di BridGHe e ReBear; `-FemmSources` indica i sorgenti FeMM delle verifiche se non sono in `../FeMM 30-5-2024/Test1/FeMM`.
 
 Gli output della compilazione stanno nella cartella `bin` alla radice, in `bin/<progetto>/<configurazione>/<framework>`; i file intermedi restano nella cartella `obj` di ogni progetto, perché contengono una copia del `.gha`. Lo script esegue i test del motore ARAP. Con `-RhinoTests` avvia Rhino senza finestra ed esegue le verifiche Grasshopper:
 
