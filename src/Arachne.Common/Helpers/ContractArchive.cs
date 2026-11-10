@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -13,7 +12,7 @@ namespace Arachne.Common.Helpers
     /// The bytes of the Grasshopper data (internalized parameters, copies, undo): GPC contracts only (review A2). After the header
     /// ARCGPC3, a version and a kind. Version 2 (written) holds the compact GPC archive (<see cref="ModelArchiveFormat.Compact"/>:
     /// <see cref="ModelValueArchive"/> version 2, <see cref="ModelArchive"/> version 6; binary contracts, deflated; 10 to 100 times
-    /// smaller and faster than the XML); version 1 (F6 development builds, still read) the XML archive, deflated. The root type is
+    /// smaller and faster than XML). Only this version is accepted. The root type is
     /// chosen by the reader, never by the data. The FeMM payloads of the
     /// previous versions (BinaryFormatter/NRBF up to Arachne 0.3, ARCGPC2 of the F6 development builds) are refused with an
     /// explicit message (review A3): no legacy reader is shipped.
@@ -21,7 +20,7 @@ namespace Arachne.Common.Helpers
     public static class ContractArchive
     {
         private static readonly byte[] Header = Encoding.ASCII.GetBytes("ARCGPC3");
-        private const byte Version = 2, XmlVersion = 1;
+        private const byte Version = 2;
         private const byte KindValue = 1, KindModel = 2, KindMaterial = 3, KindElasticPlate = 4, KindMembranePlate = 5;
         public const int MaximumBytes = 256 * 1024 * 1024;
 
@@ -96,24 +95,10 @@ namespace Arachne.Common.Helpers
                 throw new SerializationException("UnsupportedArachneArchive: the data are not an Arachne GPC archive.");
             }
             byte version = data[Header.Length];
-            if (version != Version && version != XmlVersion) throw new SerializationException("UnsupportedArachneArchiveVersion: " + version + " (update Arachne).");
+            if (version != Version) throw new SerializationException("UnsupportedArachneArchiveVersion: " + version + " (update Arachne).");
             if (data[Header.Length + 1] != kind) throw new SerializationException("ArachneArchiveKindMismatch");
-            if (version == Version)
-                using (var input = new MemoryStream(data, Header.Length + 2, data.Length - Header.Length - 2, false))
-                    return read(input) ?? throw new SerializationException("NullArachneArchiveValue");
             using (var input = new MemoryStream(data, Header.Length + 2, data.Length - Header.Length - 2, false))
-            using (var deflate = new DeflateStream(input, CompressionMode.Decompress))
-            using (var buffer = new MemoryStream())
-            {
-                var block = new byte[81920]; int n;
-                while ((n = deflate.Read(block, 0, block.Length)) > 0)
-                {
-                    if (buffer.Length + n > MaximumBytes) throw new SerializationException("ArachneArchiveTooLarge");
-                    buffer.Write(block, 0, n);
-                }
-                buffer.Position = 0;
-                return read(buffer) ?? throw new SerializationException("NullArachneArchiveValue");
-            }
+                return read(input) ?? throw new SerializationException("NullArachneArchiveValue");
         }
 
         /// <summary>True for a BinaryFormatter (NRBF) stream or an ARCGPC2 archive of a previous Arachne.</summary>

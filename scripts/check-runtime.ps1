@@ -3,7 +3,6 @@ param(
     [ValidateSet('Debug','Release')][string]$Configuration = 'Release',
     [string]$FemmSourcePath,
     [switch]$RequireFemm,
-    [switch]$DisableBinaryFormatter,
     [string]$RhinoSystemDir = 'C:\Program Files\Rhino 8\System',
     [string]$GrasshopperDir = 'C:\Program Files\Rhino 8\Plug-ins\Grasshopper'
 )
@@ -18,12 +17,13 @@ try {
     & dotnet build tools/Arachne.RuntimeChecks/Arachne.RuntimeChecks.csproj -c $Configuration --configfile NuGet.Config "-p:ArachneBin=$($output.TrimEnd([char[]]'\/'))"
     if ($LASTEXITCODE -ne 0) { throw 'Runtime host build failed.' }
     $directory = Join-Path $output "Arachne.RuntimeChecks/$Configuration/net8.0-windows"
-    $suffix = if ($DisableBinaryFormatter) { 'disabled' } else { 'desktop' }
+    $suffix = 'no-binary-formatter'
     $arguments = @($exe, $root, $RhinoSystemDir, $GrasshopperDir, '--tests-only', '--report', (Join-Path $directory "CHECKS-$suffix.json"))
     if ($FemmSourcePath) { $arguments += @('--femm', $FemmSourcePath) }
     if ($RequireFemm) { $arguments += '--require-femm' }
-    if ($DisableBinaryFormatter) { $arguments += '--disable-binary-formatter' }
     & (Join-Path $directory 'Arachne.RuntimeChecks.exe') @arguments | Tee-Object -FilePath (Join-Path $directory "CHECKS-$suffix.log")
     if ($LASTEXITCODE -ne 0) { throw "Runtime checks failed; see $directory/CHECKS-$suffix.json" }
+    $report = Get-Content -LiteralPath (Join-Path $directory "CHECKS-$suffix.json") -Raw | ConvertFrom-Json
+    if ($report.BinaryFormatterSwitch -ne $false) { throw 'Runtime did not keep BinaryFormatter disabled.' }
 }
 finally { Pop-Location }

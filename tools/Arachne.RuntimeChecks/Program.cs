@@ -17,11 +17,7 @@ internal static class Program
         }
         try
         {
-            if (args.Contains("--disable-binary-formatter"))
-            {
-                AppContext.SetSwitch("System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization", false);
-                args = args.Where(a => a != "--disable-binary-formatter").ToArray();
-            }
+            AppContext.SetSwitch("System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization", false);
             var runner = Assembly.LoadFrom(Path.GetFullPath(args[0]));
             return (int)runner.EntryPoint.Invoke(null, new object[] { args.Skip(1).ToArray() });
         }

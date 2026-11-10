@@ -98,24 +98,22 @@ internal static class F6ContractsChecks
             bool refused = false;
             try { ContractArchive.ReadMember<GPC.Model.ElementProperties.PlateProperty>(ContractArchive.Member(steel)); } catch (System.Runtime.Serialization.SerializationException) { refused = true; }
             Check(refused, "A material is not read as a plate property");
-            // Lane L5: written as version 2 (the compact GPC archive); version 1 (XML archive, deflated, F6 development builds) still read.
             var written = ContractArchive.Model(model.Value);
-            Check(written[7] == 2 && System.Text.Encoding.ASCII.GetString(written, 9, 6) == "GPCMOD", "GH data are compact GPC archives (version 2)");
-            byte[] Version1(byte kind, Action<System.IO.Stream> write)
+            Check(written[7] == 2 && System.Text.Encoding.ASCII.GetString(written, 9, 6) == "GPCMOD", "GH data use current compact GPC archives");
+            void RejectVersion(byte[] data, Action<byte[]> read)
             {
-                using (var output = new System.IO.MemoryStream())
+                foreach (byte version in new byte[] { 0, 1, 3, 255 })
                 {
-                    output.Write(System.Text.Encoding.ASCII.GetBytes("ARCGPC3"), 0, 7); output.WriteByte(1); output.WriteByte(kind);
-                    using (var deflate = new System.IO.Compression.DeflateStream(output, System.IO.Compression.CompressionLevel.Optimal, true)) write(deflate);
-                    return output.ToArray();
+                    var invalid = (byte[])data.Clone(); invalid[7] = version;
+                    bool rejected = false;
+                    try { read(invalid); }
+                    catch (System.Runtime.Serialization.SerializationException ex) { rejected = ex.Message.StartsWith("UnsupportedArachneArchiveVersion"); }
+                    Check(rejected, "Unsupported archive version must be rejected: " + version);
                 }
             }
-            var oldModel = ContractArchive.ReadModel(Version1(2, s => GPC.Model.Persistence.ModelArchive.Save(model.Value, s)));
-            Check(oldModel.AnalysisFingerprint() == model.Value.AnalysisFingerprint(), "Version 1 model archive still read");
-            var oldMaterial = ContractArchive.ReadMember<GPC.Model.Materials.Material>(Version1(3, s => GPC.Model.Persistence.ModelValueArchive.Save(steel, s)));
-            Check(oldMaterial.Name == "S355" && oldMaterial.ElasticModulusTension == 210000, "Version 1 material archive still read");
-            var oldBeam = ContractArchive.ReadValue<BeamElement>(Version1(1, s => GPC.Model.Persistence.ModelValueArchive.Save(beam.Value, s)));
-            Check(oldBeam.Guid == beam.Value.Guid && ElementDrafts.Goals(oldBeam).Single().Goal.Target == 1, "Version 1 beam archive still read");
+            RejectVersion(written, data => ContractArchive.ReadModel(data));
+            RejectVersion(ContractArchive.Member(steel), data => ContractArchive.ReadMember<GPC.Model.Materials.Material>(data));
+            RejectVersion(ContractArchive.Value(beam.Value), data => ContractArchive.ReadValue<BeamElement>(data));
         }
     }
 
