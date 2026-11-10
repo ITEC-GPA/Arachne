@@ -31,7 +31,7 @@ degli archivi e strategia per il successivo formato GPC sono documentati in
 ## Arachne.Grasshopper
 
 - `DataTypes`: wrapper Grasshopper dei modelli (`GH_Model`, `GH_Node`, `GH_Beam`, `GH_Plate`, proprietà, sezioni, materiali, casi di carico). Ogni nodo, asta e piastra ha un GUID. Build Model unisce gli elementi con lo stesso GUID e poi i nodi coincidenti entro la tolleranza delle impostazioni (`Settings`, 0.001).
-- `Components`: un file per componente, nelle cartelle FeMM (Analysis, Attributes, Definitions, ElementProperties, Loads, Materials, Models, Parameters, Patterning, Sections, Tools).
+- `Components`: un file per componente, raggruppato per funzione (Analysis, Attributes, Definitions, ElementProperties, Loads, Materials, Models, Parameters, Patterning, Sections, Tools). Le reti di cavi sono in Tools e Remesh in Patterning, come i pannelli. I namespace storici sono conservati per mantenere l'identità dei tipi.
 - `ComponentAttributes`: pulsante Run di Form Find e immagini dei componenti di carico.
 - `Services`: algoritmi di Compensation, Decompensation e Flattening separati dai componenti.
 - `Geometry`: generatori Cable Net (CableNetHelper) e geodetiche su mesh.

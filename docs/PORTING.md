@@ -32,6 +32,11 @@ Non sono portati: esportazione e analisi SAP/ETABS/Straus, verifiche, FemToRhino
 
 ## Componenti
 
+I percorsi della colonna «Sorgente FeMM» identificano i file originali, non la
+posizione corrente dei sorgenti Arachne. In Arachne le tre reti di cavi sono in
+`Components/Tools` e Remesh in `Components/Patterning`; namespace, GUID e porte
+sono rimasti invariati durante il riordino.
+
 | Pannello | Componente | Sorgente FeMM | GUID FeMM | GUID Arachne |
 | --- | --- | --- | --- | --- |
 | 01-Parameters | CoordinateSystem (CS) | `Components/Parameters/CoordinateSystemParam.cs` | 6a7ad660-29b0-4cbb-af29-7f5ce72f1cf3 | c1a59f62-2d20-4f66-aeb0-38999eb77b7a |

@@ -67,3 +67,9 @@ globalmente il formato. I report sono negli output diagnostici.
 Esaminato `ContractArchive` della migrazione conservata: ARCGPC3 rifiuta i vecchi
 payload della 0.3.0. La sostituzione richiede quindi una migrazione separata,
 descritta in [RUNTIME-AND-ARCHIVES](RUNTIME-AND-ARCHIVES.md).
+
+## Cartelle dei componenti (step 7)
+
+Spostati Cable Net, Radial Cable Net e Compound Net in `Components/Tools`,
+Remesh in `Components/Patterning`. I quattro file sono identici byte per byte:
+namespace, GUID, ingressi, uscite e algoritmi restano invariati.
