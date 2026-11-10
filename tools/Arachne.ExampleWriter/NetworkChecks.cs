@@ -12,6 +12,7 @@ using Rhino.Geometry;
 internal static class NetworkChecks
 {
     private static int passed, failed;
+    internal static SuiteReport Summary => new SuiteReport { Name = "Network", Passed = passed, Failed = failed };
 
     private static void Test(string name, Action action)
     {

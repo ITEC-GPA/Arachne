@@ -13,6 +13,7 @@ using Rhino.Geometry;
 internal static class PatterningChecks
 {
     private static int passed, failed;
+    internal static SuiteReport Summary => new SuiteReport { Name = "Patterning", Passed = passed, Failed = failed };
     private static readonly List<Canvas> canvases = new List<Canvas>();
 
     private static void Test(string name, Action action)

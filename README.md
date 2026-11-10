@@ -127,4 +127,21 @@ Le build Debug del plug-in dentro `bin` (anche nelle sue sottocartelle) sono
 rifiutate sia dagli script sia da MSBuild. La soluzione ARAP autonoma non
 produce `.gha` e può usare Debug anche nell'output predefinito.
 
+Per una verifica rigorosa della compatibilità con FeMM:
+
+```powershell
+.\scripts\build.ps1 -RhinoTests -RequireFemm -FemmSourcePath '..\_OLD\FeMM 30-5-2024\Test1\FeMM'
+```
+
+Il percorso FeMM è configurabile ed è usato solo in lettura. Senza `-RequireFemm`
+il confronto può essere saltato, ma viene dichiarato `Skipped` o `Incomplete`:
+non è una verifica superata. Con l'opzione rigorosa, sorgenti assenti o incompleti
+fanno fallire il controllo. I sei componenti nuovi di Arachne sono esclusi
+esplicitamente dal confronto, perché non esistono in FeMM.
+
+`RHINO-CHECKS.json` registra runtime, sorgenti FeMM, stato e conteggi per suite;
+`ARAP-CHECKS.log` e `RHINO-CHECKS.log` conservano le singole prove. `BUILD.json`
+include i risultati strutturati; le verifiche non richieste risultano `NotRun`.
+Il manifest di build viene eliminato all'avvio e ricreato solo dopo il successo.
+
 Vedere anche [architettura](docs/ARCHITECTURE.md) e [registro modifiche](docs/CHANGELOG.md).

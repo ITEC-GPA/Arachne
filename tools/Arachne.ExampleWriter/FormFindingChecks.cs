@@ -22,6 +22,7 @@ using Rhino.Geometry;
 internal static class FormFindingChecks
 {
     private static int passed, failed;
+    internal static SuiteReport Summary => new SuiteReport { Name = "FormFinding", Passed = passed, Failed = failed };
     private static void Test(string name, Action action)
     {
         try { action(); passed++; Console.WriteLine("FORMFIND PASS " + name); }

@@ -45,3 +45,12 @@ Le prove complete Debug e Rhino sono comprese nella verifica finale.
 
 L'utente ha indicato il nuovo riferimento FeMM:
 `../_OLD/FeMM 30-5-2024/Test1/FeMM`, usato esclusivamente in lettura.
+
+## Tracciamento delle verifiche (step 5)
+
+Eseguiti 54 controlli ARAP e 153 controlli in Rhino/.NET Framework: inventario 66,
+form finding 38, patterning 43, reti 6. Nessun fallimento o controllo saltato;
+confronto FeMM rigoroso completato. I report includono runtime e conteggi per suite.
+Provata anche l'assenza dei sorgenti: errore con `--require-femm`; senza l'opzione,
+89 verifiche superate e 64 confronti saltati, esplicitamente registrati.
+La regressione ripetibile è `tests/Build.Tests.ps1`.

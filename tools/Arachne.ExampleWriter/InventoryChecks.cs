@@ -11,6 +11,14 @@ using Grasshopper.Kernel;
 internal static class InventoryChecks
 {
     private static int passed, failed;
+    internal static int Skipped { get; private set; }
+    internal static string FemmStatus { get; private set; }
+    internal static SuiteReport Summary => new SuiteReport { Name = "Inventory", Passed = passed, Failed = failed, Skipped = Skipped };
+    private static readonly HashSet<string> NewComponents = new HashSet<string>
+    {
+        "MaterialMembraneComponent", "SolverOptionsComponent", "CheckModelComponent",
+        "BeamForcesComponent", "SupportReactionsComponent", "PanelDistortionComponent"
+    };
     private static void Test(string name, Action action)
     {
         try { action(); passed++; Console.WriteLine("INVENTORY PASS " + name); }
@@ -21,11 +29,13 @@ internal static class InventoryChecks
     internal static List<IGH_DocumentObject> Objects()
         => Icons.DocumentObjectTypes(typeof(FormFindComponent).Assembly).Select(t => (IGH_DocumentObject)Activator.CreateInstance(t)).ToList();
 
-    internal static int Run(string root, string femm)
+    internal static int Run(string root, string femm, bool requireFemm = false)
     {
         passed = failed = 0;
+        Skipped = 0;
+        FemmStatus = "NotRun";
         var objects = Objects();
-        bool femmAvailable = Directory.Exists(femm);
+        bool femmAvailable = Directory.Exists(Path.Combine(femm, "FeMM.Grasshopper"));
         var femmFiles = femmAvailable
             ? Directory.GetFiles(Path.Combine(femm, "FeMM.Grasshopper"), "*.cs", SearchOption.AllDirectories).Where(f => !f.Contains("\\obj\\") && !f.Contains("\\bin\\")).ToList()
             : new List<string>();
@@ -42,6 +52,7 @@ internal static class InventoryChecks
                 var femmGuids = new HashSet<Guid>(femmFiles.SelectMany(f => Regex.Matches(File.ReadAllText(f), @"ComponentGuid\s*=>\s*new\s+Guid\(""([0-9A-Fa-f\-]{36})""\)").Cast<Match>())
                     .Select(m => Guid.Parse(m.Groups[1].Value)));
                 var shared = objects.Where(o => femmGuids.Contains(o.ComponentGuid)).Select(o => o.Name).ToList();
+                Check(femmGuids.Count > 0, "No FeMM GUIDs found in the reference sources");
                 Check(shared.Count == 0, "FeMM GUIDs: " + string.Join(", ", shared));
             });
 
@@ -66,14 +77,25 @@ internal static class InventoryChecks
             foreach (var component in objects.OfType<GH_Component>().OrderBy(c => c.GetType().Name))
             {
                 string source = femmFiles.FirstOrDefault(f => Path.GetFileNameWithoutExtension(f) == component.GetType().Name);
-                if (source == null) { Console.WriteLine("INVENTORY NOTE no FeMM source for " + component.GetType().Name); continue; }
+                if (NewComponents.Contains(component.GetType().Name)) continue;
+                if (source == null)
+                {
+                    if (requireFemm) Test("FeMM source: " + component.GetType().Name, () => Check(false, "Reference source missing"));
+                    else { Skipped++; Console.WriteLine("INVENTORY SKIP no FeMM source for " + component.GetType().Name); }
+                    continue;
+                }
                 Test("Same inputs and outputs as FeMM: " + component.Name, () => CompareParameters(component, File.ReadAllText(source)));
             }
         }
         else
-            Console.WriteLine("INVENTORY NOTE FeMM sources not found, input/output comparison skipped: " + femm);
+        {
+            if (requireFemm) Test("FeMM reference sources", () => Check(false, "FeMM sources not found: " + femm));
+            else Skipped += 1 + objects.OfType<GH_Component>().Count(c => !NewComponents.Contains(c.GetType().Name));
+            Console.WriteLine("INVENTORY " + (requireFemm ? "FAIL" : "SKIP") + " FeMM reference sources: " + femm);
+        }
+        FemmStatus = failed > 0 ? "Failed" : !femmAvailable ? "Skipped" : Skipped > 0 ? "Incomplete" : "Passed";
 
-        Console.WriteLine("Inventory checks: " + passed + " passed, " + failed + " failed.");
+        Console.WriteLine("Inventory checks: " + passed + " passed, " + failed + " failed, " + Skipped + " skipped.");
         return failed;
     }
 

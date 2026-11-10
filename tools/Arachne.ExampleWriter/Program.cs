@@ -7,17 +7,28 @@ using Grasshopper.Kernel;
 
 internal static class Program
 {
-    private const string Usage = "Usage: ExampleWriter <Arachne root> <Rhino System> <Grasshopper dir> [--tests-only|--examples|--icons] [--femm <FeMM sources>]";
+    private const string Usage = "Usage: ExampleWriter <Arachne root> <Rhino System> <Grasshopper dir> [--tests-only|--examples|--icons] [--femm <FeMM sources>] [--require-femm] [--report <json>]";
+    private static readonly CheckReport Report = new CheckReport();
 
     [STAThread]
     private static int Main(string[] args)
     {
         if (args.Length < 3) { Console.Error.WriteLine(Usage); return 2; }
+        foreach (string option in new[] { "--femm", "--report" })
+        {
+            int index = Array.IndexOf(args, option);
+            if (index >= 0 && (index + 1 == args.Length || args[index + 1].StartsWith("--")))
+            { Console.Error.WriteLine("Missing value for " + option); return 2; }
+        }
         var root = Path.GetFullPath(args[0]);
         string mode = args.Skip(3).FirstOrDefault(a => a == "--tests-only" || a == "--examples" || a == "--icons");
         int femmIndex = Array.IndexOf(args, "--femm");
         string femm = femmIndex >= 0 && femmIndex + 1 < args.Length ? Path.GetFullPath(args[femmIndex + 1])
             : Path.GetFullPath(Path.Combine(root, "..", "FeMM 30-5-2024", "Test1", "FeMM"));
+        Report.FemmSources = femm;
+        Report.RequireFemm = args.Contains("--require-femm");
+        int reportIndex = Array.IndexOf(args, "--report");
+        string reportPath = reportIndex < 0 ? null : args[reportIndex + 1];
         // The tool checks the plug-in built next to it, with the same configuration:
         // <bin>\Arachne.ExampleWriter\<configuration>\net48 -> <bin>\Arachne.Grasshopper\<configuration>\net48
         var toolDir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
@@ -36,10 +47,15 @@ internal static class Program
         };
         try
         {
+            if (Report.RequireFemm && !Directory.Exists(Path.Combine(femm, "FeMM.Grasshopper")))
+            { Report.FemmComparison = "Failed"; throw new DirectoryNotFoundException("Required FeMM reference sources missing: " + femm); }
             if (mode == "--icons") return Icons.Write(root, Path.Combine(pluginDir, "Arachne.Grasshopper.gha"), "NodeComponent");
-            return StartRhino(root, pluginDir, mode, femm);
+            int result = StartRhino(root, pluginDir, mode, femm);
+            Report.Status = result == 0 ? (Report.Suites.Any(s => s.Skipped > 0) ? "PassedWithSkips" : "Passed") : "Failed";
+            return result;
         }
-        catch (Exception error) { Console.Error.WriteLine(error); return 1; }
+        catch (Exception error) { Report.Error = error.ToString(); Console.Error.WriteLine(error); return 1; }
+        finally { if (reportPath != null) Report.Save(reportPath); }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -75,9 +91,14 @@ internal static class Program
 
         if (mode != "--examples")
         {
-            int failures = InventoryChecks.Run(root, femm) + FormFindingChecks.Run() + PatterningChecks.Run() + NetworkChecks.Run();
+            int failures = InventoryChecks.Run(root, femm, Report.RequireFemm);
+            Report.Suites.Add(InventoryChecks.Summary);
+            Report.FemmComparison = InventoryChecks.FemmStatus;
+            failures += FormFindingChecks.Run(); Report.Suites.Add(FormFindingChecks.Summary);
+            failures += PatterningChecks.Run(); Report.Suites.Add(PatterningChecks.Summary);
+            failures += NetworkChecks.Run(); Report.Suites.Add(NetworkChecks.Summary);
             if (failures > 0) { Console.WriteLine("FAILED checks: " + failures); return 1; }
-            Console.WriteLine("All checks passed.");
+            Console.WriteLine(Report.Suites.Any(s => s.Skipped > 0) ? "Executed checks passed; reference comparisons were skipped (see report)." : "All checks passed.");
             if (mode == "--tests-only") return 0;
         }
         FormFindingExample.Write(root);
