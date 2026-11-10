@@ -1,64 +1,18 @@
-using System;
-using System.Collections.Generic;
+using GPC.Model.Core;
+using GPC.Model.Elements;
 using Grasshopper.Kernel.Types;
-using Arachne.Common.Models;
 
 namespace Arachne.Grasshopper.DataTypes
 {
-    public class GH_NodeResults : GH_Goo<List<ResultModel>>
+    /// <summary>The results of a node: the GPC element with its results (form-finding dataset).</summary>
+    public class GH_NodeResults : GpcGoo<NodeElement>
     {
-        #region Properties
-
-        public override bool IsValid => Value != null && Value.Count > 0;
-
-        public override string IsValidWhyNot => "Invalid or empty node results";
-
         public override string TypeName => "Node Result";
-
         public override string TypeDescription => "The node analysis results";
-
-        #endregion
-
-        #region Constructors
-
-        public GH_NodeResults()
-        {
-        }
-
-        public GH_NodeResults(GH_Node node)
-            : this()
-        {
-            Value = new List<ResultModel>(node.Value.Results);
-        }
-
-        #endregion
-
-        #region GH_Goo implementation functions
-
-        public override IGH_Goo Duplicate()
-        {
-            return new GH_NodeResults
-            {
-                Value = new List<ResultModel>(Value)
-            };
-        }
-
-        /*public bool CastFrom(object source)
-        {
-            return false; ;
-        }
-
-        public bool CastTo<T>(out T target)
-        {
-            target = default(T);
-            return false;
-        }*/
-
-        public override string ToString()
-        {
-            return Value.ToString();
-        }
-
-        #endregion
+        public GH_NodeResults() { }
+        public GH_NodeResults(GH_Node element) : base(element?.Value == null ? null : ModelValues.CopyValue(element.Value, Arachne.Common.Analysis.SharedCopies.Options)) { }
+        public GH_NodeResults(NodeElement element) : base(element) { }
+        public override IGH_Goo Duplicate() => new GH_NodeResults(CopySharing(Value));
+        public override string ToString() => Value == null ? "No results" : "Node Results: " + Value.Results.Count;
     }
 }

@@ -23,7 +23,7 @@ internal static class Program
             { Console.Error.WriteLine("Missing value for " + option); return 2; }
         }
         var root = Path.GetFullPath(args[0]);
-        string mode = args.Skip(3).FirstOrDefault(a => a == "--tests-only" || a == "--examples" || a == "--icons");
+        string mode = args.Skip(3).FirstOrDefault(a => a == "--tests-only" || a == "--examples" || a == "--icons" || a == "--migration-scale" || a == "--f6-contracts");
         int femmIndex = Array.IndexOf(args, "--femm");
         string femm = femmIndex >= 0 && femmIndex + 1 < args.Length ? Path.GetFullPath(args[femmIndex + 1])
             : Path.GetFullPath(Path.Combine(root, "..", "FeMM 30-5-2024", "Test1", "FeMM"));
@@ -117,12 +117,15 @@ internal static class Program
         if (loader == null || !(bool)loader.Invoke(Grasshopper.Instances.ComponentServer, new object[] { new GH_ExternalFile(pluginPath), false }))
             throw new InvalidOperationException("Could not register the Arachne plugin for archive verification.");
         GH_Document.EnableSolutions = true;
+        if (mode == "--migration-scale") return MigrationScale.Run();
+        if (mode == "--f6-contracts") return F6ContractsChecks.Run();
 
         if (mode != "--examples")
         {
             int failures = InventoryChecks.Run(root, femm, Report.RequireFemm);
             Report.Suites.Add(InventoryChecks.Summary);
             Report.FemmComparison = InventoryChecks.FemmStatus;
+            failures += F6ContractsChecks.Run(); Report.Suites.Add(F6ContractsChecks.Summary);
             failures += FormFindingChecks.Run(); Report.Suites.Add(FormFindingChecks.Summary);
             failures += PatterningChecks.Run(); Report.Suites.Add(PatterningChecks.Summary);
             failures += NetworkChecks.Run(); Report.Suites.Add(NetworkChecks.Summary);

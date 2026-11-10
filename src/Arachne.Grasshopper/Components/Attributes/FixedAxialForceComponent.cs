@@ -1,4 +1,7 @@
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using GPC.Model.Analysis;
+using GPC.Model.Attributes;
+using GPC.Model.Core;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -43,26 +46,17 @@ namespace Arachne.Grasshopper.Components.Attributes
         {
             GH_Beam beam = null;
             GH_LoadCase lc = null;
-            double value = 0;
-            double weight = 0;
-
-            if (!DA.GetData("Beam", ref beam))
-                return;
-            if (!DA.GetData("LoadCase", ref lc))
-                return;
-            if (!DA.GetData("Value", ref value))
-                return;
+            double value = 0, weight = 0;
+            if (!DA.GetData("Beam", ref beam)) return;
+            if (!DA.GetData("LoadCase", ref lc)) return;
+            if (!DA.GetData("Value", ref value)) return;
             DA.GetData("Weight", ref weight);
-
-            if (weight <= 0)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Weight parameter must be > 0");
-                return;
-            }
-
-            BeamModel newBeam = new BeamModel(beam.Value);
-            newBeam.Loads.Add(new FixedAxialForceModel(lc.Value, value, weight));
-            DA.SetData(0, new GH_Beam(newBeam, beam.Guid)); // same identity, so Build Model merges it with the other copies
+            if (weight <= 0) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Weight parameter must be > 0"); return; }
+            var goal = new FormFindingGoal { Kind = FormFindingGoalKind.AxialForce, Target = value, Weight = weight };
+            // Same identity, so Build Model merges it with the other copies
+            var copy = new GH_Beam(beam);
+            copy.Value.Attributes.Add(new FormFindingGoalAttribute(goal, ModelValues.CopyValue(lc.Value)));
+            DA.SetData(0, copy);
         }
 
         public override GH_Exposure Exposure => GH_Exposure.secondary;

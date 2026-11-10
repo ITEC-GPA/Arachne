@@ -1,110 +1,40 @@
 using Arachne.Common.Helpers;
-using Arachne.Common.Models;
-using GH_IO.Serialization;
+using GPC.Model;
+using GPC.Model.ElementProperties;
+using GPC.Model.Materials;
 using Grasshopper.Kernel.Types;
-using System;
 
 namespace Arachne.Grasshopper.DataTypes
 {
-    public class GH_Material : GH_Goo<MaterialModel>
+    /// <summary>A material: a GPC <see cref="Material"/> (values in N, mm, t, as FeMM), or for Membrane Material a GPC
+    /// <see cref="MembranePlateProperty"/>: in GPC a coated fabric is a property per unit width, not an isotropic material (review B3).</summary>
+    public class GH_Material : GpcGoo<ModelObject>
     {
-        public GH_Material()
-        {
-            Value = new MaterialModel();
-        }
-
-        public GH_Material(MaterialModel material)
-        {
-            Value = material;
-        }
-
-        public override bool IsValid => Value == null ? false : Value.IsValid;
-
         public override string TypeName => "Material";
-
         public override string TypeDescription => "Material definition";
-
-        public override IGH_Goo Duplicate()
+        public GH_Material() { }
+        /// <summary>The material itself, not a copy: the material components hand over a new one, and a material is immutable
+        /// (<see cref="GpcGoo{T}"/>).</summary>
+        public GH_Material(ModelObject material) : base(material) { }
+        public Material Material => Value as Material;
+        public MembranePlateProperty Membrane => Value as MembranePlateProperty;
+        public override bool IsValid => Value is Material || Value is MembranePlateProperty;
+        // Immutable: a copy of the data shares it, as in FeMM.
+        public override IGH_Goo Duplicate() => new GH_Material(Value);
+        protected override byte[] Archive(ModelObject value) => ContractArchive.Member(value);
+        protected override ModelObject Restore(byte[] data) => ContractArchive.ReadMember<ModelObject>(data);
+        public override bool CastFrom(object source)
         {
-            return new GH_Material(Value);
-        }
-
-        public override bool Write(GH_IWriter writer)
-        {
-            if (base.Write(writer))
-            {
-                try
-                {
-                    writer.SetByteArray("Data", SerializationHelper.ToBytes(Value));
-                    return true;
-
-                    //writer.SetString("Id", Value.Id);
-                    //writer.SetString("Name", Value.Name);
-                    //writer.SetInt32("Kind", (int)Value.Kind);
-                    //writer.SetDouble("Modulus", Value.Modulus);
-                    //writer.SetDouble("PoissonRatio", Value.PoissonRatio);
-                    //writer.SetDouble("ShearModulus", Value.ShearModulus);
-                    //writer.SetBoolean("UsePoisson", Value.UsePoisson);
-                    //writer.SetDouble("Density", Value.Density);
-                    //writer.SetDouble("ViscousDamping", Value.ViscousDamping);
-                    //writer.SetDouble("DampingRatio", Value.DampingRatio);
-                    //writer.SetDouble("ThermalExpansion", Value.ThermalExpansion);
-                    //writer.SetInt32("TemperatureOnTime", (int)Value.TemperatureOnTime);
-                    //writer.SetInt32("Mode", (int)Value.Mode);
-                    //writer.SetInt32("Hardening", (int)Value.Hardening);
-                    //writer.SetDouble("SpecificHeat", Value.SpecificHeat);
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("GH_Material.Write: {0}", e.Message);
-                    return false;
-                }
-                //return true;
-            }
-
+            if (source is Material || source is MembranePlateProperty) { Value = Copy((ModelObject)source); return true; }
             return false;
         }
-
-        public override bool Read(GH_IReader reader)
-        {
-            if (base.Read(reader))
-            {
-                try
-                {
-                    Value = SerializationHelper.FromBytes<MaterialModel>(reader.GetByteArray("Data"));
-                    //MaterialModel material = new MaterialModel(reader.GetString("Id"));
-                    //material.Name = reader.GetString("Name");
-                    //material.Kind = (MaterialModel.MaterialKind)reader.GetInt32("Kind");
-                    //material.Modulus = reader.GetDouble("Modulus");
-                    //material.PoissonRatio = reader.GetDouble("PoissonRatio");
-                    //material.ShearModulus = reader.GetDouble("ShearModulus");
-                    //material.UsePoisson = reader.GetBoolean("UsePoisson");
-                    //material.Density = reader.GetDouble("Density");
-                    //material.ViscousDamping = reader.GetDouble("ViscousDamping");
-                    //material.DampingRatio = reader.GetDouble("DampingRatio");
-                    //material.ThermalExpansion = reader.GetDouble("ThermalExpansion");
-                    //material.TemperatureOnTime = (MaterialModel.TemperatureOnTimeType)reader.GetInt32("TemperatureOnTime");
-                    //material.Mode = (MaterialModel.MaterialMode)reader.GetInt32("Mode");
-                    //material.Hardening = (MaterialModel.HardeningType)reader.GetInt32("Hardening");
-                    //material.SpecificHeat = reader.GetDouble("SpecificHeat");
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("GH_Material.Read: {0}", e.Message);
-                    return false;
-                }
-                return true;
-            }
-
-            return false;
-        }
-
         public override string ToString()
         {
-            if (Value == null)
-                return "Null Material";
-            else
-                return Value.ToString();
+            if (Value is MembranePlateProperty m)
+                return $"Membrane: {m.Name};\nWeight: {m.MassPerArea} t/mm²;\nStrength warp: {m.StrengthWarp} N/mm;\nStrength weft: {m.StrengthWeft} N/mm;\n" +
+                    $"Stiffness warp: {m.StiffnessWarp} N/mm;\nStiffness weft: {m.StiffnessWeft} N/mm;\nPoisson ratio: {m.NuWarpWeft};\nShear stiffness: {m.ShearStiffness} N/mm";
+            if (Value is Material mat) return $"Material: {mat.Name};\nE: {mat.ElasticModulusTension} MPa;\nPoisson ratio: {mat.Ni};\nDensity: {mat.Density} t/mm³;\nThermal expansion: {mat.AlfaThermalExpansion}";
+            return "Null Material";
         }
     }
 }

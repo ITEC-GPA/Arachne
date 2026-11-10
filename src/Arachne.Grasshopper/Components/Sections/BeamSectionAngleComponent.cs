@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Arachne.Common.Models;
+using Arachne.Common.Geometry;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -59,24 +59,23 @@ namespace Arachne.Grasshopper.Components.Sections
             DA.GetData(4, ref mirrored);
             DA.GetData(5, ref gap);
 
-            SectionModel sectionModel = new SectionModel()
+            var sectionModel = new SectionCalculator()
             {
-                SectionType = SectionModel.SectionTypes.Angle,
+                Type = SectionCalculator.Kind.Angle,
                 D = d,
                 B = b,
                 T1 = t1,
                 T2 = t2
             };
 
-            GH_BeamSection section = new GH_BeamSection(sectionModel);
             if (mirrored)
             {
-                section.MirrorType = SectionModel.MirrorTypes.Left;
-                section.MirrorGapA = gap;
+                sectionModel.Mirror = SectionCalculator.Mirroring.Left;
+                sectionModel.MirrorGapA = gap;
             }
 
-            sectionModel.CalculateSection();
-            DA.SetData(0, section);
+            sectionModel.Calculate();
+            DA.SetData(0, new GH_BeamSection(sectionModel.ToSection()));
         }
 
         /// <summary>
@@ -89,4 +88,4 @@ namespace Arachne.Grasshopper.Components.Sections
         /// </summary>
         public override Guid ComponentGuid => new Guid("ea358ee1-c6ec-4849-9411-77fa20cc0b8c");
     }
-}
+}

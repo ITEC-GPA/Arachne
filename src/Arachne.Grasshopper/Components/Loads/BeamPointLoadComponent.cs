@@ -2,7 +2,7 @@ using System;
 using Grasshopper.Kernel;
 using GH_IO.Serialization;
 using Rhino.Geometry;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.Helpers;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Components.Parameters;
@@ -57,38 +57,21 @@ namespace Arachne.Grasshopper.Components.Loads
             GH_Beam beam = null;
             GH_LoadCase lc = null;
             GH_CoordinateSystem cs = null;
-            if (!DA.GetData("Beam", ref beam))
-                return;
-            if (!DA.GetData("LoadCase", ref lc))
-                return;
-            bool has_cs = DA.GetData("Coordinate System", ref cs);
-
-            double p1 = 0, p2 = 0, p3 = 0;
-            double a = 0;
-            bool p1_has_value = DA.GetData("P1", ref p1);
-            bool p2_has_value = DA.GetData("P2", ref p2);
-            bool p3_has_value = DA.GetData("P3", ref p3);
-            bool a_has_value = DA.GetData("a", ref a);
-
+            if (!DA.GetData("Beam", ref beam)) return;
+            if (!DA.GetData("LoadCase", ref lc)) return;
+            DA.GetData("Coordinate System", ref cs);
+            double p1 = 0, p2 = 0, p3 = 0, a = 0;
+            DA.GetData("P1", ref p1); DA.GetData("P2", ref p2); DA.GetData("P3", ref p3); DA.GetData("a", ref a);
             // The form finding does not handle the beam local axes: no coordinate system means Global
-            CoordinateSystemModel coordinateSystem = cs?.Value ?? CoordinateSystemModel.Global;
-            Message = string.Format("Coordinate System: {0}", coordinateSystem.Name);
-
-            if (a < 0 || a >= 1)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "The 'a' value must be between 0 and 1");
-                return;
-            }
-            BeamPointLoadModel.LoadData load_value = new BeamPointLoadModel.LoadData()
-            {
-                CoordinateSystem = coordinateSystem,
-                P = new Vector3d(p1, p2, p3),
-                A = a
-            };
-            BeamPointLoadModel load = new BeamPointLoadModel(lc.Value, load_value, BeamPointLoadModel.LoadType.Force);
-            GH_Beam newBeam = new GH_Beam(beam);
-            newBeam.Value.Loads.Add(load);
-            DA.SetData(0, newBeam);
+            var coordinateSystem = cs?.Value ?? GPC.Geometry.CoordinateSystem.Global;
+            Message = string.Format("Coordinate System: {0}", string.IsNullOrEmpty(coordinateSystem.Name) ? "Global" : coordinateSystem.Name);
+            if (a < 0 || a >= 1) { AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "The 'a' value must be between 0 and 1"); return; }
+            // The force in global axes, as the former assembly, at the fraction a of the beam from its first node
+            var p = BeamLoadKinds.ToGlobal(coordinateSystem, new Vector3d(p1, p2, p3));
+            var copy = new GH_Beam(beam);
+            copy.Value.Assignments.Loads.Add(new GPC.Model.Loads.Assignments.BeamLoadAssignment { Start = a, End = a,
+                Concentrated = new GPC.Model.Loads.PointLoad(p.X, p.Y, p.Z, 0, 0, 0, copy.Value.StartPoint, GPC.Model.Core.ModelValues.CopyValue(lc.Value), GPC.Geometry.CoordinateSystem.Global) });
+            DA.SetData(0, copy);
         }
 
         public override GH_Exposure Exposure => GH_Exposure.secondary;

@@ -2,10 +2,10 @@
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
-    <Version>0.3.0-rc.9</Version>
-    <!-- The fourth number follows the release candidate, so the file version of the DLLs changes too -->
-    <AssemblyVersion>0.3.0.9</AssemblyVersion>
-    <FileVersion>0.3.0.9</FileVersion>
+    <Version>0.4.0-f6.4</Version>
+    <!-- F6 development candidate: production GPC boundary and archive migration; not a release. -->
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
+    <FileVersion>0.4.0.0</FileVersion>
     <Authors>GPC</Authors>
     <ArachneRoot>$(MSBuildThisFileDirectory)</ArachneRoot>
     <!-- Outputs in the repository's root bin, bin\<project>\<configuration>. The intermediates stay
@@ -22,5 +22,12 @@
     <RhinoSystemDir Condition="'$(RhinoSystemDir)' == ''">C:\Program Files\Rhino 8\System</RhinoSystemDir>
     <GrasshopperDir Condition="'$(GrasshopperDir)' == ''">C:\Program Files\Rhino 8\Plug-ins\Grasshopper</GrasshopperDir>
     <NuGetAudit>false</NuGetAudit>
+    <!-- The GPC projects of ../Model are outside Arachne.sln. In a solution build MSBuild would compile them with their default
+         configuration (Debug) and a Release plug-in would ship Debug GPC libraries: they follow the configuration of Arachne.
+         This reaches Arachne's references only. Model sets the same property for its own references (GPCModel, GPC.Archive)
+         from commit bc5a7a07 (branch claude/f8-model-build-props); with an older Model they still build in Debug and Persistence
+         is compiled against them, with other bytes than the set. scripts/build.ps1 passes the property to every project and
+         checks the bytes with -ReleaseSet. -->
+    <ShouldUnsetParentConfigurationAndPlatform>false</ShouldUnsetParentConfigurationAndPlatform>
   </PropertyGroup>
 </Project>

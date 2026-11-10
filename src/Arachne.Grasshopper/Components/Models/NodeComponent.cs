@@ -1,3 +1,6 @@
+using Arachne.Common.Helpers;
+using System.Linq;
+using Arachne.Common.Analysis;
 using System;
 using System.Collections.Generic;
 using Arachne.Grasshopper.DataTypes;
@@ -40,10 +43,8 @@ namespace Arachne.Grasshopper.Components.Models
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             Point3d point = Point3d.Unset;
-            if (!DA.GetData("Point", ref point))
-                return;
-
-            DA.SetData("Node", new GH_Node(point));
+            if (!DA.GetData("Point", ref point)) return;
+            DA.SetData("Node", new GH_Node(point, Helpers.ComponentInputIdentity.For(this, DA)));
         }
 
         public override GH_Exposure Exposure => GH_Exposure.secondary;

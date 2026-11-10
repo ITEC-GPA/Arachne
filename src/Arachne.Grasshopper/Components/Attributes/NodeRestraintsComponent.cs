@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using GPC.Model.Analysis;
+using GPC.Model.Attributes;
+using GPC.Model.Core;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -48,53 +51,40 @@ namespace Arachne.Grasshopper.Components.Attributes
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             GH_Node node = null;
-            if (!DA.GetData("Node", ref node))
-                return;
-
-            GH_Node newNode = new GH_Node(node);
-
-            List<IGH_Goo> trans = new List<IGH_Goo>();
+            if (!DA.GetData("Node", ref node)) return;
+            var copy = new GH_Node(node);
+            var trans = new List<IGH_Goo>();
             DA.GetDataList(1, trans);
             Plane plane = Plane.Unset;
             DA.GetData(2, ref plane);
-
-            NodeRestraintAttributeModel.AttributeData attr = new NodeRestraintAttributeModel.AttributeData();
+            var restrained = new bool[3];
             for (int i = 0; i < trans.Count && i < 3; i++)
             {
-                bool restrained;
-                if (trans[i].CastTo(out bool b))
-                    restrained = b;
-                else if (trans[i].CastTo(out double _))
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Defines the displacement using Displacement load");
-                    DA.AbortComponentSolution();
-                    return;
-                }
-                else if (trans[i].CastTo(out string s) && bool.TryParse(s, out b))
-                    restrained = b;
-                else if (trans[i].CastTo(out s) && double.TryParse(s, out _))
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Defines the displacement using Displacement load");
-                    DA.AbortComponentSolution();
-                    return;
-                }
-                else
-                    continue;
-
-                if (i == 0)
-                    attr.Tx = restrained;
-                else if (i == 1)
-                    attr.Ty = restrained;
-                else
-                    attr.Tz = restrained;
+                bool value;
+                if (trans[i].CastTo(out bool b)) value = b;
+                else if (trans[i].CastTo(out double _)) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Defines the displacement using Displacement load"); DA.AbortComponentSolution(); return; }
+                else if (trans[i].CastTo(out string s) && bool.TryParse(s, out b)) value = b;
+                else if (trans[i].CastTo(out s) && double.TryParse(s, out _)) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Defines the displacement using Displacement load"); DA.AbortComponentSolution(); return; }
+                else continue;
+                restrained[i] = value;
             }
-
+            var dofs = new List<GPC.Model.Restraints.DofRestrain> {
+                new GPC.Model.Restraints.DofRestrain(GPC.Model.Restraints.GeometryRestrain.DOF.DX, restrained[0]),
+                new GPC.Model.Restraints.DofRestrain(GPC.Model.Restraints.GeometryRestrain.DOF.DY, restrained[1]),
+                new GPC.Model.Restraints.DofRestrain(GPC.Model.Restraints.GeometryRestrain.DOF.DZ, restrained[2]) };
+            GPC.Model.Restraints.NodeRestrain restrain = null;
             if (plane.IsValid)
-                attr.CoordinateSystem = CoordinateSystemModel.FromPlane(plane, "Restraint plane");
-
-            newNode.Value.Attributes.Add(new NodeRestraintAttributeModel(attr));
-
-            DA.SetData("Node", newNode);
+            {
+                // The axes of the restraints as FeMM's coordinate system of a plane: X = (O + X) - O, Z = X x ((O + Y) - O), Y = Z x X
+                Vector3d x = (plane.Origin + plane.XAxis) - plane.Origin, second = (plane.Origin + plane.YAxis) - plane.Origin;
+                Vector3d z = Vector3d.CrossProduct(x, second), y = Vector3d.CrossProduct(z, x);
+                if (z.Length > 1e-9 * x.Length * second.Length && x.Unitize() && y.Unitize())
+                    restrain = new GPC.Model.Restraints.NodeRestrain(copy.Value, new GPC.Geometry.CoordinateSystem(copy.Value.Position,
+                        new GPC.Geometry.Vector3d(x.X, x.Y, x.Z), new GPC.Geometry.Vector3d(y.X, y.Y, y.Z), "Restraint plane"), dofs);
+                else AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "The coordinate system of the restraints has no axes: the global axes are used.");
+            }
+            copy.Value.Assignments.Restrains.Add(new GPC.Model.Structure.Assignments.RestrainAssignment { Restrain = restrain ?? new GPC.Model.Restraints.NodeRestrain(copy.Value, dofs) });
+            DA.SetData("Node", copy);
         }
 
         /// <summary>

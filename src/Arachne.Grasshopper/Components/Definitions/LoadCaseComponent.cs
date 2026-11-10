@@ -1,5 +1,8 @@
 using System;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using GPC.Model.Analysis;
+using GPC.Model.Attributes;
+using GPC.Model.Core;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using Grasshopper.Kernel;
@@ -39,15 +42,9 @@ namespace Arachne.Grasshopper.Components.Definitions
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             string name = "";
-
-            if (!DA.GetData(0, ref name))
-                return;
-
-            LoadCaseModel lc = name == LoadCaseModel.Dead.Name ? new LoadCaseModel(LoadCaseModel.Dead) : new LoadCaseModel("", name);
-
+            if (!DA.GetData(0, ref name)) return;
             Message = name;
-
-            DA.SetData(0, new GH_LoadCase(lc));
+            DA.SetData(0, new GH_LoadCase(name));
         }
 
         protected override System.Drawing.Bitmap Icon => Arachne.Grasshopper.Helpers.ComponentIcons.Get(GetType().Name);

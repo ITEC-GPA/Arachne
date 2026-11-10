@@ -1,84 +1,35 @@
-using System;
 using Arachne.Common.Helpers;
-using Arachne.Common.Models;
-using GH_IO.Serialization;
+using GPC.Model.ElementProperties;
 using Grasshopper.Kernel.Types;
 
 namespace Arachne.Grasshopper.DataTypes
 {
-    public class GH_PlateProperty : GH_Goo<PlatePropertyModel>
+    /// <summary>A plate property: a GPC <see cref="ElasticPlateProperty"/> (material and thickness, document units) or, with a Membrane
+    /// Material, the GPC <see cref="MembranePlateProperty"/> of the fabric.</summary>
+    public class GH_PlateProperty : GpcGoo<PlateProperty>
     {
-        // Needed by Grasshopper to read the internalised data
-        public GH_PlateProperty()
-        {
-            Value = new PlatePropertyModel();
-        }
-
-        public GH_PlateProperty(PlatePropertyModel plateProperty)
-        {
-            Value = plateProperty;
-        }
-
-        #region Properties
-
-        public override bool IsValid => Value == null ? false : Value.IsValid;
-
         public override string TypeName => "PlateProperty";
-
         public override string TypeDescription => "Define a plate property";
-
-        #endregion
-
-        public override IGH_Goo Duplicate()
+        public GH_PlateProperty() { }
+        public GH_PlateProperty(PlateProperty property) : base(property) { }
+        public override bool IsValid => Value is ElasticPlateProperty || Value is MembranePlateProperty;
+        // The property is immutable (GpcGoo): a copy of the data shares it, as in FeMM.
+        public override IGH_Goo Duplicate() => new GH_PlateProperty(Value);
+        protected override byte[] Archive(PlateProperty value) => ContractArchive.Member(value);
+        protected override PlateProperty Restore(byte[] data) => ContractArchive.ReadMember<PlateProperty>(data);
+        public override bool CastFrom(object source)
         {
-            return new GH_PlateProperty(Value);
-        }
-
-        // The whole property, material and thickness included: FeMM wrote the material but read
-        // back only Id and Name
-        public override bool Write(GH_IWriter writer)
-        {
-            if (base.Write(writer))
-            {
-                try
-                {
-                    writer.SetByteArray("Data", SerializationHelper.ToBytes(Value));
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("GH_PlateProperty.Write: {0}", e.Message);
-                    return false;
-                }
-            }
-
+            if (source is ElasticPlateProperty || source is MembranePlateProperty) { Value = Copy((PlateProperty)source); return true; }
             return false;
         }
-
-        public override bool Read(GH_IReader reader)
-        {
-            if (base.Read(reader))
-            {
-                try
-                {
-                    Value = SerializationHelper.FromBytes<PlatePropertyModel>(reader.GetByteArray("Data"));
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("GH_PlateProperty.Read: {0}", e.Message);
-                    return false;
-                }
-                return true;
-            }
-            return false;
-        }
-
         public override string ToString()
         {
-            if (Value == null)
-                return "Null Plate property";
-            else
-                return Value.ToString();
+            switch (Value)
+            {
+                case ElasticPlateProperty e: return $"Plate property {e.Name}: thickness {e.MembraneThickness}, material {e.Material?.Name}";
+                case MembranePlateProperty m: return $"Plate property {m.Name}: membrane, weight {m.MassPerArea} t/mm²";
+                default: return "Null PlateProperty";
+            }
         }
     }
 }

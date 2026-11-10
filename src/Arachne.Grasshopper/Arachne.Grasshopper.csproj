@@ -5,6 +5,12 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(ArachneMigrationCapture)' == 'true'">
+    <DefineConstants>$(DefineConstants);ARACHNE_MIGRATION_CAPTURE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(ArachneMigrationCapture)' == 'true'">
+    <Compile Include="../../tools/Diagnostics/MigrationTensileCapture.cs" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Arachne.Common\Arachne.Common.csproj" />
     <ProjectReference Include="..\Arachne.Arap\Arachne.Arap.csproj" />

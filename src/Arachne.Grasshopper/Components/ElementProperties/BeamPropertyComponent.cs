@@ -1,4 +1,4 @@
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.DataTypes;
 using Arachne.Grasshopper.Helpers;
 using GH_IO.Serialization;
@@ -185,103 +185,47 @@ namespace Arachne.Grasshopper.Components.ElementProperties
             int type = 0;
             GH_BeamSection section = null;
             DataTypes.GH_Material material = null;
-            double maxTensionCB = 0;
-            double maxCompressionCB = 0;
+            double maxTensionCB = 0, maxCompressionCB = 0;
             int cutOffTypeCB = 0;
             bool keepMassCB = false;
-
-            if (!DA.GetData("Name", ref name))
-                return;
-            if (!DA.GetData("Type", ref type))
-                return;
-            if (!DA.GetData("Section", ref section))
-                return;
-            if (!DA.GetData("Material", ref material))
-                return;
+            if (!DA.GetData("Name", ref name)) return;
+            if (!DA.GetData("Type", ref type)) return;
+            if (!DA.GetData("Section", ref section)) return;
+            if (!DA.GetData("Material", ref material)) return;
             if (Params.Input.Count > 4)
             {
-                if (!DA.GetData(4, ref maxTensionCB))
-                    return;
-                if (!DA.GetData(5, ref maxCompressionCB))
-                    return;
-                if (!DA.GetData(6, ref cutOffTypeCB))
-                    return;
-                if (!DA.GetData(7, ref keepMassCB))
-                    return;
+                if (!DA.GetData(4, ref maxTensionCB)) return;
+                if (!DA.GetData(5, ref maxCompressionCB)) return;
+                if (!DA.GetData(6, ref cutOffTypeCB)) return;
+                if (!DA.GetData(7, ref keepMassCB)) return;
             }
-
-            SectionModel sectionModel = new SectionModel();
-
-            if (section.SectionType != SectionModel.SectionTypes.Generic)
-            {
-                sectionModel.SectionType = section.SectionType;
-                sectionModel.D = section.D;
-                sectionModel.B = section.B;
-                sectionModel.B1 = section.B1;
-                sectionModel.B2 = section.B2;
-                sectionModel.L = section.L;
-                sectionModel.T = section.T;
-                sectionModel.T1 = section.T1;
-                sectionModel.T2 = section.T2;
-                sectionModel.T3 = section.T3;
-                sectionModel.Mirror = section.MirrorType;
-                sectionModel.MirrorGapA = section.MirrorGapA;
-                sectionModel.MirrorGapB = section.MirrorGapB;
-                sectionModel.GenericShapes = section.GenericShapes;
-                sectionModel.CalculateSection();
-                sectionModel.I11 = section.I11;
-                sectionModel.I22 = section.I22;
-                sectionModel.W11 = section.W11;
-                sectionModel.W22 = section.W22;
-                sectionModel.SectionArea = section.SectionArea;
-                sectionModel.J = section.J;
-                sectionModel.Centroid = section.Centroid;
-
-                if (section.IsDBSection)
-                {
-                    sectionModel.ShearL1 = section.SL1;
-                    sectionModel.ShearL2 = section.SL2;
-                    sectionModel.ShearA1 = section.SA1;
-                    sectionModel.ShearA2 = section.SA2;
-                    sectionModel.AngleX1Rad = section.AngleX1;
-                }
-            }
-            else
-            {
-                sectionModel.SectionType = SectionModel.SectionTypes.Generic;
-                sectionModel.SectionArea = section.SectionArea;
-                sectionModel.I11 = section.I11;
-                sectionModel.I22 = section.I22;
-                sectionModel.J = section.J;
-                sectionModel.ShearL1 = section.SL1;
-                sectionModel.ShearL2 = section.SL2;
-                sectionModel.ShearA1 = section.SA1;
-                sectionModel.ShearA2 = section.SA2;
-                sectionModel.W11 = section.W11;
-                sectionModel.W22 = section.W22;
-                sectionModel.Centroid = section.Centroid;
-                sectionModel.AngleX1Rad = section.AngleX1;
-            };
-
-            BeamPropertyModel bp = new BeamPropertyModel
-            {
-                Name = name,
-                Material = material.Value,
-                Section = sectionModel,
-                PropertyType = (BeamPropertyType)type,
-            };
-
-            if (bp.PropertyType == BeamPropertyType.CutoffBar)
-            {
-                bp.MaxTension = maxTensionCB;//10.0E8;
-                bp.MaxCompression = maxCompressionCB;// 0;
-                bp.CutoffType = (CutoffType)cutOffTypeCB;// CutoffType.Ductile;
-                bp.KeepMass = keepMassCB;// true;
-            }
-
-            GH_BeamProperty gh_bp = new GH_BeamProperty(bp);
-            DA.SetData(0, gh_bp);
+            if (material.Material == null) { AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "A beam needs a material (a Membrane Material is for plates)"); return; }
+            // The section with the values computed by its component (FeMM: area, principal moments, moduli, torsion and centroid).
+            // A new property (new identity) citing the material and the section it receives, which are immutable and shared (GpcGoo).
+            var property = new GPC.Model.ElementProperties.ElasticBeamProperty(name, material.Material, section.Value);
+            if ((BeamPropertyType)type == BeamPropertyType.CutoffBar)
+                property.CutoffLaw = new GPC.Model.ElementProperties.BeamCutoffLaw { TensionLimit = maxTensionCB, CompressionLimit = maxCompressionCB,
+                    Failure = (CutoffType)cutOffTypeCB == CutoffType.Ductile ? GPC.Model.ElementProperties.BeamCutoffFailure.Ductile : GPC.Model.ElementProperties.BeamCutoffFailure.Brittle, KeepMass = keepMassCB };
+            DA.SetData(0, new GH_BeamProperty(property, Formulation((BeamPropertyType)type)));
         }
+
+        /// <summary>The FeMM property types as the GPC formulation of the beams.</summary>
+        private static GPC.Model.Structure.Assignments.BeamFormulation Formulation(BeamPropertyType type)
+        {
+            switch (type)
+            {
+                case BeamPropertyType.Cable: return GPC.Model.Structure.Assignments.BeamFormulation.Cable;
+                case BeamPropertyType.Truss: return GPC.Model.Structure.Assignments.BeamFormulation.Truss;
+                case BeamPropertyType.CutoffBar: return GPC.Model.Structure.Assignments.BeamFormulation.CutoffBar;
+                case BeamPropertyType.PointContact: return GPC.Model.Structure.Assignments.BeamFormulation.PointContact;
+                case BeamPropertyType.Pipe: return GPC.Model.Structure.Assignments.BeamFormulation.Pipe;
+                case BeamPropertyType.Connection: return GPC.Model.Structure.Assignments.BeamFormulation.Connection;
+                default: return GPC.Model.Structure.Assignments.BeamFormulation.StraightTwoNode;
+            }
+        }
+
+        public enum BeamPropertyType { Undefined = -1, SpringDamper, Cable, Truss, CutoffBar, PointContact, Beam, UserDefined, Pipe, Connection }
+        public enum CutoffType { Undefined = -1, Brittle, Ductile }
 
         /// <summary>
         /// Provides an Icon for the component.

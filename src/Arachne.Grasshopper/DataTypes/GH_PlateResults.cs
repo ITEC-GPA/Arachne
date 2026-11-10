@@ -1,54 +1,18 @@
-using System;
-using System.Collections.Generic;
+using GPC.Model.Core;
+using GPC.Model.Elements;
 using Grasshopper.Kernel.Types;
-using Arachne.Common.Models;
 
 namespace Arachne.Grasshopper.DataTypes
 {
-    public class GH_PlateResults : GH_Goo<List<ResultModel>>
+    /// <summary>The results of a plate: the GPC element with its results (form-finding dataset).</summary>
+    public class GH_PlateResults : GpcGoo<AreaElement>
     {
-        #region Properties
-
-        public override bool IsValid => Value != null && Value.Count > 0;
-
-        public override string IsValidWhyNot => "Invalid or empty plate results";
-
         public override string TypeName => "Plate Result";
-
-        public override string TypeDescription => "The plate" +
-            " analysis results";
-
-        #endregion
-
-        #region Constructors
-
-        public GH_PlateResults()
-        {
-        }
-
-        public GH_PlateResults(GH_Plate plate)
-            : this()
-        {
-            Value = new List<ResultModel>(plate.Value.Results);
-        }
-
-        #endregion
-
-        #region IGH_Goo implementation functions
-
-        public override IGH_Goo Duplicate()
-        {
-            return new GH_PlateResults
-            {
-                Value = new List<ResultModel>(Value)
-            };
-        }
-
-        public override string ToString()
-        {
-            return Value.ToString();
-        }
-
-        #endregion
+        public override string TypeDescription => "The plate analysis results";
+        public GH_PlateResults() { }
+        public GH_PlateResults(GH_Plate element) : base(element?.Value == null ? null : ModelValues.CopyValue(element.Value, Arachne.Common.Analysis.SharedCopies.Options)) { }
+        public GH_PlateResults(AreaElement element) : base(element) { }
+        public override IGH_Goo Duplicate() => new GH_PlateResults(CopySharing(Value));
+        public override string ToString() => Value == null ? "No results" : "Plate Results: " + Value.Results.Count;
     }
 }

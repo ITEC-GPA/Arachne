@@ -1,8 +1,8 @@
 using System;
 using System.Windows.Forms;
-using Arachne.Common.Models;
-using Arachne.Grasshopper.DataTypes;
+using Arachne.Common.Analysis;
 using Arachne.Grasshopper.Helpers;
+using Arachne.Grasshopper.DataTypes;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
 
@@ -55,9 +55,9 @@ namespace Arachne.Grasshopper.Components.Materials
 
             Message = _grades[grade];
 
-            MaterialModel material = new MaterialModel
+            MaterialInput material = new MaterialInput
             {
-                Kind = MaterialModel.MaterialKind.Steel,
+                Kind = MaterialInput.MaterialKind.Steel,
                 Name = name
             };
             // Note: Values are in N, m, C. Remember to convert them in the export if the model units are different
@@ -113,7 +113,7 @@ namespace Arachne.Grasshopper.Components.Materials
                     break;
             }
 
-            DA.SetData(0, new GH_Material(material));
+            DA.SetData(0, new GH_Material(material.ToGpc()));
         }
 
         /// <summary>

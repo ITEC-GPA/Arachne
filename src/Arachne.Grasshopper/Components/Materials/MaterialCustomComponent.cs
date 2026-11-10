@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Arachne.Common.Helpers;
-using Arachne.Common.Models;
+using Arachne.Common.Analysis;
+using Arachne.Grasshopper.Helpers;
 using Arachne.Grasshopper.DataTypes;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
@@ -33,15 +34,15 @@ namespace Arachne.Grasshopper.Components.Materials
             pManager.AddIntegerParameter("Kind", "K", "The kind of the material", GH_ParamAccess.item);
             Param_Integer param = (Param_Integer)pManager[1];
             // Membranes have their own component; Rebar was a SAP kind without properties here
-            Array values = Enum.GetValues(typeof(MaterialModel.MaterialKind));
-            foreach (MaterialModel.MaterialKind val in values)
-                if (val != MaterialModel.MaterialKind.Membrane && val != MaterialModel.MaterialKind.Rebar)
+            Array values = Enum.GetValues(typeof(MaterialInput.MaterialKind));
+            foreach (MaterialInput.MaterialKind val in values)
+                if (val != MaterialInput.MaterialKind.Membrane && val != MaterialInput.MaterialKind.Rebar)
                     param.AddNamedValue(val.GetDescription(), (int)val);
             pManager.AddIntegerParameter("Units", "U", "The measure units", GH_ParamAccess.item);
             // Mesaure units param
             Param_Integer type_param = (Param_Integer)pManager[2];
-            values = Enum.GetValues(typeof(ModelModel.ModelUnits));
-            foreach (ModelModel.ModelUnits val in values)
+            values = Enum.GetValues(typeof(ModelUnits));
+            foreach (ModelUnits val in values)
                 type_param.AddNamedValue(val.GetDescription(), (int)val);
             // Material data params
             _paramsIdx = new List<int>()
@@ -86,11 +87,11 @@ namespace Arachne.Grasshopper.Components.Materials
 
             if (!DA.GetData("Units", ref units))
                 return;
-            UpdateInputDescriptions((ModelModel.ModelUnits)units);
+            UpdateInputDescriptions((ModelUnits)units);
 
             if (!DA.GetData("Kind", ref kind))
                 return;
-            Message = ((MaterialModel.MaterialKind)kind).ToString();
+            Message = ((MaterialInput.MaterialKind)kind).ToString();
             if (!DA.GetData("Name", ref name))
                 return;
             if (!DA.GetData(_paramsIdx[0], ref modulus))
@@ -111,8 +112,8 @@ namespace Arachne.Grasshopper.Components.Materials
                 return;
 
             // Convert to Nmm
-            ModelHelper.GetUtilitiesConversionParams(
-                (ModelModel.ModelUnits)units,
+            Common.Helpers.ModelHelper.GetUtilitiesConversionParams(
+                (ModelUnits)units,
                 out UnitsConvert.LengthUnits lengthUnits,
                 out UnitsConvert.ForceUnits forceUnits,
                 out UnitsConvert.MassUnits massUnits,
@@ -125,9 +126,9 @@ namespace Arachne.Grasshopper.Components.Materials
             fk = UnitsConvert.ConvertToDefaultUnits(fk, pressureUnits, 1);
             ftk = UnitsConvert.ConvertToDefaultUnits(ftk, pressureUnits, 1);
 
-            MaterialModel material = new MaterialModel
+            MaterialInput material = new MaterialInput
             {
-                Kind = (MaterialModel.MaterialKind)kind,
+                Kind = (MaterialInput.MaterialKind)kind,
                 Name = name,
                 Modulus = modulus,
                 PoissonRatio = ni,
@@ -139,37 +140,37 @@ namespace Arachne.Grasshopper.Components.Materials
 
             switch (material.Kind)
             {
-                case MaterialModel.MaterialKind.Aluminium:
+                case MaterialInput.MaterialKind.Aluminium:
                     //material.MinimumYieldStress = mys;
                     //material.MinimumTensileStress = mts;
                     //material.ExpectedYieldStress = eys;
                     //material.ExpectedTensileStress = ets;
                     break;
-                case MaterialModel.MaterialKind.Concrete:
+                case MaterialInput.MaterialKind.Concrete:
                     material.SpecificCompressiveStrength = fk;
                     break;
-                case MaterialModel.MaterialKind.Steel:
+                case MaterialInput.MaterialKind.Steel:
                     material.MinimumYieldStress = fk;
                     material.MinimumTensileStress = ftk;
                     material.ExpectedYieldStress = 1.1 * fk;
                     material.ExpectedTensileStress = 1.1 * ftk;
                     break;
-                case MaterialModel.MaterialKind.Undefined:
+                case MaterialInput.MaterialKind.Undefined:
                     break;
                 default:
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unsupported kind: use the Membrane Material component for membranes");
                     return;
             }
 
-            DA.SetData(0, new GH_Material(material));
+            DA.SetData(0, new GH_Material(material.ToGpc()));
         }
 
-        private void UpdateInputDescriptions(ModelModel.ModelUnits units)
+        private void UpdateInputDescriptions(ModelUnits units)
         {
             switch (units)
             {
                 //do not change the variables here. also default units in utilities are affected
-                case ModelModel.ModelUnits.Knm:
+                case ModelUnits.Knm:
                     Params.Input[_paramsIdx[0]].NickName = _paramsName[0] + " (kPa)";
                     Params.Input[_paramsIdx[2]].NickName = _paramsName[2] + " (1/C)";
                     Params.Input[_paramsIdx[3]].NickName = _paramsName[3] + " (kPa)";
@@ -177,7 +178,7 @@ namespace Arachne.Grasshopper.Components.Materials
                     Params.Input[_paramsIdx[6]].NickName = _paramsName[6] + " (kPa)";
                     Params.Input[_paramsIdx[7]].NickName = _paramsName[7] + " (kPa)";
                     break;
-                case ModelModel.ModelUnits.SI:
+                case ModelUnits.SI:
                     Params.Input[_paramsIdx[0]].NickName = _paramsName[0] + " (Pa)";
                     Params.Input[_paramsIdx[2]].NickName = _paramsName[2] + " (1/C)";
                     Params.Input[_paramsIdx[3]].NickName = _paramsName[3] + " (Pa)";
@@ -185,7 +186,7 @@ namespace Arachne.Grasshopper.Components.Materials
                     Params.Input[_paramsIdx[6]].NickName = _paramsName[6] + " (Pa)";
                     Params.Input[_paramsIdx[7]].NickName = _paramsName[7] + " (Pa)";
                     break;
-                case ModelModel.ModelUnits.Nmm:
+                case ModelUnits.Nmm:
                     Params.Input[_paramsIdx[0]].NickName = _paramsName[0] + " (MPa)";
                     Params.Input[_paramsIdx[2]].NickName = _paramsName[2] + " (1/C)";
                     Params.Input[_paramsIdx[3]].NickName = _paramsName[3] + " (MPa)";
@@ -193,7 +194,7 @@ namespace Arachne.Grasshopper.Components.Materials
                     Params.Input[_paramsIdx[6]].NickName = _paramsName[6] + " (MPa)";
                     Params.Input[_paramsIdx[7]].NickName = _paramsName[7] + " (MPa)";
                     break;
-                case ModelModel.ModelUnits.IPS:
+                case ModelUnits.IPS:
                     Params.Input[_paramsIdx[0]].NickName = _paramsName[0] + " (psi)";
                     Params.Input[_paramsIdx[2]].NickName = _paramsName[2] + " (1/F)";
                     Params.Input[_paramsIdx[3]].NickName = _paramsName[3] + " (psi)";

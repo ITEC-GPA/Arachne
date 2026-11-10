@@ -55,7 +55,7 @@ try {
         if ($rhinoReport.Status -notin @('Passed','PassedWithSkips')) { throw 'Rhino check report did not pass.' }
         if ($RequireFemm -and $rhinoReport.FemmComparison -ne 'Passed') { throw 'FeMM comparison incomplete.' }
     }
-    $files = @('Arachne.Grasshopper.gha','Arachne.Common.dll','Arachne.Arap.dll','GPCGeometry.dll','GPCUtilities.dll','MathNet.Numerics.dll','TensileLib.dll','alglibnet2.dll')
+    $files = @('Arachne.Grasshopper.gha','Arachne.Common.dll','Arachne.Arap.dll','GPCGeometry.dll','GPCUtilities.dll','DelaunayMesh.dll','GPCModel.dll','GPC.Model.Persistence.dll','GPC.Archive.dll','MathNet.Numerics.dll','TensileLib.dll','alglibnet2.dll')
     $manifest = foreach ($name in $files) {
         $binaryPath = Join-Path $pluginDir $name
         [pscustomobject]@{
