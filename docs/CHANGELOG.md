@@ -1,8 +1,8 @@
 # Registro delle modifiche
 
-## 0.4.0 - in preparazione: oggetti GPC
+## 0.4.0-rc.1 - 10 novembre 2026: oggetti GPC e archivi senza BinaryFormatter
 
-Versione proposta 0.4.0 (DLL 0.4.0.0); il branch è ancora 0.4.0-f6.4 e la versione si fissa al rilascio, insieme a BridGHe 0.4.0, ReBear e ANTHEA 1.19.0 sullo stesso set di librerie GPC. GUID, ingressi e uscite dei componenti non cambiano (inventario 66/66). I numeri sono quelli della 0.3.0-rc.8 bit per bit, tranne il peso proprio in IPS (sotto).
+Versione DLL 0.4.0.1. Migrazione integrata sulla manutenzione 0.3.0-rc.9, con set GPC stabile del 2026-11-08 incluso e verificato. GUID, ingressi e uscite restano invariati (66 controlli di inventario). Il confronto con rc.9 dà 18 scenari identici bit per bit, 13 con sole differenze nel segno dello zero e il caso IPS con conversione della massa corretta (sotto).
 
 - **Oggetti GPC.** I dati Grasshopper portano oggetti di GPCModel: nodi, aste e piastre sono elementi GPC, il modello è un `Model` GPC, e così materiali, sezioni, proprietà, casi di carico, gruppi, sistemi di riferimento e opzioni del form finding. Il modello FEM preso da FeMM (`Arachne.Common/Models`, 32 file) è tolto. Arachne converte solo la geometria Rhino in geometria GPC e le unità scelte in Build Model in N e mm. Il plug-in contiene quindi anche GPCModel, GPC.Model.Persistence, GPC.Archive e DelaunayMesh: sono le stesse DLL di BridGHe e ReBear, che si caricano nello stesso Rhino, e devono venire dallo stesso set.
 - **`.gh` compatto, risultati nel file accanto.**
@@ -10,14 +10,13 @@ Versione proposta 0.4.0 (DLL 0.4.0.0); il branch è ancora 0.4.0-f6.4 e la versi
   - I risultati del Form Find vanno nel file `<documento>.<InstanceGuid>.gpc-results` accanto al `.gh`; nel `.gh` restano solo i riferimenti. **Copiare o spostare il `.gh` insieme ai suoi `.gpc-results`.** Con Salva con nome il file accanto si scrive nella nuova cartella.
   - All'apertura, con Auto Run spento, Form Find rimette le uscite dal file accanto senza ricalcolare (messaggio «Restored»). Se gli ingressi sono cambiati lo dice e chiede di rilanciare il calcolo. Se il file accanto manca, il `.gh` si apre lo stesso: Form Find lo segnala e il calcolo va rilanciato. Copia e incolla e Annulla portano il calcolo dentro i dati.
   - In 0.3 i risultati non si salvavano: con Auto Run spento il Form Find restava vuoto fino a Run.
-- **Compatibilità dei file.**
-  - I dati internalizzati di Arachne salvati dalla 0.3 (BinaryFormatter) non si leggono più. All'apertura un messaggio lo dice; componenti e fili restano, gli ingressi collegati si ricalcolano, i dati internalizzati vanno internalizzati di nuovo.
-  - I `.gh` con soli dati Grasshopper standard (curve, punti, numeri…), come gli esempi, si aprono identici: stessi oggetti, fili e risultati, bit per bit.
-  - All'inverso, un `.gh` salvato dalla 0.4 e aperto con la 0.3 perde i dati internalizzati di Arachne (componenti e fili restano), e la 0.3 non legge i `.gpc-results`.
+- **Archivi senza retrocompatibilità.** Solo `ARCGPC3` versione 2: eliminato anche il lettore XML v1 sperimentale. Nessun BinaryFormatter, lettore NRBF o convertitore. Non esistono documenti utente da migrare dalla 0.3. I vecchi payload sono rifiutati; una lettura fallita svuota i dati precedenti.
+- **Impronte stabili.** Normalizzati i soli zeri delle coordinate nella copia di analisi; contorni circolari deterministici fra runtime, senza arrotondare dimensioni o proprietà meccaniche.
+- **Persistenza robusta.** Salvataggio immediato dopo il solver, Save As e clipboard verificati; run con sidecar assente/corrotto scartati al nuovo salvataggio con avviso, senza bloccare la definizione. Accesso allo stato dal thread del documento.
 - **Cable e Fixed Axial Force sulla stessa asta** convivono, come nella 0.3: la forza di Fixed Axial Force sostituisce quella del tipo Cable. Il solutore Linear la ignora e lo dice con un Remark. Numeri uguali alla 0.3 con i tre solutori e con i componenti in tutti e due gli ordini (216/216).
 - **IPS in libbre-massa.** In IPS masse e densità sono in libbre-massa (Custom Material in lb/in³; le membrane restano in g/m²). Il solutore usa ora come unità di massa lbf·s²/in (la libbra-massa divisa per 386,0886). Nella 0.3 il peso proprio in IPS era 386 volte troppo grande e il calcolo divergeva (freccia −3,3E+43 in); ora la stessa fune dà freccia e reazioni del modello SI equivalente. Nmm, SI e kNm invariati bit per bit.
 - **Plate Property con un Membrane Material** crea una proprietà propria, con il suo nome e i valori della scheda: due Plate Property sulla stessa membrana restano due proprietà con i loro nomi in Build Model, come nella 0.3. Una versione intermedia le fondeva in una sola; c'è una prova apposta.
-- **Salvataggio e apertura più veloci** (rete con 3 aste per nodo, misure su .NET Framework):
+- **Misure storiche della migrazione** (non benchmark del rilascio rc.1; rete con 3 aste per nodo, .NET Framework):
 
   | | 0.3.0-rc.8 | 0.4.0 |
   |---|---:|---:|
@@ -37,12 +36,9 @@ Versione proposta 0.4.0 (DLL 0.4.0.0); il branch è ancora 0.4.0-f6.4 e la versi
   - un modello scomposto con Decompose e ricostruito perde i risultati del form finding precedente;
   - non si conservano: le aree a taglio della Generic Section, l'angolo delle piastre, il tipo del materiale (acciaio, calcestruzzo, alluminio) e il G esplicito del Custom Material, che nessuna uscita e nessun calcolo usavano;
   - anteprima: le sezioni circolari sono disegnate come poligoni di 64 lati.
-- **Compilazione.**
-  - Accanto ad Arachne serve anche il repository `../Model`, con i progetti GPC, oltre a Geometry, Utilities e tensilelib.
-  - `scripts/build.ps1` compila i progetti GPC in Release: prima la build della soluzione li compilava in Debug e li copiava nel plug-in Release. Ora anche Model tiene la configurazione dei suoi riferimenti (`Directory.Build.props`, `bc5a7a07`), e una `dotnet build Arachne.sln -c Release` semplice dà gli stessi byte dello script. Lo script resta il modo di compilare un rilascio.
-  - Lo script controlla le DLL del plug-in (quelle attese e nessun'altra; niente Gmsh né pacchetti NRBF) e le elenca in `DEPENDENCIES.json`. Con `-ReleaseSet <release-set.json>` controlla che le librerie GPC siano i file del set, per SHA-256.
-- **Verifiche:** 164 controlli in Rhino/Grasshopper (66 inventario, 10 contratti GPC, 39 form finding, 43 patterning, 6 reti) e 54 del motore ARAP. `tools/Arachne.Compare` confronta con la 0.3 lo stesso insieme di definizioni (31 scenari identici, 1 diverso per decisione: IPS). Apre anche gli esempi con le due versioni, li risalva e li ripristina (6/6 identici), e prova il controllo al caricamento con un set candidato.
-- **Esempi:** invariati. Si aprono nella 0.4 con gli stessi risultati della 0.3, anche dopo un nuovo salvataggio, e la 0.3 apre quelli risalvati dalla 0.4.
+- **Compilazione.** DLL GPC fissate in `lib/GPC` con il manifest originale; nessuna ricompilazione dei repository condivisi. Versioni e SHA-256 verificati prima della build e nell'output. Una dipendenza alterata invalida il precedente manifest di successo.
+- **Verifiche.** Stessa suite sui binari net48 in .NET Framework e .NET 8, con BinaryFormatter obbligatoriamente spento nel secondo host; controllo dei metadati delle DLL. Risultati e limiti in [RELEASE-0.4.0-rc.1](RELEASE-0.4.0-rc.1.md).
+- **Esempi.** Rigenerati GH/GHX per la 0.4 con dati GPC internalizzati, sidecar e Auto Run spento; controllati ripristino e risalvataggio in un'altra cartella.
 
 ## 0.3.0-rc.9 - 10 novembre 2026: manutenzione dopo il riordino GPC
 

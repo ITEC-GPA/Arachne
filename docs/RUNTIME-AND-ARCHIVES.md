@@ -1,62 +1,34 @@
-# Runtime e archivi della serie 0.3.0
+# Runtime e archivi della serie 0.4.0
 
-Il plug-in resta `net48`, con il formato di serializzazione dei modelli della
-0.3.0. La manutenzione non converte i dati internalizzati e non cambia GUID,
-porte o nomi dei tipi. Il motore ARAP resta una libreria `netstandard2.0`.
+Il plug-in resta `net48`; ARAP è una libreria `netstandard2.0`. Il modello e i dati internalizzati usano i contratti GPC del set stabile incluso in `lib/GPC`.
+
+## Formato e assenza di retrocompatibilità
+
+Arachne legge e scrive solo `ARCGPC3`, versione **2**. Non usa BinaryFormatter, un lettore NRBF o un convertitore. Rifiuta i payload della 0.3.0, ARCGPC2 e la versione XML 1 sperimentale. Una lettura fallita svuota il valore precedente, evitando di mostrare dati obsoleti.
+
+Per decisione del progetto non esistono documenti utente da migrare dalla 0.3.0: non è prevista retrocompatibilità. Gli esempi del repository sono ricostruiti nel formato corrente. I tag 0.3 restano nello storico del codice, non costituiscono un requisito di interoperabilità degli archivi.
+
+## Risultati e file esterni
+
+Il Form Find conserva i risultati in `<documento>.<InstanceGuid>.gpc-results`. Copiare sempre questi file insieme alla definizione GH/GHX. Le due estensioni con lo stesso nome possono condividere il sidecar. Salva con nome scrive un sidecar nella destinazione e conserva l'originale; un salvataggio invariato conserva contenuto e data del sidecar.
+
+Con Auto Run spento, all'apertura le uscite vengono ripristinate (`Restored`) solo se gli ingressi corrispondono al calcolo salvato. Ingressi modificati richiedono Run. Un sidecar assente o corrotto non impedisce di aprire la definizione: il ripristino segnala il problema, e salvando senza ricalcolare viene scartato il run indisponibile con un avviso esplicito. La definizione resta utilizzabile.
+
+La preparazione degli archivi avviene in background; salvataggio e lettura ne attendono il completamento. Lo stato Grasshopper è accessibile dal thread del documento. Copia/incolla e Annulla usano un pacchetto interno, senza dipendere dal percorso del sidecar originale.
 
 ## Verifiche riproducibili
 
 ```powershell
 .\scripts\build.ps1 -RhinoTests -RequireFemm -FemmSourcePath '..\_OLD\FeMM 30-5-2024\Test1\FeMM'
 .\scripts\check-runtime.ps1 -RequireFemm -FemmSourcePath '..\_OLD\FeMM 30-5-2024\Test1\FeMM'
+.\scripts\build-arap.ps1 -CompareNative
+.\tests\Build.Tests.ps1
 ```
 
-La prima chiamata esegue Rhino 8 in-process sotto .NET Framework 4.8. La seconda
-compila un host diagnostico .NET 8 Windows Desktop e carica gli stessi binari
-net48, senza ricompilarli per un framework diverso. Non modifica il runtime
-configurato nell'applicazione Rhino dell'utente. Entrambi gli script accettano
-`-ArachneBin` per usare una build isolata già prodotta.
+La prima chiamata esegue Rhino 8 in-process sotto .NET Framework 4.8. La seconda carica gli stessi binari in un host diagnostico .NET 8 Windows Desktop con BinaryFormatter **disabilitato**, senza cambiare il runtime configurato nell'applicazione Rhino dell'utente. Non deduce il supporto a runtime diversi da quelli provati.
 
-La suite verifica:
+Il controllo .NET 8 verifica inoltre che i metadati di Arachne e delle sei DLL GPC non referenzino BinaryFormatter o lettori NRBF. Il report registra runtime e switch effettivi. Il parametro `-DisableBinaryFormatter` è rimosso: la disabilitazione è obbligatoria.
 
-- serializzazione e copia dei modelli, dei nodi e delle aste;
-- archivi GH/GHX di un modello calcolato: unità, topologia, proprietà delle aste,
-  vincoli, carichi della pressione, pre-carichi e reazioni;
-- rifiuto di un payload troncato;
-- apertura dei sei esempi distribuiti, ricalcolo, salvataggio su copie temporanee
-  e nuova apertura. Gli esempi originali non vengono riscritti.
+Le suite verificano archivi dei dati GPC, topologia, unità, vincoli, pressioni e reazioni; payload troncati e versioni rifiutate; sidecar mancanti/corrotti, Save As, copia/incolla, salvataggio immediato e ripristino senza solver; i sei esempi GH/GHX e le loro copie temporanee. I test non riscrivono gli esempi originali. `build-examples.ps1` li rigenera esplicitamente.
 
-I report riportano la versione effettiva del runtime e il valore dello switch
-`System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization`.
-Il valore `null` significa che lo switch non è dichiarato, non che la
-serializzazione è stata disabilitata.
-
-## Limite della serializzazione legacy
-
-L'host Windows Desktop .NET 8 abilita BinaryFormatter tramite la propria
-configurazione generata. Questa condizione deve essere distinta dalla
-compatibilità generale con qualsiasi host .NET 8. La controprova è:
-
-```powershell
-.\scripts\check-runtime.ps1 -DisableBinaryFormatter
-```
-
-Questa è una prova negativa: il comando deve fallire sui percorsi che usano la
-serializzazione legacy. Non abilitare globalmente BinaryFormatter come soluzione
-automatica. La serie 0.3.0 continua a richiedere un host che consenta il formato
-legacy e i suoi archivi devono provenire da una fonte fidata. Il supporto ad altri
-runtime non è dedotto dai risultati delle due configurazioni provate.
-
-## Migrazione 0.4.0: decisione separata
-
-Il branch remoto `codex/gpc-migration-preserved`, commit `bf2d6bc`, contiene
-`ContractArchive`: intestazione `ARCGPC3`, versione 2, contratti GPC compatti.
-Legge anche la versione 1 XML del suo formato; rifiuta esplicitamente i payload
-BinaryFormatter della 0.3.0 e gli archivi sperimentali ARCGPC2. Non è quindi un
-sostituto retrocompatibile da inserire in una release di manutenzione.
-
-Per adottarlo occorre una migrazione distinta: inventario dei dati internalizzati,
-ricostruzione o conversione esplicita da sorgenti fidate, confronto numerico dei
-modelli e verifica dei file dei risultati accanto al documento. Conservare i
-documenti originali e la relativa versione del plug-in fino alla verifica della
-migrazione. Non viene introdotto un secondo formato transitorio nella 0.3.0.
+Gli script accettano `-ArachneBin` per un output isolato. I risultati del rilascio sono in `RELEASE-0.4.0-rc.1.md`; i report completi vengono prodotti accanto ai binari.

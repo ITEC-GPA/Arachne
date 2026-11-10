@@ -2,7 +2,7 @@
 
 Plug-in Grasshopper per il form finding e il patterning di tele e tensostrutture. Contiene i componenti di FeMM dedicati a questi due temi, con gli stessi ingressi e uscite tranne lo snellimento (dati SAP tolti, opzioni del Form Find in Solver Options); i GUID sono nuovi, così i due plug-in si possono caricare insieme. Sono corretti i bug trovati durante il trasferimento ([dettagli](docs/PORTING.md)). Componenti nuovi: Membrane Material, Solver Options, Check Model, Beam Forces, Support Reactions e Panel Distortion.
 
-**Versione:** 0.4.0 in preparazione (oggi 0.4.0-f6.4, DLL 0.4.0.0; l'ultima distribuita è la 0.3.0-rc.8). I dati del modello sono oggetti GPC (GPCModel): nodi, aste, piastre, proprietà, carichi e risultati ([registro modifiche](docs/CHANGELOG.md)). Si lavora in N e mm. Motore di form finding: TensileLib 2.5 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)). Librerie GPC: GPCGeometry, GPCUtilities, DelaunayMesh, GPCModel, GPC.Model.Persistence e GPC.Archive. Sono le stesse di ReBear e BridGHe, che si caricano nello stesso Rhino: i tre plug-in devono usare lo stesso set (`release-set.json`) e si aggiornano insieme.
+**Versione:** 0.4.0-rc.1 (DLL 0.4.0.1). I dati del modello sono oggetti GPC (GPCModel): nodi, aste, piastre, proprietà, carichi e risultati ([registro modifiche](docs/CHANGELOG.md)). Si lavora in N e mm. Motore di form finding: TensileLib 2.5 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)). Librerie GPC: GPCGeometry, GPCUtilities, DelaunayMesh, GPCModel, GPC.Model.Persistence e GPC.Archive. Sono le stesse di ReBear e BridGHe, che si caricano nello stesso Rhino: i tre plug-in devono usare lo stesso set (`release-set.json`) e si aggiornano insieme.
 
 ## Struttura
 
@@ -83,18 +83,18 @@ Le sezioni servono al peso proprio (area) e all'anteprima delle aste, disegnate 
 
 ## Esempi
 
-[01_SaddleNet](examples/01_SaddleNet.gh) (sella con vincoli al bordo, con Check Model, Beam Forces e Support Reactions), [02_Patterning](examples/02_Patterning.gh) (sviluppo, compensazione, bordi e decompensazione di un pannello) e [03_CableNet](examples/03_CableNet.gh) (rete generata da Cable Net). Ogni file esiste anche in GHX. Vedere [examples/README.md](examples/README.md). Gli esempi contengono solo dati Grasshopper standard: si aprono con la 0.3 e con la 0.4 con gli stessi risultati (`Arachne.Compare examples`).
+[01_SaddleNet](examples/01_SaddleNet.gh) (sella con vincoli al bordo, con Check Model, Beam Forces e Support Reactions), [02_Patterning](examples/02_Patterning.gh) (sviluppo, compensazione, bordi e decompensazione di un pannello) e [03_CableNet](examples/03_CableNet.gh) (rete generata da Cable Net). Ogni file esiste anche in GHX. Vedere [examples/README.md](examples/README.md). Gli esempi sono rigenerati per la 0.4: includono dati GPC internalizzati e i sidecar dei risultati. Auto Run è spento e i risultati vengono ripristinati senza ricalcolo.
 
 ## Compilazione e verifiche
 
-Prerequisiti: Windows x64, SDK .NET 8 o successivo, .NET Framework 4.8 Developer Pack, Rhino 8, DLL Release di GPCGeometry, GPCUtilities e TensileLib e il repository Model (progetti GPC, compilati dalla build) nei repository adiacenti.
+Prerequisiti: Windows x64, SDK .NET 8 o successivo, .NET Framework 4.8 Developer Pack, Rhino 8, TensileLib compilata in Release nel repository adiacente. Le sei librerie GPC stabili sono incluse in `lib/GPC` con il manifest originale del set.
 
 ```powershell
 .\scripts\build.ps1 -RhinoTests
 .\scripts\build.ps1 -RhinoTests -ReleaseSet <cartella del set>\release-set.json   # per un rilascio
 ```
 
-Compilare con lo script, che passa `-p:ShouldUnsetParentConfigurationAndPlatform=false` a tutti i progetti: i progetti GPC di `../Model` sono fuori dalla soluzione, e con un Model che non ha ancora questa proprietà nel suo `Directory.Build.props` (prima di `bc5a7a07`) una `dotnet build Arachne.sln` semplice li compila in Debug. Con `-ReleaseSet` lo script controlla che le librerie GPC del plug-in siano i file del set (stesso SHA-256), cioè quelli di BridGHe e ReBear; `-FemmSources` indica i sorgenti FeMM delle verifiche se non sono in `../FeMM 30-5-2024/Test1/FeMM`.
+La build usa le DLL stabili di `lib/GPC` e verifica versione e SHA-256 prima della compilazione; non ricompila i moduli condivisi. `-ReleaseSet` permette un set stabile alternativo, con le DLL accanto al manifest. `-FemmSourcePath` indica i sorgenti FeMM da confrontare in sola lettura.
 
 Gli output della compilazione stanno nella cartella `bin` alla radice, in `bin/<progetto>/<configurazione>/<framework>`; i file intermedi restano nella cartella `obj` di ogni progetto, perché contengono una copia del `.gha`. Lo script esegue i test del motore ARAP. Con `-RhinoTests` avvia Rhino senza finestra ed esegue le verifiche Grasshopper:
 
@@ -105,19 +105,19 @@ Gli output della compilazione stanno nella cartella `bin` alla radice, in `bin/<
 
 Il plug-in è la cartella `bin/Arachne.Grasshopper/Release/net48`: `.gha` e DLL necessarie, con `DEPENDENCIES.json` (versioni e SHA-256) e `BUILD.json` (commit, verifiche eseguite e set GPC, scritto solo se tutte le verifiche passano). Le DLL sono `Arachne.Grasshopper.gha`, `Arachne.Common.dll`, `Arachne.Arap.dll`, `GPCGeometry.dll`, `GPCUtilities.dll`, `DelaunayMesh.dll`, `GPCModel.dll`, `GPC.Model.Persistence.dll`, `GPC.Archive.dll`, `TensileLib.dll` (con `TensileLib.dll.config`), `alglibnet2.dll` e `MathNet.Numerics.dll`; lo script si ferma se ce n'è un'altra o se manca una, e se trova Gmsh o i pacchetti NRBF. Per installarlo, copiare la cartella nelle Libraries di Grasshopper.
 
-Se Grasshopper carica il plug-in dalla cartella `bin`, chiudere Rhino prima di compilare e compilare solo in Release. Grasshopper cerca i `.gha` anche nelle sottocartelle, quindi sotto `bin` deve essercene uno solo: una build Debug ne aggiungerebbe un secondo. Per lo stesso motivo ExampleWriter non copia il `.gha` nella sua cartella e lo carica da `bin/Arachne.Grasshopper`. Per verificare una build con Rhino aperto si compila fuori dal repository, con la proprietà `ArachneBin` (`dotnet build Arachne.sln -c Release -p:ShouldUnsetParentConfigurationAndPlatform=false -p:ArachneBin=<cartella>\`), e si lanciano le verifiche da lì.
+Se Grasshopper carica il plug-in dalla cartella `bin`, chiudere Rhino prima di compilare e compilare solo in Release. Grasshopper cerca i `.gha` anche nelle sottocartelle, quindi sotto `bin` deve essercene uno solo: una build Debug ne aggiungerebbe un secondo. Per lo stesso motivo ExampleWriter non copia il `.gha` nella sua cartella e lo carica da `bin/Arachne.Grasshopper`. Per verificare una build con Rhino aperto si compila fuori dal repository, con la proprietà `ArachneBin` (`dotnet build Arachne.sln -c Release -p:ArachneBin=<cartella>\`), e si lanciano le verifiche da lì.
 
 Percorsi predefiniti, modificabili con proprietà MSBuild o parametri dello script:
 
 | Proprietà | Percorso rispetto alla cartella Arachne |
 | --- | --- |
-| GpcGeometryPath | `../Geometry/GPCGeometry/bin/Release/netstandard2.0/GPCGeometry.dll` |
-| GpcUtilitiesPath | `../Utilities/GPCUtilities/bin/Release/netstandard2.0/GPCUtilities.dll` |
+| GpcGeometryPath | `lib/GPC/GPCGeometry.dll` |
+| GpcUtilitiesPath | `lib/GPC/GPCUtilities.dll` |
 | TensileLibPath | `../tensilelib/TensileLib/bin/Release/TensileLib.dll` |
 | RhinoSystemDir | `C:/Program Files/Rhino 8/System` |
 | GrasshopperDir | `C:/Program Files/Rhino 8/Plug-ins/Grasshopper` |
 
-I progetti GPC (GPCModel, GPC.Model.Persistence, GPC.Archive, con DelaunayMesh di Geometry) vengono da `../Model`, per riferimento di progetto: il percorso non si cambia con una proprietà.
+`GpcSetDirectory` seleziona la cartella del set completo (default `lib/GPC`). Non ci sono riferimenti di progetto a `../Model`: una build di Arachne non modifica gli output degli altri plug-in.
 
 Altri script: `scripts/build-examples.ps1` rigenera gli esempi e `docs/ICONS.svg`; `scripts/build-arap.ps1` compila solo il motore ARAP; `scripts/build-native.ps1` ricompila in `bin/Arachne.IGL/Release` la vecchia DLL nativa, usata solo per i confronti facoltativi del motore ARAP. Per le icone dei nuovi componenti aggiungere il disegno in `tools/Arachne.ExampleWriter/IconArtwork.cs` ed eseguire ExampleWriter con `--icons`.
 
@@ -162,5 +162,4 @@ Vedere anche [architettura](docs/ARCHITECTURE.md) e [registro modifiche](docs/CH
 La compatibilità dei runtime e il formato degli archivi sono descritti in
 [Runtime e archivi](docs/RUNTIME-AND-ARCHIVES.md). `scripts/check-runtime.ps1`
 esegue la suite sugli stessi binari in un host diagnostico .NET 8 Windows Desktop;
-non cambia il runtime configurato in Rhino. La serializzazione legacy della
-0.3.0 resta distinta dal formato GPC della migrazione 0.4.0.
+non cambia il runtime configurato in Rhino. BinaryFormatter è sempre disabilitato in questa prova; vengono controllati anche i riferimenti ai tipi nei binari Arachne e GPC. Non sono previsti lettori legacy o conversioni dalla 0.3.0.

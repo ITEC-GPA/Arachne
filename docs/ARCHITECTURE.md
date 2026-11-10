@@ -30,8 +30,7 @@ Il confine tra Grasshopper, GPC e TensileLib:
 - `Helpers/FormFindingHelper`: reti di curve in modelli e mesh (Cable Net, Curve2Mesh).
 - `Geometry/SectionCalculator` e `Geometry/Shapes`: contorno e proprietà delle sezioni, sugli stessi numeri di FeMM, su GPCGeometry.
 
-La serie 0.3.0 usa ancora BinaryFormatter. Compatibilità dei runtime, controlli
-degli archivi e strategia per il successivo formato GPC sono documentati in
+La 0.4.0 usa esclusivamente contratti GPC; non legge i formati Arachne precedenti. Runtime e controlli degli archivi sono documentati in
 [RUNTIME-AND-ARCHIVES](RUNTIME-AND-ARCHIVES.md).
 
 ## Arachne.Grasshopper
