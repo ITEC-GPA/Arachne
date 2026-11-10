@@ -20,4 +20,5 @@
       <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Extension)' == '.gha'" />
     </ItemGroup>
   </Target>
+  <Import Project="..\..\build\GpcReferences.props" />
 </Project>

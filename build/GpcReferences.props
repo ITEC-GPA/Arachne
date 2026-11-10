@@ -1,0 +1,11 @@
+<Project>
+  <ItemGroup>
+    <Reference Include="GPCModel"><HintPath>$(GpcSetDirectory)\GPCModel.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="GPC.Model.Persistence"><HintPath>$(GpcSetDirectory)\GPC.Model.Persistence.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="GPC.Archive"><HintPath>$(GpcSetDirectory)\GPC.Archive.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="DelaunayMesh"><HintPath>$(GpcSetDirectory)\DelaunayMesh.dll</HintPath><Private>true</Private></Reference>
+  </ItemGroup>
+  <Target Name="VerifyGpcReleaseSet" BeforeTargets="ResolveAssemblyReferences">
+    <Exec Command="powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(ArachneRoot)scripts\Verify-GpcSet.ps1&quot; -SetDirectory &quot;$(GpcSetDirectory)&quot; -GeometryPath &quot;$(GpcGeometryPath)&quot; -UtilitiesPath &quot;$(GpcUtilitiesPath)&quot;" />
+  </Target>
+</Project>

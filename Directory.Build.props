@@ -15,8 +15,9 @@
     <ArachneBin Condition="'$(ArachneBin)' == ''">$(ArachneRoot)bin\</ArachneBin>
     <ArachneOutputRoot>$([MSBuild]::NormalizeDirectory('$(ArachneRoot)', '$(ArachneBin)'))</ArachneOutputRoot>
     <BaseOutputPath Condition="'$(MSBuildProjectExtension)' == '.csproj'">$(ArachneOutputRoot)$(MSBuildProjectName)\</BaseOutputPath>
-    <GpcGeometryPath Condition="'$(GpcGeometryPath)' == ''">$(ArachneRoot)..\Geometry\GPCGeometry\bin\Release\netstandard2.0\GPCGeometry.dll</GpcGeometryPath>
-    <GpcUtilitiesPath Condition="'$(GpcUtilitiesPath)' == ''">$(ArachneRoot)..\Utilities\GPCUtilities\bin\Release\netstandard2.0\GPCUtilities.dll</GpcUtilitiesPath>
+    <GpcSetDirectory Condition="'$(GpcSetDirectory)' == ''">$(ArachneRoot)lib\GPC</GpcSetDirectory>
+    <GpcGeometryPath Condition="'$(GpcGeometryPath)' == ''">$(GpcSetDirectory)\GPCGeometry.dll</GpcGeometryPath>
+    <GpcUtilitiesPath Condition="'$(GpcUtilitiesPath)' == ''">$(GpcSetDirectory)\GPCUtilities.dll</GpcUtilitiesPath>
     <TensileLibPath Condition="'$(TensileLibPath)' == ''">$(ArachneRoot)..\tensilelib\TensileLib\bin\Release\TensileLib.dll</TensileLibPath>
     <NativeIglPath Condition="'$(NativeIglPath)' == ''">$(ArachneRoot)bin\Arachne.IGL\Release\Arachne.IGL.dll</NativeIglPath>
     <RhinoSystemDir Condition="'$(RhinoSystemDir)' == ''">C:\Program Files\Rhino 8\System</RhinoSystemDir>

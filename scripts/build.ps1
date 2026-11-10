@@ -9,7 +9,8 @@ param(
     [string]$GrasshopperDir,
     [switch]$RhinoTests,
     [string]$FemmSourcePath,
-    [switch]$RequireFemm
+    [switch]$RequireFemm,
+    [string]$ReleaseSet
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -18,6 +19,14 @@ $outputRoot = Get-ArachneOutputRoot $projectRoot $ArachneBin $Configuration -Plu
 Push-Location $projectRoot
 try {
     $properties = @("-p:ArachneBin=$($outputRoot.TrimEnd([char[]]'\/'))")
+    $gpcDirectory = Join-Path $projectRoot 'lib/GPC'
+    if ($ReleaseSet) {
+        $ReleaseSet = (Resolve-Path -LiteralPath $ReleaseSet).Path
+        if ([IO.Path]::GetFileName($ReleaseSet) -ne 'release-set.json') { throw 'ReleaseSet must point to release-set.json next to the GPC DLLs.' }
+        $gpcDirectory = Split-Path -Parent $ReleaseSet
+        $properties += "-p:GpcSetDirectory=$gpcDirectory"
+    }
+    & (Join-Path $PSScriptRoot 'Verify-GpcSet.ps1') -SetDirectory $gpcDirectory -GeometryPath $GpcGeometryPath -UtilitiesPath $GpcUtilitiesPath
     foreach ($key in @('GpcGeometryPath','GpcUtilitiesPath','TensileLibPath','NativeIglPath','RhinoSystemDir','GrasshopperDir')) {
         $value = Get-Variable -Name $key -ValueOnly
         if ($value) { $properties += "-p:${key}=$value" }
@@ -66,9 +75,18 @@ try {
         }
     }
     $manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $pluginDir 'DEPENDENCIES.json') -Encoding utf8
+    $set = Get-Content -LiteralPath (Join-Path $gpcDirectory 'release-set.json') -Raw | ConvertFrom-Json
+    foreach ($entry in @($manifest | Where-Object { $_.File -like 'GPC*' -or $_.File -eq 'DelaunayMesh.dll' })) {
+        $expected = @($set.files | Where-Object { $_.file -eq $entry.File })
+        if ($expected.Count -ne 1 -or $entry.SHA256 -ne $expected[0].sha256) { throw "Distributed GPC DLL differs from release set: $($entry.File)" }
+    }
+    $unlisted = @(Get-ChildItem -LiteralPath $pluginDir -File | Where-Object { $_.Extension -in '.dll','.gha' -and $_.Name -notin $files })
+    if ($unlisted.Count) { throw "Unexpected plug-in assemblies: $($unlisted.Name -join ', ')" }
+    Copy-Item -LiteralPath (Join-Path $gpcDirectory 'release-set.json') -Destination (Join-Path $pluginDir 'gpc-release-set.json') -Force
     $revision = & (Join-Path $PSScriptRoot 'Get-Revision.ps1')
     [pscustomobject]@{
         ArachneCommit=$revision
+        GpcReleaseSet=[pscustomobject]@{Created=$set.created;SHA256=(Get-FileHash -LiteralPath (Join-Path $gpcDirectory 'release-set.json')).Hash;Candidate=$false}
         RhinoChecksPerformed=[bool]$RhinoTests
         ManagedArapChecksPerformed=$true
         ManagedArapChecks=[pscustomobject]@{Status='Passed';Passed=[int]$arapSummary.Groups[1].Value;Failed=[int]$arapSummary.Groups[2].Value;Skipped=0}
