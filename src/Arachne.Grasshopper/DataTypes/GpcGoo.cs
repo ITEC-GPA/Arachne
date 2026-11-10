@@ -37,9 +37,10 @@ namespace Arachne.Grasshopper.DataTypes
         }
         public override bool Read(GH_IReader reader)
         {
+            Value = null;
             if (!base.Read(reader)) return false;
             try { Value = reader.ItemExists("Data") ? Restore(reader.GetByteArray("Data")) : null; ReadExtra(reader); return true; }
-            catch (Exception e) { reader.AddMessage(TypeName + ": " + e.Message, GH_Message_Type.error); return false; }
+            catch (Exception e) { Value = null; reader.AddMessage(TypeName + ": " + e.Message, GH_Message_Type.error); return false; }
         }
     }
 }

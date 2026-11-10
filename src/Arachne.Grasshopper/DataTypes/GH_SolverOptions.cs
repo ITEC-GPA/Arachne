@@ -34,6 +34,7 @@ namespace Arachne.Grasshopper.DataTypes
         }
         public override bool Read(GH_IReader reader)
         {
+            Value = null;
             if (!base.Read(reader)) return false;
             try
             {
@@ -52,7 +53,7 @@ namespace Arachne.Grasshopper.DataTypes
                 Value = new FormFindingOptions(settings, pressure, cases, reader.GetBoolean("CreateMesh"), property);
                 return true;
             }
-            catch (Exception e) { reader.AddMessage("Solver Options: " + e.Message, GH_Message_Type.error); return false; }
+            catch (Exception e) { Value = null; reader.AddMessage("Solver Options: " + e.Message, GH_Message_Type.error); return false; }
         }
         public override string ToString() => Value == null ? "Null options" : Value.ToString();
     }

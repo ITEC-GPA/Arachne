@@ -56,6 +56,7 @@ namespace Arachne.Grasshopper.Components.Analysis
 
         public override bool Read(GH_IO.Serialization.GH_IReader reader)
         {
+            _models.Clear(); _meshes.Clear();
             if (!base.Read(reader)) return false;
             try { _analysisState.Read(reader); _models.Clear(); _meshes.Clear(); return true; }
             catch (Exception error)

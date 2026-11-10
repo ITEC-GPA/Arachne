@@ -40,17 +40,18 @@ namespace Arachne.Grasshopper.DataTypes
 
         public override bool Read(GH_IReader reader)
         {
+            Value = null; Units = ModelUnits.Nmm;
             if (!base.Read(reader)) return false;
             try
             {
                 if (reader.ItemExists("Data") && !reader.ItemExists("Model")) throw new System.Runtime.Serialization.SerializationException(ContractArchive.LegacyMessage);
                 int units = 2; reader.TryGetInt32("Units", ref units);
                 if (!Enum.IsDefined(typeof(ModelUnits), units)) throw new System.Runtime.Serialization.SerializationException("UnknownModelUnits");
-                Units = (ModelUnits)units;
-                Value = reader.ItemExists("Model") ? ContractArchive.ReadModel(reader.GetByteArray("Model")) : null;
+                var value = reader.ItemExists("Model") ? ContractArchive.ReadModel(reader.GetByteArray("Model")) : null;
+                Value = value; Units = (ModelUnits)units;
                 return true;
             }
-            catch (Exception e) { reader.AddMessage("Model: " + e.Message, GH_Message_Type.error); return false; }
+            catch (Exception e) { Value = null; reader.AddMessage("Model: " + e.Message, GH_Message_Type.error); return false; }
         }
 
         // Arachne has no FeMM Rhino plug-in objects: the elements are baked as plain geometry, in the document units.

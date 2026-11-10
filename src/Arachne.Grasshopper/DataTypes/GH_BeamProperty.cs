@@ -22,7 +22,13 @@ namespace Arachne.Grasshopper.DataTypes
             return false;
         }
         protected override void WriteExtra(GH_IWriter writer) => writer.SetInt32("Formulation", (int)Formulation);
-        protected override void ReadExtra(GH_IReader reader) { int f = 0; if (reader.TryGetInt32("Formulation", ref f)) Formulation = (BeamFormulation)f; }
+        protected override void ReadExtra(GH_IReader reader)
+        {
+            int f = (int)BeamFormulation.StraightTwoNode;
+            reader.TryGetInt32("Formulation", ref f);
+            if (!System.Enum.IsDefined(typeof(BeamFormulation), f)) throw new System.Runtime.Serialization.SerializationException("UnknownBeamFormulation");
+            Formulation = (BeamFormulation)f;
+        }
         public override string ToString() => Value == null ? "Null BeamProperty" : $"Beam property {Value.Name} ({Formulation}): section {Value.Section?.Name}, material {Value.Material?.Name}";
     }
 }

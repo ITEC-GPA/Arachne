@@ -56,6 +56,16 @@ namespace Arachne.Common.Analysis
             // them, the generated plates get their own property), as the Grasshopper copies do.
             var model = ModelValues.Copy(source, Arachne.Common.Analysis.SharedCopies.Options);
             input.Model = model;
+            // Rhino's standard geometry archives can round-trip -0 as +0. They are the same physical coordinate,
+            // but GPC fingerprints preserve IEEE bits. Canonicalize only the detached analysis graph, before export
+            // builds its solver identity map; retain every nonzero value exactly and leave source geometry untouched.
+            foreach (var node in model.NodesElements.Values)
+            {
+                var p = node.Position;
+                if (BitConverter.DoubleToInt64Bits(p.X) == long.MinValue || BitConverter.DoubleToInt64Bits(p.Y) == long.MinValue
+                    || BitConverter.DoubleToInt64Bits(p.Z) == long.MinValue)
+                    node.Position = new G.Point3d(p.X == 0 ? 0.0 : p.X, p.Y == 0 ? 0.0 : p.Y, p.Z == 0 ? 0.0 : p.Z);
+            }
             // The pressure forces of a previous form finding are results, not loads.
             bool previousPressure = model.NodesElements.Values.Any(n => n.Results.SelectMany(r => r.Results).OfType<NodeResultForces>().Any(f => f.Kind == NodalForceKind.AppliedPressure));
             foreach (var e in model.AllElements) if (e.Results.Count != 0) e.Results.Clear();

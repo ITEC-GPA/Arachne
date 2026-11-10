@@ -34,21 +34,30 @@ namespace Arachne.Grasshopper.Helpers
         private readonly List<Run> runs = new List<Run>();
         private ExternalModelArchive archive = new ExternalModelArchive();
         private readonly object gate = new object();
+        // GH state is owned by the document thread. Only Prepare's archive work
+        // runs in the background; external callers must marshal to this thread.
+        private readonly int ownerThread = Thread.CurrentThread.ManagedThreadId;
+        private void EnsureOwner()
+        {
+            if (Thread.CurrentThread.ManagedThreadId != ownerThread)
+                throw new InvalidOperationException("Form-finding archives must be accessed on their Grasshopper document thread.");
+        }
         private Task last = Task.CompletedTask;
         private const string ChunkName = "GpcAnalyses";
         private const int MaximumRuns = 100000;
         private const int MaximumPortableBytes = 256 * 1024 * 1024;
 
-        internal bool Has(int iteration) => iteration >= 0 && iteration < runs.Count && runs[iteration] != null;
+        internal bool Has(int iteration) { EnsureOwner(); return iteration >= 0 && iteration < runs.Count && runs[iteration] != null; }
 
         /// <summary>The references in the archive, after their preparation (an error of a preparation is thrown here).</summary>
-        internal IReadOnlyList<ExternalModelReference> References => runs.Select(r => r == null ? null : Wait(r)).ToList().AsReadOnly();
+        internal IReadOnlyList<ExternalModelReference> References { get { EnsureOwner(); return runs.Select(r => r == null ? null : Wait(r)).ToList().AsReadOnly(); } }
 
         /// <summary>The run of an iteration, to put it back with <see cref="Put"/> after the outputs were reset.</summary>
         internal object Keep(int iteration) => Has(iteration) ? runs[iteration] : null;
 
         internal void Put(int iteration, object run)
         {
+            EnsureOwner();
             while (runs.Count <= iteration) runs.Add(null);
             runs[iteration] = (Run)run;
         }
@@ -58,6 +67,7 @@ namespace Arachne.Grasshopper.Helpers
         /// <summary>True if the run belongs to these inputs: same model and fingerprint of the exported graph.</summary>
         internal bool IsCurrent(int iteration, Guid modelGuid, string fingerprint)
         {
+            EnsureOwner();
             var run = runs[iteration];
             if (run.Model != null) return run.ModelGuid == modelGuid && run.Fingerprint == fingerprint;
             var reference = Wait(run);
@@ -81,6 +91,7 @@ namespace Arachne.Grasshopper.Helpers
 
         internal void Prepare(int iteration, GPC.Model.Models.Model model, SolverIdentityMap map)
         {
+            EnsureOwner();
             if (model == null || map == null) throw new ArgumentNullException();
             var run = new Run { Model = model, Map = map, ModelGuid = model.Guid, Fingerprint = map.AnalysisFingerprint };
             var store = archive;
@@ -110,18 +121,29 @@ namespace Arachne.Grasshopper.Helpers
         // location (or empty) during Save As and must not be used as the destination.
         internal void Write(GH_IWriter writer, Guid component)
         {
+            EnsureOwner();
             if (!runs.Any(r => r != null)) return;
             if (runs.Count > MaximumRuns) throw new SerializationException("TooManyFormFindingRuns");
             string destination = LocalPath(writer.ArchiveLocation);
             // A run whose preparation failed (e.g. a graph beyond the size of a GPC archive block) is not saved: the document is,
             // and the run is computed again after opening it.
             var written = new ExternalModelReference[runs.Count];
+            WaitArchive();
             for (int i = 0; i < runs.Count; i++)
             {
                 if (runs[i] == null) continue;
-                try { written[i] = Wait(runs[i]); }
-                catch (SerializationException e)
+                try
                 {
+                    var reference = Wait(runs[i]);
+                    // A reopened reference can point to a missing/corrupt sidecar.
+                    // Validate before re-saving or packing it for clipboard/undo.
+                    if (runs[i].Model == null) archive.Open(reference);
+                    written[i] = reference;
+                }
+                // InvalidDataException (missing/corrupt GPC blocks) derives from SystemException, not IOException.
+                catch (Exception e) when (e is SerializationException || e is IOException || e is InvalidDataException)
+                {
+                    runs[i] = null;
                     writer.AddMessage("Form-finding results of run " + i + " not saved, run the analysis again after opening: " + (e.InnerException ?? e).Message, GH_Message_Type.warning);
                 }
             }
@@ -171,6 +193,9 @@ namespace Arachne.Grasshopper.Helpers
 
         internal void Read(GH_IReader reader)
         {
+            EnsureOwner();
+            // A failed read must not retain an analysis from an earlier document.
+            WaitArchive(); archive = new ExternalModelArchive(); runs.Clear();
             var restored = new List<Run>();
             var store = new ExternalModelArchive();
             var root = reader.FindChunk(ChunkName);

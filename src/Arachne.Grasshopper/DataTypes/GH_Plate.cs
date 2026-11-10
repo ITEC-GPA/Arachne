@@ -88,9 +88,10 @@ namespace Arachne.Grasshopper.DataTypes
 
         public override bool Read(GH_IReader reader)
         {
+            Value = null;
             if (!base.Read(reader)) return false;
             try { Value = reader.ItemExists("Data") ? ContractArchive.ReadValue<AreaElement>(reader.GetByteArray("Data")) : null; return true; }
-            catch (Exception e) { reader.AddMessage("Plate: " + e.Message, GH_Message_Type.error); return false; }
+            catch (Exception e) { Value = null; reader.AddMessage("Plate: " + e.Message, GH_Message_Type.error); return false; }
         }
 
         public override string ToString()

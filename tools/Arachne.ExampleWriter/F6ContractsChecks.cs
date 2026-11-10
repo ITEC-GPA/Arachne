@@ -27,8 +27,8 @@ internal static class F6ContractsChecks
     {
         int failed = 0;
         Summary = new SuiteReport { Name = "GpcContracts" };
-        foreach (var test in new Action[] { GhDataCarryGpcObjects, GhDataArchives, LegacyPayloadsRejected, UnitBoundary, DecomposeAndRebuild, PreflightDiagnostics,
-            DocumentSidecars, SavedOutputRestoration, LinearExport, SharedProperties })
+        foreach (var test in new Action[] { GhDataCarryGpcObjects, GhDataArchives, LegacyPayloadsRejected, FailedReadsClearPopulatedValues, UnitBoundary, DecomposeAndRebuild, PreflightDiagnostics,
+            DocumentSidecars, SaveImmediatelyAfterSolve, BackgroundAnalysisAccessRejected, SavedOutputRestoration, StandardGeometrySavedOutputRestoration, LinearExport, SharedProperties })
             try { test(); Summary.Passed++; Console.WriteLine("F6 PASS " + test.Method.Name); }
             catch (Exception ex) { failed++; Summary.Failed++; Console.WriteLine("F6 FAIL " + test.Method.Name + ": " + ex); }
         return failed;
@@ -259,6 +259,68 @@ internal static class F6ContractsChecks
         }
     }
 
+    // Use a fresh populated instance for every failure; testing an empty goo hides stale-value regressions.
+    private static void FailedReadsClearPopulatedValues()
+    {
+        using (var canvas = new Canvas())
+        {
+            var chain = FormFindingChecks.Start(canvas);
+            var beams = FormFindingChecks.Beams(chain, new[] { new R.Line(R.Point3d.Origin, new R.Point3d(1000, 0, 0)) });
+            var build = FormFindingChecks.Build(chain, beams);
+            canvas.Solve();
+            var steel = new GPC.Model.Materials.Material("S355", 210000, 0.3, 7.85e-9, 1.2e-5);
+            var plateProperty = new GH_PlateProperty(new GPC.Model.ElementProperties.ElasticPlateProperty("Plate", steel, 1, 1));
+            var plate = new GH_Plate(new[] { R.Point3d.Origin, new R.Point3d(1000, 0, 0), new R.Point3d(0, 1000, 0) }, plateProperty, null, Guid.NewGuid());
+
+            void Verify<T>(T source, string key, Func<T, bool> cleared) where T : Grasshopper.Kernel.Types.IGH_Goo
+            {
+                var valid = new GH_LooseChunk("valid");
+                Check(source.IsValid && source.Write(valid), typeof(T).Name + " populated fixture");
+                byte[] payload = valid.GetByteArray(key);
+                var unknown = (byte[])payload.Clone(); unknown[7] = 255;
+                var version1 = (byte[])payload.Clone(); version1[7] = 1;
+                var cases = new[]
+                {
+                    (name: "invalid header", data: new byte[] { 42, 43, 44 }, field: key),
+                    (name: "truncated header", data: payload.Take(8).ToArray(), field: key),
+                    (name: "truncated body", data: payload.Take(10).ToArray(), field: key),
+                    (name: "unknown version", data: unknown, field: key),
+                    (name: "version 1", data: version1, field: key),
+                    (name: "NRBF", data: new byte[] { 0, 1, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 1, 0, 0, 0, 0, 0, 0, 0 }, field: "Data"),
+                    (name: "ARCGPC2", data: System.Text.Encoding.ASCII.GetBytes("ARCGPC2").Concat(new byte[] { 1, 2, 3 }).ToArray(), field: "Data")
+                };
+                foreach (var item in cases)
+                {
+                    var target = (T)source.Duplicate();
+                    Check(target.IsValid, typeof(T).Name + " starts populated: " + item.name);
+                    var chunk = new GH_LooseChunk("invalid"); chunk.SetByteArray(item.field, item.data);
+                    // Both old and incoming units are nondefault: failure must reset them, not retain either.
+                    if (target is GH_Model model) { model.Units = ModelUnits.Knm; chunk.SetInt32("Units", (int)ModelUnits.SI); }
+                    var reader = new GH_LooseChunk("invalid"); reader.Deserialize_Binary(chunk.Serialize_Binary());
+                    Check(!target.Read(reader), typeof(T).Name + " rejects " + item.name);
+                    Check(cleared(target) && !target.IsValid, typeof(T).Name + " clears its previous value after " + item.name);
+                    // A failed read must not prevent a later valid read on the same instance.
+                    Check(target.Read(valid) && target.IsValid, typeof(T).Name + " recovers after " + item.name);
+                }
+            }
+
+            Verify(new GH_Node(R.Point3d.Origin, Guid.NewGuid()), "Data", x => x.Value == null);
+            Verify(Canvas.Single<GH_Model>(build), "Model", x => x.Value == null && x.Units == ModelUnits.Nmm);
+            Verify(new GH_Material(steel), "Data", x => x.Value == null);
+            Verify(plateProperty, "Data", x => x.Value == null);
+            Verify(Canvas.Single<GH_Beam>(beams), "Data", x => x.Value == null);
+            Verify(plate, "Data", x => x.Value == null);
+            Verify(new GH_SolverOptions(new FormFindingOptions()), "Settings", x => x.Value == null);
+
+            var invalidUnits = new GH_LooseChunk("model");
+            invalidUnits.SetByteArray("Model", ContractArchive.Model(Canvas.Single<GH_Model>(build).Value));
+            invalidUnits.SetInt32("Units", int.MaxValue);
+            var populated = (GH_Model)Canvas.Single<GH_Model>(build).Duplicate(); populated.Units = ModelUnits.Knm;
+            Check(!populated.Read(invalidUnits) && populated.Value == null && populated.Units == ModelUnits.Nmm,
+                "Invalid units clear a populated model and reset units even when model bytes are valid");
+        }
+    }
+
     private static void UnitBoundary()
     {
         using (var canvas = new Canvas())
@@ -374,6 +436,197 @@ internal static class F6ContractsChecks
                     var component = missingIo.Document.Objects.OfType<Arachne.Grasshopper.Components.Analysis.FormFindComponent>().Single();
                     bool rejected = false; try { component.ReadAnalysis(0); } catch (System.IO.InvalidDataException) { rejected = true; }
                     Check(rejected, "Missing numerical blocks are diagnosed explicitly");
+                }
+                // Start from independent saved definitions: neither case may benefit from cached numerical blocks.
+                foreach (bool corrupt in new[] { false, true })
+                {
+                    string caseName = corrupt ? "corrupt" : "missing";
+                    string caseDirectory = System.IO.Path.Combine(directory, caseName);
+                    System.IO.Directory.CreateDirectory(caseDirectory);
+                    string damagedDocument = System.IO.Path.Combine(caseDirectory, "definition.gh");
+                    System.IO.File.Copy(second, damagedDocument);
+                    string damagedSidecar = secondRef.ResolvePath(damagedDocument);
+                    if (corrupt) System.IO.File.WriteAllBytes(damagedSidecar, new byte[] { 42, 0, 13, 10 });
+
+                    // Keep the archive's file location and inspect writer messages from the actual definition save.
+                    var archive = new GH_Archive();
+                    Check(archive.ReadFromFile(damagedDocument), caseName + ": read definition archive");
+                    using (var document = new Grasshopper.Kernel.GH_Document { Enabled = false })
+                    {
+                        Check(archive.ExtractObject(document, "Definition"), caseName + ": open without numerical blocks");
+                        var component = document.Objects.OfType<Arachne.Grasshopper.Components.Analysis.FormFindComponent>().Single();
+                        Check(component.AnalysisReferences.Count == 1 && component.AnalysisReferences[0] != null,
+                            caseName + ": saved reference exists before save validation");
+                        int objects = document.ObjectCount;
+                        archive.GetRootNode.RemoveChunk("Definition");
+                        archive.ClearMessages();
+                        // Do not call ReadAnalysis or NewSolution: Write itself must detect the unavailable blocks.
+                        Check(archive.AppendObject(document, "Definition"), caseName + ": serialize definition without rerunning");
+                        Check(archive.Messages.Any(m => m.Type == GH_Message_Type.warning
+                            && m.Message.IndexOf("run", StringComparison.OrdinalIgnoreCase) >= 0
+                            && (m.Message.IndexOf("not saved", StringComparison.OrdinalIgnoreCase) >= 0
+                                || m.Message.IndexOf("discard", StringComparison.OrdinalIgnoreCase) >= 0)),
+                            caseName + ": explicit warning that the saved run was discarded; references="
+                                + string.Join(",", component.AnalysisReferences.Select(r => r == null ? "null" : "present"))
+                                + "; messages=" + string.Join(" | ", archive.Messages.Select(m => m.Type + ": " + m.Message)));
+                        Check(!archive.Messages.Any(m => m.Type == GH_Message_Type.error), caseName + ": no fatal write error");
+                        Check(component.AnalysisReferences.All(r => r == null), caseName + ": unavailable run discarded in memory");
+                        Check(archive.WriteToFile(damagedDocument, true, false), caseName + ": definition save succeeds");
+
+                        var restoredArchive = new GH_Archive();
+                        Check(restoredArchive.ReadFromFile(damagedDocument), caseName + ": reread saved definition");
+                        using (var restoredDocument = new Grasshopper.Kernel.GH_Document { Enabled = false })
+                        {
+                            Check(restoredArchive.ExtractObject(restoredDocument, "Definition"), caseName + ": reopen without solving");
+                            Check(restoredDocument.ObjectCount == objects, caseName + ": definition objects retained");
+                            var restored = restoredDocument.Objects.OfType<Arachne.Grasshopper.Components.Analysis.FormFindComponent>().Single();
+                            Check(restored.AnalysisReferences.Count == 0, caseName + ": reopened definition has no saved analysis");
+                            bool absent = false;
+                            try { restored.ReadAnalysis(0); }
+                            catch (InvalidOperationException e) { absent = e.Message == "NoSavedFormFindingAnalysis"; }
+                            Check(absent, caseName + ": discarded run cannot be reopened");
+                        }
+                    }
+                }
+            }
+        }
+        finally { System.IO.Directory.Delete(directory, true); }
+    }
+
+    private static void SaveImmediatelyAfterSolve()
+    {
+        string directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "arachne-f6-immediate-" + Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(directory);
+        try
+        {
+            using (var canvas = new Canvas())
+            {
+                var chain = FormFindingChecks.Start(canvas); var grid = FormFindingChecks.SaddleGrid(2, 400, 100);
+                var build = FormFindingChecks.Build(chain, FormFindingChecks.ForceDensity(chain, FormFindingChecks.Beams(chain, grid.lines), 1),
+                    FormFindingChecks.Supports(chain, grid.border));
+                var solve = (Arachne.Grasshopper.Components.Analysis.FormFindComponent)FormFindingChecks.FormFind(chain, build, 0);
+                string path = System.IO.Path.Combine(directory, "immediate.gh");
+                var io = new Grasshopper.Kernel.GH_DocumentIO { Document = canvas.Document };
+                canvas.Solve();
+                // This must remain the first operation after Solve: no reference accessor or ReadAnalysis wait.
+                Check(io.SaveQuiet(path), "Save immediately after Solve waits for background preparation");
+                Check(!Canvas.HasErrors(solve) && Canvas.Out(solve).Count == 1, "Immediate-save fixture solved successfully");
+                var expected = solve.ReadAnalysis(0);
+                var reference = solve.AnalysisReferences[0];
+                Check(reference != null && System.IO.File.Exists(reference.ResolvePath(path)), "Immediate save wrote its sidecar");
+                var archive = new GH_Archive(); Check(archive.ReadFromFile(path), "Read immediate save");
+                using (var document = new Grasshopper.Kernel.GH_Document { Enabled = false })
+                {
+                    Check(archive.ExtractObject(document, "Definition"), "Open immediate save without solving");
+                    var restored = document.Objects.OfType<Arachne.Grasshopper.Components.Analysis.FormFindComponent>().Single();
+                    Check(restored.AnalysisReferences.Count == 1 && restored.AnalysisReferences[0] != null, "Immediate save retained its run");
+                    var actual = restored.ReadAnalysis(0);
+                    Check(actual.Model.AnalysisFingerprint() == expected.Model.AnalysisFingerprint()
+                        && actual.SolverMap != null && actual.Model.AllElements.Any(e => e.Results.Count > 0),
+                        "Immediate save restores the analysis, solver map and results without rerunning");
+                }
+            }
+        }
+        finally { System.IO.Directory.Delete(directory, true); }
+    }
+
+    private static void BackgroundAnalysisAccessRejected()
+    {
+        using (var canvas = new Canvas())
+        {
+            var chain = FormFindingChecks.Start(canvas); var grid = FormFindingChecks.SaddleGrid(2, 400, 100);
+            var build = FormFindingChecks.Build(chain, FormFindingChecks.ForceDensity(chain, FormFindingChecks.Beams(chain, grid.lines), 1),
+                FormFindingChecks.Supports(chain, grid.border));
+            var solve = (Arachne.Grasshopper.Components.Analysis.FormFindComponent)FormFindingChecks.FormFind(chain, build, 0);
+            canvas.Solve();
+            // Confirm a valid run on the owner thread, so "no saved analysis" cannot satisfy this test.
+            var expected = solve.ReadAnalysis(0).Model.AnalysisFingerprint();
+            Exception failure = null;
+            var worker = new System.Threading.Thread(() =>
+            {
+                try { solve.ReadAnalysis(0); }
+                catch (Exception e) { failure = e; }
+            }) { IsBackground = true };
+            worker.Start();
+            Check(worker.Join(TimeSpan.FromSeconds(10)), "Background ReadAnalysis rejects promptly without deadlocking the owner thread");
+            Check(failure is InvalidOperationException && failure.Message != "NoSavedFormFindingAnalysis",
+                "Background ReadAnalysis rejects access to an existing run with InvalidOperationException");
+            Check(solve.ReadAnalysis(0).Model.AnalysisFingerprint() == expected, "Rejected background access leaves the owner-thread run intact");
+        }
+    }
+
+    private static void StandardGeometrySavedOutputRestoration()
+    {
+        string directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "arachne-f6-standard-geometry-" + Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(directory);
+        try
+        {
+            using (var canvas = new Canvas())
+            {
+                var chain = FormFindingChecks.Start(canvas);
+                var grid = FormFindingChecks.SaddleGrid(4, 10000, 2000);
+                var curves = canvas.Add(new Grasshopper.Kernel.Parameters.Param_Curve());
+                curves.SetPersistentData(grid.lines.Select(l => new Grasshopper.Kernel.Types.GH_Curve(new R.LineCurve(l))));
+                var points = canvas.Add(new Grasshopper.Kernel.Parameters.Param_Point());
+                points.SetPersistentData(grid.border.Select(p => new Grasshopper.Kernel.Types.GH_Point(p)));
+                var beams = canvas.Add(new Arachne.Grasshopper.Components.Models.BeamComponent());
+                Canvas.Link(beams, 0, curves); Canvas.Link(beams, 1, chain.Property);
+                var nodes = canvas.Add(new Arachne.Grasshopper.Components.Models.NodeComponent()); Canvas.Link(nodes, 0, points);
+                var supports = canvas.Add(new Arachne.Grasshopper.Components.Attributes.NodeRestraintsComponent());
+                Canvas.Link(supports, 0, nodes);
+                Canvas.Set<Grasshopper.Kernel.Types.IGH_Goo>(supports, 1, new Grasshopper.Kernel.Types.GH_Boolean(true), new Grasshopper.Kernel.Types.GH_Boolean(true), new Grasshopper.Kernel.Types.GH_Boolean(true));
+                var build = FormFindingChecks.Build(chain, FormFindingChecks.ForceDensity(chain, beams, 1), supports);
+                var solve = (Arachne.Grasshopper.Components.Analysis.FormFindComponent)FormFindingChecks.FormFind(chain, build, 0);
+                canvas.Solve();
+                var source = Canvas.Single<GH_Model>(build);
+                bool NegativeZero(double x) => BitConverter.DoubleToInt64Bits(x) == long.MinValue;
+                Check(source.Value.NodesElements.Values.Any(n => NegativeZero(n.Position.Z)), "Standard geometry fixture contains negative zero coordinates");
+                var sourceFingerprint = source.Value.AnalysisFingerprint();
+                var options = Canvas.Single<GH_SolverOptions>(FormFindingChecks.Options(solve)).Value;
+                var input = FormFindingInputBuilder.Build(source.Value, source.Units, 0, options, R.Plane.WorldXY);
+                Check(input.Model.NodesElements.Values.All(n => !NegativeZero(n.Position.X) && !NegativeZero(n.Position.Y) && !NegativeZero(n.Position.Z)),
+                    "Analysis input canonicalizes signed zero coordinates");
+                var positive = (GH_Model)source.Duplicate();
+                foreach (var node in positive.Value.NodesElements.Values)
+                {
+                    var p = node.Position; node.Position = new G.Point3d(p.X == 0 ? 0.0 : p.X, p.Y == 0 ? 0.0 : p.Y, p.Z == 0 ? 0.0 : p.Z);
+                }
+                string ExportFingerprint(GH_Model value)
+                {
+                    var prepared = FormFindingInputBuilder.Build(value.Value, value.Units, 0, options, R.Plane.WorldXY);
+                    return TensileModelAdapter.Export(prepared.Model, prepared.Units, prepared).Map.AnalysisFingerprint;
+                }
+                string expectedFingerprint = ExportFingerprint(source);
+                Check(ExportFingerprint(positive) == expectedFingerprint, "Signed zero alone does not change the solver input fingerprint");
+                Check(source.Value.AnalysisFingerprint() == sourceFingerprint && source.Value.NodesElements.Values.Any(n => NegativeZero(n.Position.Z)),
+                    "Analysis preparation preserves the source geometry and its exact fingerprint");
+                var changed = (GH_Model)positive.Duplicate();
+                var changedNode = changed.Value.NodesElements.Values.First(n => n.Position.Z == 0);
+                var old = changedNode.Position; changedNode.Position = new G.Point3d(old.X, old.Y, 1e-9);
+                Check(ExportFingerprint(changed) != expectedFingerprint, "A nonzero coordinate change is not rounded away by canonicalization");
+
+                var expected = ModelView.Of(Canvas.Single<GH_Model>(solve));
+                Canvas.Set(solve, 4, new Grasshopper.Kernel.Types.GH_Boolean(false));
+                solve.ExpireSolution(false); canvas.Solve();
+                Check(solve.Message == "Restored", "Standard geometry restores before saving with Auto Run disabled");
+                var reference = solve.AnalysisReferences[0];
+                foreach (string extension in new[] { ".gh", ".ghx" })
+                {
+                    string path = System.IO.Path.Combine(directory, "saddle" + extension);
+                    Check(new Grasshopper.Kernel.GH_DocumentIO { Document = canvas.Document }.SaveQuiet(path), "Save standard geometry " + extension);
+                    var archive = new GH_Archive(); Check(archive.ReadFromFile(path), "Read standard geometry " + extension);
+                    using (var document = new Grasshopper.Kernel.GH_Document { Enabled = false })
+                    {
+                        Check(archive.ExtractObject(document, "Definition"), "Extract standard geometry " + extension);
+                        var restored = document.Objects.OfType<Arachne.Grasshopper.Components.Analysis.FormFindComponent>().Single();
+                        document.Enabled = true; document.NewSolution(false);
+                        Check(restored.Message == "Restored" && restored.AnalysisReferences[0].ManifestAddress == reference.ManifestAddress,
+                            "Standard geometry restores the original run without solving " + extension + ": " + Canvas.Messages(restored));
+                        var actual = ModelView.Of(Canvas.Single<GH_Model>(restored));
+                        Check(actual.Nodes.Count == expected.Nodes.Count && actual.Beams.Count == expected.Beams.Count
+                            && actual.Nodes.Zip(expected.Nodes, (a, b) => a.Position == b.Position && a.Reactions.SequenceEqual(b.Reactions)).All(x => x),
+                            "Standard geometry restores exact positions and reactions " + extension);
+                    }
                 }
             }
         }
