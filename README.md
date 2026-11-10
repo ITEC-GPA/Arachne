@@ -114,4 +114,17 @@ Percorsi predefiniti, modificabili con proprietà MSBuild o parametri dello scri
 
 Altri script: `scripts/build-examples.ps1` rigenera gli esempi e `docs/ICONS.svg`; `scripts/build-arap.ps1` compila solo il motore ARAP; `scripts/build-native.ps1` ricompila in `bin/Arachne.IGL/Release` la vecchia DLL nativa, usata solo per i confronti facoltativi del motore ARAP. Per le icone dei nuovi componenti aggiungere il disegno in `tools/Arachne.ExampleWriter/IconArtwork.cs` ed eseguire ExampleWriter con `--icons`.
 
+Tutti gli script accettano `-ArachneBin`: i percorsi relativi sono risolti dalla
+radice del checkout, con o senza separatore finale e anche con spazi. Test,
+esempi e manifest usano lo stesso output della compilazione. Per esempio:
+
+```powershell
+.\scripts\build.ps1 -Configuration Debug -ArachneBin 'artifacts/debug checks' -RhinoTests
+.\scripts\build-examples.ps1 -Configuration Debug -ArachneBin 'artifacts/debug checks'
+```
+
+Le build Debug del plug-in dentro `bin` (anche nelle sue sottocartelle) sono
+rifiutate sia dagli script sia da MSBuild. La soluzione ARAP autonoma non
+produce `.gha` e può usare Debug anche nell'output predefinito.
+
 Vedere anche [architettura](docs/ARCHITECTURE.md) e [registro modifiche](docs/CHANGELOG.md).

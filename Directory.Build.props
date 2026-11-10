@@ -13,7 +13,8 @@
          holds a copy of the plug-in. ArachneBin moves the outputs elsewhere, e.g. to check a build
          while Rhino keeps the plug-in in bin open. -->
     <ArachneBin Condition="'$(ArachneBin)' == ''">$(ArachneRoot)bin\</ArachneBin>
-    <BaseOutputPath Condition="'$(MSBuildProjectExtension)' == '.csproj'">$(ArachneBin)$(MSBuildProjectName)\</BaseOutputPath>
+    <ArachneOutputRoot>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$(ArachneBin)', '$(ArachneRoot)'))))</ArachneOutputRoot>
+    <BaseOutputPath Condition="'$(MSBuildProjectExtension)' == '.csproj'">$(ArachneOutputRoot)$(MSBuildProjectName)\</BaseOutputPath>
     <GpcGeometryPath Condition="'$(GpcGeometryPath)' == ''">$(ArachneRoot)..\Geometry\GPCGeometry\bin\Release\netstandard2.0\GPCGeometry.dll</GpcGeometryPath>
     <GpcUtilitiesPath Condition="'$(GpcUtilitiesPath)' == ''">$(ArachneRoot)..\Utilities\GPCUtilities\bin\Release\netstandard2.0\GPCUtilities.dll</GpcUtilitiesPath>
     <TensileLibPath Condition="'$(TensileLibPath)' == ''">$(ArachneRoot)..\tensilelib\TensileLib\bin\Release\TensileLib.dll</TensileLibPath>

@@ -1,5 +1,6 @@
 param(
     [ValidateSet('Debug','Release')][string]$Configuration = 'Release',
+    [string]$ArachneBin,
     [string]$GpcGeometryPath,
     [string]$GpcUtilitiesPath,
     [string]$TensileLibPath,
@@ -10,9 +11,11 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'Build-Paths.ps1')
+$outputRoot = Get-ArachneOutputRoot $projectRoot $ArachneBin $Configuration -Plugin
 Push-Location $projectRoot
 try {
-    $properties = @()
+    $properties = @("-p:ArachneBin=$($outputRoot.TrimEnd([char[]]'\/'))")
     foreach ($key in @('GpcGeometryPath','GpcUtilitiesPath','TensileLibPath','NativeIglPath','RhinoSystemDir','GrasshopperDir')) {
         $value = Get-Variable -Name $key -ValueOnly
         if ($value) { $properties += "-p:${key}=$value" }
@@ -20,20 +23,20 @@ try {
     $tensilePath = if ($TensileLibPath) { $TensileLibPath } else { Join-Path $projectRoot '..\tensilelib\TensileLib\bin\Release\TensileLib.dll' }
     if (!(Test-Path -LiteralPath $tensilePath)) { throw "TensileLib non trovata: $tensilePath" }
     # The plug-in is the output folder itself; its build record is written only when every check passes
-    $pluginDir = Join-Path $projectRoot "bin\Arachne.Grasshopper\$Configuration\net48"
+    $pluginDir = Join-Path $outputRoot "Arachne.Grasshopper\$Configuration\net48"
     $buildRecord = Join-Path $pluginDir 'BUILD.json'
     if (Test-Path -LiteralPath $buildRecord) { Remove-Item -LiteralPath $buildRecord }
     & dotnet restore Arachne.sln --configfile NuGet.Config @properties
     if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
     & dotnet build Arachne.sln -c $Configuration --no-restore @properties
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-    & "bin\Arachne.Arap.Tests\$Configuration\net48\Arachne.Arap.Tests.exe"
+    & (Join-Path $outputRoot "Arachne.Arap.Tests\$Configuration\net48\Arachne.Arap.Tests.exe")
     if ($LASTEXITCODE -ne 0) { throw 'Managed ARAP checks failed.' }
     if($RhinoTests) {
         $rhinoDir=if($RhinoSystemDir){$RhinoSystemDir}else{'C:\Program Files\Rhino 8\System'}
         $ghDir=if($GrasshopperDir){$GrasshopperDir}else{'C:\Program Files\Rhino 8\Plug-ins\Grasshopper'}
         # Components, FeMM inputs/outputs, form finding and patterning, in a headless Rhino
-        & "bin\Arachne.ExampleWriter\$Configuration\net48\Arachne.ExampleWriter.exe" $projectRoot $rhinoDir $ghDir --tests-only
+        & (Join-Path $outputRoot "Arachne.ExampleWriter\$Configuration\net48\Arachne.ExampleWriter.exe") $projectRoot $rhinoDir $ghDir --tests-only
         if($LASTEXITCODE -ne 0){throw 'Rhino/Grasshopper checks failed.'}
     }
     $files = @('Arachne.Grasshopper.gha','Arachne.Common.dll','Arachne.Arap.dll','GPCGeometry.dll','GPCUtilities.dll','MathNet.Numerics.dll','TensileLib.dll','alglibnet2.dll')

@@ -1,0 +1,10 @@
+<Project>
+  <Target Name="ProtectGrasshopperOutput" BeforeTargets="PrepareForBuild"
+          Condition="'$(MSBuildProjectName)' == 'Arachne.Grasshopper' and '$(Configuration)' == 'Debug'">
+    <PropertyGroup>
+      <InstalledPluginRoot>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$(ArachneRoot)bin'))))</InstalledPluginRoot>
+    </PropertyGroup>
+    <Error Condition="$([System.String]::Copy('$(ArachneOutputRoot)').StartsWith('$(InstalledPluginRoot)', System.StringComparison.OrdinalIgnoreCase))"
+           Text="Debug richiede ArachneBin esterno alla cartella bin caricata da Grasshopper." />
+  </Target>
+</Project>

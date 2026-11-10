@@ -33,5 +33,15 @@ dal lavoro non vengono modificate.
 
 Pubblicato `codex/gpc-migration-preserved` sul remoto Arachne, al commit
 `bf2d6bc27e0485214f8ce4de656d7be1f4b1e6b0`. Il branch mantiene l'intera storia della
-migrazione 0.4.0 senza integrarla nella 0.3.0. Il cambio del default branch richiede
-una conferma specifica ed è separato dal push dei sorgenti.
+migrazione 0.4.0 senza integrarla nella 0.3.0. Dopo conferma esplicita dell'utente,
+il default branch GitHub è stato impostato a `master` e verificato dal remoto.
+
+## Percorsi di compilazione (step 4)
+
+Normalizzazione condivisa di `ArachneBin` e protezione Debug anche in MSBuild.
+Build Release in `artifacts/output with spaces` eseguita: 54 controlli ARAP
+superati. Verificato il rifiuto Debug per `bin`, sottocartelle e percorsi con `..`.
+Le prove complete Debug e Rhino sono comprese nella verifica finale.
+
+L'utente ha indicato il nuovo riferimento FeMM:
+`../_OLD/FeMM 30-5-2024/Test1/FeMM`, usato esclusivamente in lettura.
