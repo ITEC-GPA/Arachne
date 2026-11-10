@@ -31,7 +31,7 @@ internal static class Program
         string reportPath = reportIndex < 0 ? null : args[reportIndex + 1];
         // The tool checks the plug-in built next to it, with the same configuration:
         // <bin>\Arachne.ExampleWriter\<configuration>\net48 -> <bin>\Arachne.Grasshopper\<configuration>\net48
-        var toolDir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+        var toolDir = new DirectoryInfo(Path.GetDirectoryName(typeof(Program).Assembly.Location));
         string configuration = toolDir.Parent.Name;
         var pluginDir = Path.Combine(toolDir.Parent.Parent.Parent.FullName, "Arachne.Grasshopper", configuration, "net48");
         AppDomain.CurrentDomain.AssemblyResolve += (sender, request) =>
@@ -75,6 +75,7 @@ internal static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int Run(string root, string pluginDir, string mode, string femm)
     {
+        Report.BinaryFormatterSwitch = AppContext.TryGetSwitch("System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization", out bool enabled) ? (bool?)enabled : null;
         Console.WriteLine("ExampleWriter mode: " + (mode ?? "tests and examples") + "; plug-in: " + pluginDir);
         // Keep this headless validation process independent of installed third-party plugins.
         // This changes only this process, never the user's Grasshopper settings.
@@ -97,6 +98,7 @@ internal static class Program
             failures += FormFindingChecks.Run(); Report.Suites.Add(FormFindingChecks.Summary);
             failures += PatterningChecks.Run(); Report.Suites.Add(PatterningChecks.Summary);
             failures += NetworkChecks.Run(); Report.Suites.Add(NetworkChecks.Summary);
+            var archives = ExampleArchiveChecks.Run(root); Report.Suites.Add(archives); failures += archives.Failed;
             if (failures > 0) { Console.WriteLine("FAILED checks: " + failures); return 1; }
             Console.WriteLine(Report.Suites.Any(s => s.Skipped > 0) ? "Executed checks passed; reference comparisons were skipped (see report)." : "All checks passed.");
             if (mode == "--tests-only") return 0;

@@ -8,6 +8,7 @@ public sealed class CheckReport
 {
     public string Status { get; set; } = "Failed";
     public string Runtime { get; set; } = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
+    public bool? BinaryFormatterSwitch { get; set; }
     public string FemmSources { get; set; }
     public bool RequireFemm { get; set; }
     public string FemmComparison { get; set; } = "NotRun";

@@ -151,7 +151,7 @@ internal static class FormFindingExample
         }
     }
 
-    private static void Verify(GH_Document document, string name, int nodes, int beams)
+    internal static void Verify(GH_Document document, string name, int nodes, int beams)
     {
         foreach (var component in document.Objects.OfType<GH_Component>())
             if (component.RuntimeMessages(GH_RuntimeMessageLevel.Error).Count > 0)

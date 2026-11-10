@@ -24,6 +24,10 @@ Porting di FeMM.Common limitato a ciò che serve al form finding:
 
 I modelli sono serializzabili in binario (.NET Framework 4.8). Lo stesso formato serve per i dati interni dei parametri Grasshopper e per le copie profonde.
 
+La serie 0.3.0 usa ancora BinaryFormatter. Compatibilità dei runtime, controlli
+degli archivi e strategia per il successivo formato GPC sono documentati in
+[RUNTIME-AND-ARCHIVES](RUNTIME-AND-ARCHIVES.md).
+
 ## Arachne.Grasshopper
 
 - `DataTypes`: wrapper Grasshopper dei modelli (`GH_Model`, `GH_Node`, `GH_Beam`, `GH_Plate`, proprietà, sezioni, materiali, casi di carico). Ogni nodo, asta e piastra ha un GUID. Build Model unisce gli elementi con lo stesso GUID e poi i nodi coincidenti entro la tolleranza delle impostazioni (`Settings`, 0.001).
@@ -59,6 +63,8 @@ Beam Forces e Support Reactions leggono pre-carichi e reazioni dal modello; Chec
 - `FormFindingChecks`: form finding su casi analitici in N/mm, unione dei rami, carichi sulle aste, reazioni, vincoli lungo gli assi di un piano, peso proprio in N/mm e in SI, pressione anche ricalcolata, predefiniti senza Solver Options, casi di carico, peso delle piastre bilanciato dalle reazioni, modelli lontani dall'origine, Check Model, filtri, Membrane Material e Plate Property, anteprima delle sezioni, serializzazione;
 - `PatterningChecks`: sviluppo e compensazione dei pannelli, ARAP, decompensazione, strumenti sulle mesh e Panel Distortion, con valori attesi (lati, aree, distanze); una prova unica verifica che nessun componente modifichi la mesh in ingresso;
 - `NetworkChecks`: reti di cavi rettangolari, radiali e composte, con il numero di cavi, di pezzi di perimetro e di punti interni, con e senza tolleranza di corrispondenza.
+- `ExampleArchiveChecks`: apertura dei sei file GH/GHX distribuiti, ricalcolo e
+  nuovo salvataggio/apertura su copie temporanee, con controlli geometrici.
 
 Il motore ARAP ha una suite propria, `tests/Arachne.Arap.Tests` (54 controlli), con il confronto facoltativo con la DLL nativa della prima versione.
 

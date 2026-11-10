@@ -145,3 +145,9 @@ include i risultati strutturati; le verifiche non richieste risultano `NotRun`.
 Il manifest di build viene eliminato all'avvio e ricreato solo dopo il successo.
 
 Vedere anche [architettura](docs/ARCHITECTURE.md) e [registro modifiche](docs/CHANGELOG.md).
+
+La compatibilità dei runtime e il formato degli archivi sono descritti in
+[Runtime e archivi](docs/RUNTIME-AND-ARCHIVES.md). `scripts/check-runtime.ps1`
+esegue la suite sugli stessi binari in un host diagnostico .NET 8 Windows Desktop;
+non cambia il runtime configurato in Rhino. La serializzazione legacy della
+0.3.0 resta distinta dal formato GPC della migrazione 0.4.0.

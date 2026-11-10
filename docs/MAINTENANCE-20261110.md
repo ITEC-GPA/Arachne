@@ -54,3 +54,16 @@ confronto FeMM rigoroso completato. I report includono runtime e conteggi per su
 Provata anche l'assenza dei sorgenti: errore con `--require-femm`; senza l'opzione,
 89 verifiche superate e 64 confronti saltati, esplicitamente registrati.
 La regressione ripetibile è `tests/Build.Tests.ps1`.
+
+## Runtime e archivi (step 6)
+
+Suite ampliata a 161 controlli Rhino: inventario 66, form finding 40, patterning
+43, reti 6, esempi GH/GHX 6. Tutti superati sia su .NET Framework 4.8.10008.0
+sia sull'host Windows Desktop .NET 8.0.33, con confronto FeMM rigoroso.
+La controprova .NET 8 con BinaryFormatter disabilitato riproduce 5 fallimenti
+nei percorsi di serializzazione: limite documentato, non corretto abilitando
+globalmente il formato. I report sono negli output diagnostici.
+
+Esaminato `ContractArchive` della migrazione conservata: ARCGPC3 rifiuta i vecchi
+payload della 0.3.0. La sostituzione richiede quindi una migrazione separata,
+descritta in [RUNTIME-AND-ARCHIVES](RUNTIME-AND-ARCHIVES.md).

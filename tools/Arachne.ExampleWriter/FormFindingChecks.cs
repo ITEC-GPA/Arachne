@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Arachne.Common.Helpers;
 using Arachne.Common.Models;
@@ -632,6 +633,54 @@ internal static class FormFindingChecks
                 var copy = (GH_Model)model2.Duplicate();
                 Check(copy.Value.Beams.Count == 1, "Duplicate of a read model");
             }
+        });
+
+        Test("Solved model: GH/GHX preserve units, properties, loads, restraints and results", () =>
+        {
+            using (var c = new Canvas())
+            {
+                var chain = Start(c);
+                var (lines, border) = SaddleGrid(4, 10000, 2000);
+                var ff = FormFind(chain, Build(chain, ForceDensity(chain, Beams(chain, lines), 1), Supports(chain, border)), 0, 100, 1e-8);
+                Canvas.Set(Options(ff), 1, new GH_Number(1e-4));
+                Canvas.Link(Options(ff), 2, chain.LoadCase);
+                c.Solve();
+                var original = Canvas.Single<GH_Model>(ff);
+                var model = Solved(ff);
+                Check(model.Nodes.SelectMany(n => n.Results.OfType<NodeReactResultModel>()).Any(), "No reactions to archive");
+                Check(model.Nodes.SelectMany(n => n.Loads.OfType<NodePressureLoadModel>()).Any(), "No pressure loads to archive");
+                foreach (string extension in new[] { ".gh", ".ghx" })
+                {
+                    string path = Path.Combine(Path.GetTempPath(), "arachne-archive-" + Guid.NewGuid().ToString("N") + extension);
+                    try
+                    {
+                        var archive = new GH_Archive();
+                        Check(archive.AppendObject(original, "Result") && archive.WriteToFile(path, true, false), "Archive write failed");
+                        var read = new GH_Archive(); var restored = new GH_Model();
+                        Check(read.ReadFromFile(path) && read.ExtractObject(restored, "Result"), "Archive read failed");
+                        var value = restored.Value;
+                        Check(value.Units == model.Units && value.LoadCases.Count == model.LoadCases.Count, "Units or load cases lost");
+                        Check(value.Nodes.Count == model.Nodes.Count && value.Beams.Count == model.Beams.Count && value.Plates.Count == model.Plates.Count, "Topology lost");
+                        Check(value.Nodes.Select(n => n.Position).SequenceEqual(model.Nodes.Select(n => n.Position)), "Coordinates changed");
+                        Check(value.Nodes.Select(n => n.HasAttribute(typeof(NodeRestraintAttributeModel))).SequenceEqual(model.Nodes.Select(n => n.HasAttribute(typeof(NodeRestraintAttributeModel)))), "Restraints lost");
+                        Check(value.Nodes.SelectMany(n => n.Results.OfType<NodeReactResultModel>()).Select(r => r.Force).SequenceEqual(model.Nodes.SelectMany(n => n.Results.OfType<NodeReactResultModel>()).Select(r => r.Force)), "Reactions changed");
+                        Check(value.Nodes.SelectMany(n => n.Loads.OfType<NodePressureLoadModel>()).Select(l => l.Value).SequenceEqual(model.Nodes.SelectMany(n => n.Loads.OfType<NodePressureLoadModel>()).Select(l => l.Value)), "Pressure loads changed");
+                        Check(value.Beams.Select(PreLoad).SequenceEqual(model.Beams.Select(PreLoad)), "Axial forces changed");
+                        Check(value.Beams.All(b => b.BeamProperty != null), "Beam properties lost");
+                        var copy = (GH_Model)restored.Duplicate();
+                        copy.Value.Nodes[0].Position += new Vector3d(1, 2, 3);
+                        Check(value.Nodes[0].Position == model.Nodes[0].Position, "Duplicate changed archived model");
+                    }
+                    finally { if (File.Exists(path)) File.Delete(path); }
+                }
+            }
+        });
+
+        Test("Truncated model archive is rejected", () =>
+        {
+            var chunk = new GH_LooseChunk("invalid");
+            chunk.SetByteArray("Data", new byte[] { 0, 1, 2 });
+            Check(!new GH_Model().Read(chunk), "Invalid model accepted");
         });
 
         Test("Cable Net on a saddle perimeter: linear form finding with mesh", () =>

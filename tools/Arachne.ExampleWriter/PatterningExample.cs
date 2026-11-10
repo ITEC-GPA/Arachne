@@ -69,7 +69,7 @@ internal static class PatterningExample
         }
     }
 
-    private static void Verify(GH_Document document)
+    internal static void Verify(GH_Document document)
     {
         foreach(var c in document.Objects.OfType<GH_Component>())
         {
