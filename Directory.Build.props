@@ -2,10 +2,10 @@
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
-    <Version>0.3.0-rc.8</Version>
+    <Version>0.3.0-rc.9</Version>
     <!-- The fourth number follows the release candidate, so the file version of the DLLs changes too -->
-    <AssemblyVersion>0.3.0.8</AssemblyVersion>
-    <FileVersion>0.3.0.8</FileVersion>
+    <AssemblyVersion>0.3.0.9</AssemblyVersion>
+    <FileVersion>0.3.0.9</FileVersion>
     <Authors>GPC</Authors>
     <ArachneRoot>$(MSBuildThisFileDirectory)</ArachneRoot>
     <!-- Outputs in the repository's root bin, bin\<project>\<configuration>. The intermediates stay
@@ -13,7 +13,7 @@
          holds a copy of the plug-in. ArachneBin moves the outputs elsewhere, e.g. to check a build
          while Rhino keeps the plug-in in bin open. -->
     <ArachneBin Condition="'$(ArachneBin)' == ''">$(ArachneRoot)bin\</ArachneBin>
-    <ArachneOutputRoot>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$(ArachneBin)', '$(ArachneRoot)'))))</ArachneOutputRoot>
+    <ArachneOutputRoot>$([MSBuild]::NormalizeDirectory('$(ArachneRoot)', '$(ArachneBin)'))</ArachneOutputRoot>
     <BaseOutputPath Condition="'$(MSBuildProjectExtension)' == '.csproj'">$(ArachneOutputRoot)$(MSBuildProjectName)\</BaseOutputPath>
     <GpcGeometryPath Condition="'$(GpcGeometryPath)' == ''">$(ArachneRoot)..\Geometry\GPCGeometry\bin\Release\netstandard2.0\GPCGeometry.dll</GpcGeometryPath>
     <GpcUtilitiesPath Condition="'$(GpcUtilitiesPath)' == ''">$(ArachneRoot)..\Utilities\GPCUtilities\bin\Release\netstandard2.0\GPCUtilities.dll</GpcUtilitiesPath>

@@ -1,8 +1,10 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Grasshopper.Kernel;
 
 internal static class Program
@@ -63,11 +65,37 @@ internal static class Program
     {
         using (var rhino = new Rhino.Runtime.InProcess.RhinoCore(new[] { "/nosplash", "/notemplate" }, Rhino.Runtime.InProcess.WindowStyle.NoWindow))
         {
+            WaitForRhinoLicense();
             using (var modelDocument = Rhino.RhinoDoc.CreateHeadless(null))
             {
                 modelDocument.ModelAbsoluteTolerance = 1e-6;
                 Rhino.RhinoDoc.ActiveDoc = modelDocument;
                 return Run(root, pluginDir, mode, femm);
+            }
+        }
+    }
+
+    // The core can return before its asynchronous license initialization has
+    // completed. Retry only this startup probe, never a failed numerical test.
+    private static void WaitForRhinoLicense()
+    {
+        var elapsed = Stopwatch.StartNew();
+        bool announced = false;
+        while (true)
+        {
+            try
+            {
+                using (var line = new Rhino.Geometry.LineCurve(Rhino.Geometry.Point3d.Origin, new Rhino.Geometry.Point3d(1, 0, 0)))
+                    if (Math.Abs(line.GetLength() - 1) > 1e-12) throw new InvalidOperationException("Rhino geometry startup probe failed.");
+                return;
+            }
+            catch (Rhino.Runtime.NotLicensedException)
+            {
+                if (elapsed.Elapsed.TotalSeconds >= 30)
+                    throw new InvalidOperationException("Rhino license unavailable after 30 seconds; numerical checks were not started.");
+                if (!announced) { Console.WriteLine("Waiting for Rhino license initialization (maximum 30 seconds)."); announced = true; }
+                Rhino.RhinoApp.Wait();
+                Thread.Sleep(100);
             }
         }
     }

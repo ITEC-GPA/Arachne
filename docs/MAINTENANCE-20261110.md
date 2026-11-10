@@ -73,3 +73,9 @@ descritta in [RUNTIME-AND-ARCHIVES](RUNTIME-AND-ARCHIVES.md).
 Spostati Cable Net, Radial Cable Net e Compound Net in `Components/Tools`,
 Remesh in `Components/Patterning`. I quattro file sono identici byte per byte:
 namespace, GUID, ingressi, uscite e algoritmi restano invariati.
+
+## Rilascio (step 8)
+
+Versione incrementata a `0.3.0-rc.9`, DLL `0.3.0.9`. Verifiche finali, incidente
+di inizializzazione della licenza Rhino e limite della serializzazione legacy
+sono riportati in [RELEASE-0.3.0-rc.9](RELEASE-0.3.0-rc.9.md).

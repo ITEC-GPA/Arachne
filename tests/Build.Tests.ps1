@@ -32,4 +32,22 @@ $optional = Join-Path $work 'optional.json'
 if ($LASTEXITCODE -ne 0) { throw 'Optional missing sources must not prevent other checks' }
 $report = Get-Content -LiteralPath $optional -Raw | ConvertFrom-Json
 if ($report.Status -ne 'PassedWithSkips' -or $report.FemmComparison -ne 'Skipped' -or $report.Suites[0].Skipped -le 0) { throw 'Skipped FeMM comparison was not reported' }
+$partialRoot = Join-Path $work 'partial'
+New-Item -ItemType Directory -Path (Join-Path $partialRoot 'FeMM.Grasshopper') -Force | Out-Null
+$partial = Join-Path $work 'partial.json'
+& $exe $root $RhinoSystemDir $GrasshopperDir --tests-only --femm $partialRoot --require-femm --report $partial *> (Join-Path $work 'partial.log')
+if ($LASTEXITCODE -ne 1) { throw 'Incomplete required reference sources must fail' }
+$report = Get-Content -LiteralPath $partial -Raw | ConvertFrom-Json
+if ($report.Status -ne 'Failed' -or $report.FemmComparison -ne 'Failed' -or $report.Suites[0].Failed -le 0) { throw 'Incomplete references were not reported' }
+
+# A failed preflight must not leave a success manifest from an earlier build.
+$staleRoot = Join-Path $work 'stale'
+$plugin = Join-Path $staleRoot 'Arachne.Grasshopper/Release/net48'
+New-Item -ItemType Directory -Path $plugin -Force | Out-Null
+$manifest = Join-Path $plugin 'BUILD.json'
+'{"RhinoChecksPerformed":true}' | Set-Content -LiteralPath $manifest
+$rejected = $false
+try { & (Join-Path $root 'scripts/build.ps1') -ArachneBin $staleRoot -RhinoTests -RequireFemm -FemmSourcePath (Join-Path $work 'missing') }
+catch { if ($_ -notmatch 'Sorgenti FeMM richiesti ma assenti') { throw }; $rejected = $true }
+if (!$rejected -or (Test-Path -LiteralPath $manifest)) { throw 'Failed preflight left a success manifest' }
 Write-Output "Build checks passed. Reports: $work"

@@ -2,7 +2,7 @@
 
 Plug-in Grasshopper per il form finding e il patterning di tele e tensostrutture. Contiene i componenti di FeMM dedicati a questi due temi, con gli stessi ingressi e uscite tranne lo snellimento (dati SAP tolti, opzioni del Form Find in Solver Options); i GUID sono nuovi, così i due plug-in si possono caricare insieme. Sono corretti i bug trovati durante il trasferimento ([dettagli](docs/PORTING.md)). Componenti nuovi: Membrane Material, Solver Options, Check Model, Beam Forces, Support Reactions e Panel Distortion.
 
-**Versione:** 0.3.0-rc.8 (DLL 0.3.0.8). Si lavora in N e mm. Motore di form finding: TensileLib 2.5 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)). Librerie GPC: GPCGeometry 2.3.0.0 e GPCUtilities 3.0.0.0. Sono le stesse di ReBear e BridGHe, che si caricano nello stesso Rhino: vanno aggiornate insieme.
+**Versione:** 0.3.0-rc.9 (DLL 0.3.0.9). Si lavora in N e mm. Motore di form finding: TensileLib 2.5 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)). Librerie GPC: GPCGeometry 2.3.0.0 e GPCUtilities 3.0.0.0. Sono le stesse di ReBear e BridGHe, che si caricano nello stesso Rhino: vanno aggiornate insieme.
 
 ## Struttura
 
@@ -120,7 +120,7 @@ esempi e manifest usano lo stesso output della compilazione. Per esempio:
 
 ```powershell
 .\scripts\build.ps1 -Configuration Debug -ArachneBin 'artifacts/debug checks' -RhinoTests
-.\scripts\build-examples.ps1 -Configuration Debug -ArachneBin 'artifacts/debug checks'
+.\scripts\build-examples.ps1 -Configuration Debug -ArachneBin 'artifacts/debug checks' -ExamplesRoot 'artifacts/generated examples'
 ```
 
 Le build Debug del plug-in dentro `bin` (anche nelle sue sottocartelle) sono
@@ -143,6 +143,12 @@ esplicitamente dal confronto, perché non esistono in FeMM.
 `ARAP-CHECKS.log` e `RHINO-CHECKS.log` conservano le singole prove. `BUILD.json`
 include i risultati strutturati; le verifiche non richieste risultano `NotRun`.
 Il manifest di build viene eliminato all'avvio e ricreato solo dopo il successo.
+
+`tests/Build.Tests.ps1 -ArachneBin <output>` verifica le protezioni dei percorsi,
+i casi FeMM assente/incompleto e l'invalidazione dei vecchi manifest. Lo script
+richiede una build già disponibile. `build-examples.ps1 -ExamplesRoot <cartella>`
+genera esempi e tavola delle icone in una destinazione alternativa; senza questa
+opzione aggiorna i file del repository.
 
 Vedere anche [architettura](docs/ARCHITECTURE.md) e [registro modifiche](docs/CHANGELOG.md).
 

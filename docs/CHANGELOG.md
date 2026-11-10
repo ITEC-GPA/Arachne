@@ -1,5 +1,33 @@
 # Registro delle modifiche
 
+## 0.3.0-rc.9 - 10 novembre 2026: manutenzione dopo il riordino GPC
+
+- **Versione delle DLL:** 0.3.0.9. Dipendenze Release confermate: GPCGeometry
+  2.3.0.0, GPCUtilities 3.0.0.0, TensileLib 2.5.0.1. Nessuna modifica agli
+  algoritmi, ai GUID, ai namespace o alle porte dei componenti.
+- **Compilazione:** tutti gli script rispettano `ArachneBin`, anche relativo o
+  con spazi; build, test e manifest condividono l'output. Debug del plug-in è
+  vietato sotto `bin`, anche da MSBuild. La normalizzazione usa funzioni MSBuild
+  disponibili anche nell'host di Visual Studio. Gli esempi possono essere
+  generati separatamente con `-ExamplesRoot`.
+- **Verifiche tracciabili:** report JSON per suite e runtime; controlli saltati
+  distinti da quelli superati. `-RequireFemm` richiede sorgenti completi; i sei
+  componenti nuovi sono esclusi esplicitamente dal confronto. Un avvio fallito
+  invalida il precedente `BUILD.json`.
+- **Archivi e runtime:** aggiunte prove GH/GHX del modello calcolato, rifiuto di
+  payload troncati e riapertura dei sei esempi distribuiti. Host diagnostico
+  .NET 8 sugli stessi binari net48. Documentata la dipendenza della 0.3.0 da
+  BinaryFormatter e la distinta migrazione ARCGPC3 della 0.4.0.
+- **Avvio del banco di prova:** attesa fino a 30 secondi per l'inizializzazione
+  della licenza Rhino, verificata con una chiamata geometrica prima delle suite.
+  I test numerici non vengono ripetuti automaticamente in caso di errore.
+- **Sorgenti e documentazione:** reti in Tools e Remesh in Patterning, senza
+  modifiche al contenuto dei quattro file; documentazione ARAP e dipendenze
+  aggiornata, collegamenti locali relativi. Migrazione 0.4.0 conservata sul
+  branch remoto `codex/gpc-migration-preserved`; default branch GitHub `master`.
+
+Esiti e limiti della validazione in [RELEASE-0.3.0-rc.9](RELEASE-0.3.0-rc.9.md).
+
 ## 0.3.0-rc.8 - 4 novembre 2026: il controllo al caricamento non blocca più Rhino
 
 Nessun componente cambia: GUID, ingressi, uscite e risultati sono quelli della rc.7.
