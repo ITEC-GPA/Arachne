@@ -28,3 +28,10 @@
 Ogni step che modifica il repository ha un commit dedicato. I risultati dei test
 saranno riportati solo dopo l'esecuzione. Le cartelle di copie e backup escluse
 dal lavoro non vengono modificate.
+
+## Conservazione della migrazione (step 2)
+
+Pubblicato `codex/gpc-migration-preserved` sul remoto Arachne, al commit
+`bf2d6bc27e0485214f8ce4de656d7be1f4b1e6b0`. Il branch mantiene l'intera storia della
+migrazione 0.4.0 senza integrarla nella 0.3.0. Il cambio del default branch richiede
+una conferma specifica ed è separato dal push dei sorgenti.
