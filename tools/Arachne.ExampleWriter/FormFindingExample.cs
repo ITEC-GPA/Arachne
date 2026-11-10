@@ -93,7 +93,7 @@ internal static class FormFindingExample
         Note(c, "ARACHNE | 01 Sella (N, mm)\nRete 10 x 10 m, 4 x 4 campi, bordo vincolato con quote +/-2 m agli angoli.\n" +
                 "Beam (proprieta Cable, sezione piena D 10 mm, acciaio) + Force Density 1 N/mm, caso di carico FF.\n" +
                 "Build Model in N/mm -> Check Model -> Form Find lineare (Solver Options con i valori predefiniti) -> Beam Forces (tiri, N) e Support Reactions (N).\n" +
-                "Auto Run attivo: disattivarlo e usare il pulsante Run.", 60, 860, 680, 120);
+                "Auto Run disattivato: risultati salvati; usare Run per ricalcolare.", 60, 860, 680, 120);
     }
 
     // Cable Net on a saddle perimeter: warp and weft cables, restrained border.
@@ -133,21 +133,32 @@ internal static class FormFindingExample
         using (var c = new Canvas())
         {
             build(c);
+            var referenceFrame = c.Add(new Arachne.Grasshopper.Components.Parameters.CoordinateSystemParam { NickName = "Riferimento GPC" }, 60, 1060);
+            referenceFrame.SetPersistentData(GH_CoordinateSystem.FromPlane(Plane.WorldXY));
+            Note(c, "ARACHNE 0.4 | Archivio GPC\nAuto Run disattivato: all'apertura si ripristinano i risultati salvati.\nPer modificare il modello: Run oppure attivare Auto Run. Copiare anche il file .gpc-results.", 300, 1020, 660, 100);
             c.Solve(); Verify(c.Document, name, nodes, beams);
+            foreach (var toggle in c.Document.Objects.OfType<GH_BooleanToggle>().Where(t => t.NickName == "Auto Run"))
+            { toggle.Value = false; toggle.ExpireSolution(false); }
+            c.Solve();
+            var formFind = c.Document.Objects.OfType<FormFindComponent>().Single();
+            if (formFind.Message != "Restored") throw new InvalidOperationException("Example must restore results without running the solver.");
             foreach (string extension in new[] { ".ghx", ".gh" })
             {
                 string path = Path.Combine(root, "examples", name + extension);
-                var archive = new GH_Archive();
-                if (!archive.AppendObject(c.Document, "Definition") || !archive.WriteToFile(path, true, false)) throw new IOException("Cannot save " + path);
+                var io = new GH_DocumentIO { Document = c.Document };
+                if (!io.SaveQuiet(path)) throw new IOException("Cannot save " + path);
+                if (!File.Exists(formFind.AnalysisReferences.Single().ResolvePath(path))) throw new IOException("Example sidecar missing");
                 var restored = new GH_Archive();
                 using (var reopened = new GH_Document { Enabled = true })
                 {
                     if (!restored.ReadFromFile(path) || !restored.ExtractObject(reopened, "Definition") || reopened.ObjectCount != c.Document.ObjectCount)
                         throw new IOException("Cannot reopen " + path);
+                    reopened.Enabled = true;
                     reopened.NewSolution(false); Verify(reopened, name, nodes, beams);
+                    if (reopened.Objects.OfType<FormFindComponent>().Single().Message != "Restored") throw new IOException("Example did not restore saved results");
                 }
             }
-            Console.WriteLine($"Example {name}: {c.Document.ObjectCount} objects, GH and GHX reopened and recalculated.");
+            Console.WriteLine($"Example {name}: {c.Document.ObjectCount} objects, GH and GHX with sidecar reopened without solving.");
         }
     }
 
@@ -159,7 +170,7 @@ internal static class FormFindingExample
         var ff = document.Objects.OfType<FormFindComponent>().Single();
         var model = ff.Params.Output[0].VolatileData.AllData(true).OfType<GH_Model>().SingleOrDefault()?.Value;
         var mesh = ff.Params.Output[1].VolatileData.AllData(true).OfType<GH_Mesh>().SingleOrDefault()?.Value;
-        if (model == null || mesh == null || mesh.Faces.Count == 0) throw new InvalidOperationException(name + ": Form Find produced no result.");
+        if (model == null || mesh == null || mesh.Faces.Count == 0) throw new InvalidOperationException(name + ": Form Find produced no result: " + Canvas.Messages(ff));
         if (nodes > 0 && (model.NodesElements.Count != nodes || model.BeamElements.Count != beams))
             throw new InvalidOperationException($"{name}: {model.NodesElements.Count} nodes / {model.BeamElements.Count} beams.");
     }
