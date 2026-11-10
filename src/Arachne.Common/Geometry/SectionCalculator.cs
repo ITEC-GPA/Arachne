@@ -115,15 +115,96 @@ namespace Arachne.Common.Geometry
             }
         }
 
-        /// <summary>The outline drawn by the previews: the shapes (mirrored as computed) or, for circles and generic sections,
-        /// a polygon of 64 sides of the same area. Presentation only.</summary>
+        // IEEE-754 cos/sin pairs at (2 * Math.PI / 64) * i, i=0..63, captured on .NET Framework 4.8 x64.
+        // GPC Polygon2d used these values for the original circular outlines. Math.Sin/Cos on .NET 8 can differ
+        // by one ULP: Shape2d participates in AnalysisFingerprint even when the section properties are declared.
+        // Freeze the directions, not the resulting coordinates or input dimensions: no rounding or tolerance,
+        // and keep the original multiply-then-add order for both the outer contour and any concentric hole.
+        private static readonly double[] CircleDirections = new ulong[]
+        {
+            0x3FF0000000000000UL, 0x0000000000000000UL,
+            0x3FEFD88DA3D12526UL, 0x3FB917A6BC29B42CUL,
+            0x3FEF6297CFF75CB0UL, 0x3FC8F8B83C69A60AUL,
+            0x3FEE9F4156C62DDAUL, 0x3FD294062ED59F05UL,
+            0x3FED906BCF328D46UL, 0x3FD87DE2A6AEA963UL,
+            0x3FEC38B2F180BDB1UL, 0x3FDE2B5D3806F63BUL,
+            0x3FEA9B66290EA1A3UL, 0x3FE1C73B39AE68C8UL,
+            0x3FE8BC806B151741UL, 0x3FE44CF325091DD6UL,
+            0x3FE6A09E667F3BCDUL, 0x3FE6A09E667F3BCCUL,
+            0x3FE44CF325091DD6UL, 0x3FE8BC806B151741UL,
+            0x3FE1C73B39AE68C9UL, 0x3FEA9B66290EA1A3UL,
+            0x3FDE2B5D3806F63EUL, 0x3FEC38B2F180BDB0UL,
+            0x3FD87DE2A6AEA964UL, 0x3FED906BCF328D46UL,
+            0x3FD294062ED59F05UL, 0x3FEE9F4156C62DDBUL,
+            0x3FC8F8B83C69A60DUL, 0x3FEF6297CFF75CB0UL,
+            0x3FB917A6BC29B438UL, 0x3FEFD88DA3D12525UL,
+            0x3C91A60000000000UL, 0x3FF0000000000000UL,
+            0xBFB917A6BC29B42FUL, 0x3FEFD88DA3D12526UL,
+            0xBFC8F8B83C69A608UL, 0x3FEF6297CFF75CB0UL,
+            0xBFD294062ED59F02UL, 0x3FEE9F4156C62DDBUL,
+            0xBFD87DE2A6AEA962UL, 0x3FED906BCF328D46UL,
+            0xBFDE2B5D3806F63CUL, 0x3FEC38B2F180BDB1UL,
+            0xBFE1C73B39AE68C6UL, 0x3FEA9B66290EA1A5UL,
+            0xBFE44CF325091DD5UL, 0x3FE8BC806B151742UL,
+            0xBFE6A09E667F3BCCUL, 0x3FE6A09E667F3BCDUL,
+            0xBFE8BC806B151741UL, 0x3FE44CF325091DD6UL,
+            0xBFEA9B66290EA1A4UL, 0x3FE1C73B39AE68C8UL,
+            0xBFEC38B2F180BDB0UL, 0x3FDE2B5D3806F63FUL,
+            0xBFED906BCF328D46UL, 0x3FD87DE2A6AEA965UL,
+            0xBFEE9F4156C62DDAUL, 0x3FD294062ED59F06UL,
+            0xBFEF6297CFF75CB0UL, 0x3FC8F8B83C69A617UL,
+            0xBFEFD88DA3D12525UL, 0x3FB917A6BC29B43CUL,
+            0xBFF0000000000000UL, 0x3CA1A60000000000UL,
+            0xBFEFD88DA3D12526UL, 0xBFB917A6BC29B42BUL,
+            0xBFEF6297CFF75CB0UL, 0xBFC8F8B83C69A60EUL,
+            0xBFEE9F4156C62DDBUL, 0xBFD294062ED59F01UL,
+            0xBFED906BCF328D47UL, 0xBFD87DE2A6AEA961UL,
+            0xBFEC38B2F180BDB1UL, 0xBFDE2B5D3806F63BUL,
+            0xBFEA9B66290EA1A5UL, 0xBFE1C73B39AE68C6UL,
+            0xBFE8BC806B151742UL, 0xBFE44CF325091DD4UL,
+            0xBFE6A09E667F3BCEUL, 0xBFE6A09E667F3BCCUL,
+            0xBFE44CF325091DDAUL, 0xBFE8BC806B15173EUL,
+            0xBFE1C73B39AE68C8UL, 0xBFEA9B66290EA1A3UL,
+            0xBFDE2B5D3806F63FUL, 0xBFEC38B2F180BDB0UL,
+            0xBFD87DE2A6AEA96DUL, 0xBFED906BCF328D44UL,
+            0xBFD294062ED59F07UL, 0xBFEE9F4156C62DDAUL,
+            0xBFC8F8B83C69A619UL, 0xBFEF6297CFF75CAFUL,
+            0xBFB917A6BC29B421UL, 0xBFEFD88DA3D12526UL,
+            0xBCAA790000000000UL, 0xBFF0000000000000UL,
+            0x3FB917A6BC29B407UL, 0xBFEFD88DA3D12526UL,
+            0x3FC8F8B83C69A60CUL, 0xBFEF6297CFF75CB0UL,
+            0x3FD294062ED59F00UL, 0xBFEE9F4156C62DDBUL,
+            0x3FD87DE2A6AEA967UL, 0xBFED906BCF328D45UL,
+            0x3FDE2B5D3806F63AUL, 0xBFEC38B2F180BDB1UL,
+            0x3FE1C73B39AE68C5UL, 0xBFEA9B66290EA1A5UL,
+            0x3FE44CF325091DD7UL, 0xBFE8BC806B151740UL,
+            0x3FE6A09E667F3BCBUL, 0xBFE6A09E667F3BCEUL,
+            0x3FE8BC806B15173EUL, 0xBFE44CF325091DDAUL,
+            0x3FEA9B66290EA1A3UL, 0xBFE1C73B39AE68C8UL,
+            0x3FEC38B2F180BDAFUL, 0xBFDE2B5D3806F640UL,
+            0x3FED906BCF328D44UL, 0xBFD87DE2A6AEA96EUL,
+            0x3FEE9F4156C62DDAUL, 0xBFD294062ED59F08UL,
+            0x3FEF6297CFF75CAFUL, 0xBFC8F8B83C69A61BUL,
+            0x3FEFD88DA3D12526UL, 0xBFB917A6BC29B425UL,
+        }.Select(bits => BitConverter.Int64BitsToDouble(unchecked((long)bits))).ToArray();
+
+        private static Polygon2d CirclePolygon(double diameter, double center)
+        {
+            double radius = diameter / 2;
+            var points = new Point2d[64];
+            for (int i = 0; i < points.Length; i++)
+                points[i] = new Point2d(radius * CircleDirections[2 * i] + center, radius * CircleDirections[2 * i + 1] + center);
+            return new Polygon2d(points);
+        }
+
+        /// <summary>The outline drawn by the previews: the shapes (mirrored as computed) or, for circles,
+        /// a 64-sided inscribed polygon; mechanical properties remain analytical. Presentation only.</summary>
         private Shape2d Outline()
         {
-            int sides = 64;
             Shape2d Circle(double diameter, double hole)
             {
-                var outer = new Polygon2d(diameter, sides, new Point2d(diameter / 2, diameter / 2));
-                Polygon2d[] holes = hole > 0 ? new[] { new Polygon2d(hole, sides, new Point2d(diameter / 2, diameter / 2)) } : null;
+                var outer = CirclePolygon(diameter, diameter / 2);
+                Polygon2d[] holes = hole > 0 ? new[] { CirclePolygon(hole, diameter / 2) } : null;
                 return new Shape2d(outer, holes);
             }
             switch (Type)

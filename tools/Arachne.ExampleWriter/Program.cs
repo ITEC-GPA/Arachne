@@ -118,7 +118,12 @@ internal static class Program
             throw new InvalidOperationException("Could not register the Arachne plugin for archive verification.");
         GH_Document.EnableSolutions = true;
         if (mode == "--migration-scale") return MigrationScale.Run();
-        if (mode == "--f6-contracts") return F6ContractsChecks.Run();
+        if (mode == "--f6-contracts")
+        {
+            int failures = F6ContractsChecks.Run();
+            Report.Suites.Add(F6ContractsChecks.Summary);
+            return failures;
+        }
 
         if (mode != "--examples")
         {

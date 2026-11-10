@@ -50,4 +50,15 @@ $rejected = $false
 try { & (Join-Path $root 'scripts/build.ps1') -ArachneBin $staleRoot -RhinoTests -RequireFemm -FemmSourcePath (Join-Path $work 'missing') }
 catch { if ($_ -notmatch 'Sorgenti FeMM richiesti ma assenti') { throw }; $rejected = $true }
 if (!$rejected -or (Test-Path -LiteralPath $manifest)) { throw 'Failed preflight left a success manifest' }
+
+# A changed dependency must fail before compilation and invalidate success too.
+$badSet = Join-Path $work 'bad-gpc-set'
+New-Item -ItemType Directory -Path $badSet -Force | Out-Null
+Copy-Item -Path (Join-Path $root 'lib/GPC/*') -Destination $badSet
+[IO.File]::AppendAllText((Join-Path $badSet 'GPCModel.dll'), 'changed')
+'{"RhinoChecksPerformed":true}' | Set-Content -LiteralPath $manifest
+$rejected = $false
+try { & (Join-Path $root 'scripts/build.ps1') -ArachneBin $staleRoot -ReleaseSet (Join-Path $badSet 'release-set.json') }
+catch { if ($_ -notmatch 'SHA|hash') { throw }; $rejected = $true }
+if (!$rejected -or (Test-Path -LiteralPath $manifest)) { throw 'Changed GPC library accepted or stale success retained' }
 Write-Output "Build checks passed. Reports: $work"

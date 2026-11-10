@@ -18,6 +18,10 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $outputRoot = Get-ArachneOutputRoot $projectRoot $ArachneBin $Configuration -Plugin
 Push-Location $projectRoot
 try {
+    # Invalidate success before any preflight, including dependency checks.
+    $pluginDir = Join-Path $outputRoot "Arachne.Grasshopper\$Configuration\net48"
+    $buildRecord = Join-Path $pluginDir 'BUILD.json'
+    if (Test-Path -LiteralPath $buildRecord) { Remove-Item -LiteralPath $buildRecord }
     $properties = @("-p:ArachneBin=$($outputRoot.TrimEnd([char[]]'\/'))")
     $gpcDirectory = Join-Path $projectRoot 'lib/GPC'
     if ($ReleaseSet) {
@@ -34,9 +38,6 @@ try {
     $tensilePath = if ($TensileLibPath) { $TensileLibPath } else { Join-Path $projectRoot '..\tensilelib\TensileLib\bin\Release\TensileLib.dll' }
     if (!(Test-Path -LiteralPath $tensilePath)) { throw "TensileLib non trovata: $tensilePath" }
     # The plug-in is the output folder itself; its build record is written only when every check passes
-    $pluginDir = Join-Path $outputRoot "Arachne.Grasshopper\$Configuration\net48"
-    $buildRecord = Join-Path $pluginDir 'BUILD.json'
-    if (Test-Path -LiteralPath $buildRecord) { Remove-Item -LiteralPath $buildRecord }
     if ($RequireFemm -and !$RhinoTests) { throw '-RequireFemm richiede -RhinoTests.' }
     $femmPath = if ($FemmSourcePath) { $FemmSourcePath } else { Join-Path $projectRoot '..\FeMM 30-5-2024\Test1\FeMM' }
     $femmPath = [IO.Path]::GetFullPath($femmPath)

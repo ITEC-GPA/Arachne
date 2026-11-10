@@ -90,6 +90,7 @@ internal static class MigrationScale
         string path = Environment.GetEnvironmentVariable("MIGRATION_SCALE_OUTPUT");
         if (string.IsNullOrEmpty(path)) throw new ArgumentException("Set MIGRATION_SCALE_OUTPUT to a new CSV file.");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)));
+        int failures = 0;
         using (var output = new StreamWriter(new FileStream(path, FileMode.CreateNew)))
         {
             output.WriteLine("nodes,bars,triangles,operation,seconds,bytes");
@@ -99,6 +100,8 @@ internal static class MigrationScale
                 int n = 0, b = 0, t = 0; long bytes = 0;
                 void Measure(string name, Action action)
                 {
+                    // Service the in-process host between long numerical operations.
+                    Rhino.RhinoApp.Wait();
                     GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
                     // the garbage collections and the memory allocated meanwhile (all threads), to tell allocation from computation
                     AppDomain.MonitoringIsEnabled = true;
@@ -142,7 +145,7 @@ internal static class MigrationScale
                     Measure("sidecar: save", () => { sidecar.SaveSnapshot(file, new[] { reference }); bytes = new FileInfo(file).Length; });
                     Measure("sidecar: open", () => sidecar.Open(reference));
                 }
-                catch (Exception e) { Console.WriteLine("SCALE sidecar failed: " + e.GetBaseException().Message); output.WriteLine(string.Join(",", n, b, t, "sidecar failed: " + e.GetBaseException().Message.Replace(',', ';'), 0, 0)); }
+                catch (Exception e) { failures++; Console.WriteLine("SCALE sidecar failed: " + e.GetBaseException().Message); output.WriteLine(string.Join(",", n, b, t, "sidecar failed: " + e.GetBaseException().Message.Replace(',', ';'), 0, 0)); }
                 finally { try { File.Delete(file); } catch (IOException) { } }
                 FormFindingOutputProjection.Output view = null;
                 Measure("project-outputs", () => view = FormFindingOutputProjection.Project(model, input.Model, new FormFindingOptions(), ModelUnits.Nmm));
@@ -170,6 +173,6 @@ internal static class MigrationScale
                 Measure("read-form-found-model", () => ContractArchive.ReadModel(archived));
             }
         }
-        return 0;
+        return failures == 0 ? 0 : 1;
     }
 }

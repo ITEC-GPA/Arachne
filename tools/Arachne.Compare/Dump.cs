@@ -112,12 +112,12 @@ internal static class Diff
     public static int Run(string referencePath, string candidatePath)
     {
         var reference = Read(referencePath); var candidate = Read(candidatePath);
-        int identical = 0, different = 0, missing = 0;
+        int identical = 0, signedZeroOnly = 0, different = 0, missing = 0;
         foreach (var scenario in reference)
         {
             if (!candidate.TryGetValue(scenario.Key, out var other)) { Console.WriteLine("MISSING scenario " + scenario.Key); missing++; continue; }
             var mine = scenario.Value.Where(e => e.Kind != "M").ToList(); var theirs = other.Where(e => e.Kind != "M").ToDictionary(e => e.Key, e => e);
-            int bits = 0, numbers = 0, texts = 0, shown = 0; double worst = 0; string worstKey = null; var textDiffs = new List<string>(); var absent = new List<string>();
+            int bits = 0, zeros = 0, numbers = 0, texts = 0, changedTexts = 0, shown = 0; double worst = 0; string worstKey = null; var textDiffs = new List<string>(); var absent = new List<string>();
             foreach (var e in mine)
             {
                 if (!theirs.TryGetValue(e.Key, out var c)) { absent.Add(e.Key); continue; }
@@ -125,6 +125,7 @@ internal static class Diff
                 {
                     numbers++;
                     if (e.Bits == c.Bits) { bits++; continue; }
+                    if (e.Number == 0 && c.Number == 0) { zeros++; continue; }
                     if (shown++ < 6) textDiffs.Add("number " + e.Key + ": " + e.Number.ToString("R") + " vs " + c.Number.ToString("R"));
                     double rel = Math.Abs(e.Number - c.Number) / Math.Max(1e-300, Math.Max(Math.Abs(e.Number), Math.Abs(c.Number)));
                     double abs = Math.Abs(e.Number - c.Number);
@@ -132,14 +133,15 @@ internal static class Diff
                     if (double.IsNaN(measure)) measure = double.PositiveInfinity;
                     if (measure > worst) { worst = measure; worstKey = e.Key + " " + e.Number.ToString("R") + " vs " + c.Number.ToString("R"); }
                 }
-                else { texts++; if (e.Value != c.Value) textDiffs.Add(e.Key + ": '" + e.Value + "' vs '" + c.Value + "'"); }
+                else { texts++; if (e.Value != c.Value) { changedTexts++; textDiffs.Add(e.Key + ": '" + e.Value + "' vs '" + c.Value + "'"); } }
             }
             var extra = theirs.Keys.Except(mine.Select(e => e.Key)).ToList();
             var refMessages = scenario.Value.Where(e => e.Kind == "M").Select(e => e.Key + " " + e.Value).ToList();
             var candMessages = other.Where(e => e.Kind == "M").Select(e => e.Key + " " + e.Value).ToList();
             bool same = bits == numbers && textDiffs.Count == 0 && absent.Count == 0 && extra.Count == 0;
-            if (same) identical++; else different++;
-            Console.WriteLine((same ? "IDENTICAL " : "DIFFERENT ") + scenario.Key + $": {bits}/{numbers} numbers bit-identical, {texts - textDiffs.Count}/{texts} texts"
+            bool zeroOnly = !same && bits + zeros == numbers && textDiffs.Count == 0 && absent.Count == 0 && extra.Count == 0;
+            if (same) identical++; else if (zeroOnly) signedZeroOnly++; else different++;
+            Console.WriteLine((same ? "IDENTICAL " : zeroOnly ? "SIGNED_ZERO_ONLY " : "DIFFERENT ") + scenario.Key + $": {bits}/{numbers} numbers bit-identical, {zeros} signed-zero differences, {texts - changedTexts}/{texts} texts"
                 + (worstKey != null ? $"; worst min(abs,rel) difference {worst:E3} at {worstKey}" : ""));
             foreach (var t in textDiffs.Take(10)) Console.WriteLine("   text " + t);
             foreach (var a in absent.Take(10)) Console.WriteLine("   missing " + a);
@@ -148,7 +150,8 @@ internal static class Diff
             foreach (var m in candMessages.Except(refMessages)) Console.WriteLine("   message only in candidate: " + m);
         }
         foreach (var name in candidate.Keys.Except(reference.Keys)) Console.WriteLine("EXTRA scenario " + name);
-        Console.WriteLine($"Scenarios: {identical} identical, {different} different, {missing} missing.");
-        return different + missing == 0 ? 0 : 1;
+        Console.WriteLine($"Scenarios: {identical} bit-identical, {signedZeroOnly} signed-zero-only, {different} different, {missing} missing.");
+        // Keep strict bitwise exit semantics: signed-zero changes are reported, not silently accepted.
+        return different + signedZeroOnly + missing == 0 ? 0 : 1;
     }
 }
