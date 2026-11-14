@@ -20,9 +20,18 @@ internal static class Program
         try
         {
             AppContext.SetSwitch("System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization", false);
+            // Rhino 8 uses this Windows implementation. The netcore root DLL is a throwing stub; loading it changes
+            // HostUtils.DeviceId and can invalidate the Cloud Zoo lease of the interactive Rhino session. Load it
+            // before Rhino starts, as BridGHe.Smoke does; without it the checks do not start.
+            string management = Path.Combine(args[2], "netcore", "runtimes", "win", "lib", "net7.0", "System.Management.dll");
+            if (!File.Exists(management)) throw new FileNotFoundException("Rhino's Windows System.Management not found; checks not started.", management);
+            System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(management);
             VerifySerializationReferences(args[0]);
             var runner = Assembly.LoadFrom(Path.GetFullPath(args[0]));
-            return (int)runner.EntryPoint.Invoke(null, new object[] { args.Skip(1).ToArray() });
+            int result = (int)runner.EntryPoint.Invoke(null, new object[] { args.Skip(1).ToArray() });
+            foreach (var loaded in AppDomain.CurrentDomain.GetAssemblies().Where(a => a.GetName().Name == "System.Management"))
+                Console.WriteLine("System.Management loaded from " + loaded.Location);
+            return result;
         }
         catch (Exception error)
         {
