@@ -1,9 +1,9 @@
 # Registro delle modifiche
 
-## 0.4.0 — F8 (candidato da validare prima della pubblicazione)
+## 0.4.0 — F8, set GPC ufficiale del 14 novembre 2026
 
 - Versione prodotto finale 0.4.0, assembly/file 0.4.0.2, successiva alla rc.1.
-- Set comune F8: Geometry e Utilities dalle cartelle adiacenti, verificate contro il manifest del set; Model, Persistence, Archive e DelaunayMesh dallo stesso set. Il flag GpcAllowCandidate serve soltanto al collaudo.
+- Set comune F8: il set GPC ufficiale AW del 14 novembre 2026 (`candidate=false`), lo stesso di BridGHe e ReBear. GPCModel 5.51.0.1, GPC.Model.Persistence 3.15.0.3 e GPC.Archive 1.2.0.4; GPCGeometry 2.3.0.0, GPCUtilities 3.0.0.0 e DelaunayMesh 2.0.0.14 come nella rc.1. Geometry e Utilities dalle cartelle adiacenti, verificate contro il manifest del set; Model, Persistence, Archive e DelaunayMesh dallo stesso set. Il flag GpcAllowCandidate serve soltanto al collaudo di un set candidato.
 - Il messaggio per ARCGPC3 v1 chiede di ricostruire il dato sperimentale; per una versione futura chiede di aggiornare Arachne. Il formato corrente v2 resta invariato.
 - Nomi, porte e GUID invariati. Ripetere le verifiche di form finding, patterning e riapertura sul set finale prima della distribuzione.
 - Note complete: [Arachne 0.4.0](RELEASE-0.4.0.md).
