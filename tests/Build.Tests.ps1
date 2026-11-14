@@ -23,21 +23,28 @@ $exe = Join-Path $output "Arachne.ExampleWriter/$Configuration/net48/Arachne.Exa
 if (!(Test-Path -LiteralPath $exe)) { throw 'Build ExampleWriter before running these checks.' }
 $work = Join-Path $root ('artifacts/build-checks/' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $work -Force | Out-Null
+# Windows PowerShell 5.1 turns the stderr of a redirected native command into a terminating error under Stop.
+# The expected failures print their exception on stderr: the exit code and the report decide.
+function Invoke-Checks([string]$Log, [object[]]$Arguments) {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & $exe @Arguments *> $Log } finally { $ErrorActionPreference = $previous }
+}
 $arguments = @($root, $RhinoSystemDir, $GrasshopperDir, '--tests-only', '--femm', (Join-Path $work 'missing'))
 $strict = Join-Path $work 'strict.json'
-& $exe @arguments --require-femm --report $strict *> (Join-Path $work 'strict.log')
+Invoke-Checks (Join-Path $work 'strict.log') ($arguments + @('--require-femm', '--report', $strict))
 if ($LASTEXITCODE -ne 1) { throw 'Missing required sources must fail' }
 $report = Get-Content -LiteralPath $strict -Raw | ConvertFrom-Json
 if ($report.Status -ne 'Failed' -or $report.FemmComparison -ne 'Failed') { throw 'Required FeMM failure was not reported' }
 $optional = Join-Path $work 'optional.json'
-& $exe @arguments --report $optional *> (Join-Path $work 'optional.log')
+Invoke-Checks (Join-Path $work 'optional.log') ($arguments + @('--report', $optional))
 if ($LASTEXITCODE -ne 0) { throw 'Optional missing sources must not prevent other checks' }
 $report = Get-Content -LiteralPath $optional -Raw | ConvertFrom-Json
 if ($report.Status -ne 'PassedWithSkips' -or $report.FemmComparison -ne 'Skipped' -or $report.Suites[0].Skipped -le 0) { throw 'Skipped FeMM comparison was not reported' }
 $partialRoot = Join-Path $work 'partial'
 New-Item -ItemType Directory -Path (Join-Path $partialRoot 'FeMM.Grasshopper') -Force | Out-Null
 $partial = Join-Path $work 'partial.json'
-& $exe $root $RhinoSystemDir $GrasshopperDir --tests-only --femm $partialRoot --require-femm --report $partial *> (Join-Path $work 'partial.log')
+Invoke-Checks (Join-Path $work 'partial.log') @($root, $RhinoSystemDir, $GrasshopperDir, '--tests-only', '--femm', $partialRoot, '--require-femm', '--report', $partial)
 if ($LASTEXITCODE -ne 1) { throw 'Incomplete required reference sources must fail' }
 $report = Get-Content -LiteralPath $partial -Raw | ConvertFrom-Json
 if ($report.Status -ne 'Failed' -or $report.FemmComparison -ne 'Failed' -or $report.Suites[0].Failed -le 0) { throw 'Incomplete references were not reported' }
