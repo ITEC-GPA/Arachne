@@ -107,7 +107,7 @@ internal static class F6ContractsChecks
                     var invalid = (byte[])data.Clone(); invalid[7] = version;
                     bool rejected = false;
                     try { read(invalid); }
-                    catch (System.Runtime.Serialization.SerializationException ex) { rejected = ex.Message.StartsWith("UnsupportedArachneArchiveVersion"); }
+                    catch (System.Runtime.Serialization.SerializationException ex) { rejected = ex.Message.StartsWith("UnsupportedArachneArchiveVersion") && ex.Message.Contains(version < 2 ? "rebuild the datum" : "update Arachne"); }
                     Check(rejected, "Unsupported archive version must be rejected: " + version);
                 }
             }

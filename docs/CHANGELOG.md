@@ -1,5 +1,13 @@
 # Registro delle modifiche
 
+## 0.4.0 — F8 (candidato da validare prima della pubblicazione)
+
+- Versione prodotto finale 0.4.0, assembly/file 0.4.0.2, successiva alla rc.1.
+- Set comune F8: Geometry e Utilities dalle cartelle adiacenti, verificate contro il manifest del set; Model, Persistence, Archive e DelaunayMesh dallo stesso set. Il flag GpcAllowCandidate serve soltanto al collaudo.
+- Il messaggio per ARCGPC3 v1 chiede di ricostruire il dato sperimentale; per una versione futura chiede di aggiornare Arachne. Il formato corrente v2 resta invariato.
+- Nomi, porte e GUID invariati. Ripetere le verifiche di form finding, patterning e riapertura sul set finale prima della distribuzione.
+- Note complete: [Arachne 0.4.0](RELEASE-0.4.0.md).
+
 ## 0.4.0-rc.1 - 10 novembre 2026: oggetti GPC e archivi senza BinaryFormatter
 
 Versione DLL 0.4.0.1. Migrazione integrata sulla manutenzione 0.3.0-rc.9, con set GPC stabile del 2026-11-08 incluso e verificato. GUID, ingressi e uscite restano invariati (66 controlli di inventario). Il confronto con rc.9 dà 18 scenari identici bit per bit, 13 con sole differenze nel segno dello zero e il caso IPS con conversione della massa corretta (sotto).

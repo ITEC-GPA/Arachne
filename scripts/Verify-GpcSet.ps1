@@ -1,12 +1,13 @@
 param(
     [Parameter(Mandatory=$true)][string]$SetDirectory,
     [string]$GeometryPath,
-    [string]$UtilitiesPath
+    [string]$UtilitiesPath,
+    [switch]$AllowCandidate
 )
 $ErrorActionPreference = 'Stop'
 $manifest = Join-Path $SetDirectory 'release-set.json'
 $set = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
-if ($set.schema -ne 1 -or $set.candidate -ne $false) { throw 'Arachne requires a stable GPC release set (schema 1, candidate=false).' }
+if ($set.schema -ne 1 -or ($set.candidate -ne $false -and -not ($AllowCandidate -and $set.candidate -eq $true))) { throw 'Use a released GPC set, or explicitly set GpcAllowCandidate=true to validate a candidate.' }
 foreach ($name in @('GPCUtilities.dll','GPCGeometry.dll','DelaunayMesh.dll','GPCModel.dll','GPC.Model.Persistence.dll','GPC.Archive.dll')) {
     $entry = @($set.files | Where-Object { $_.file -eq $name })
     if ($entry.Count -ne 1) { throw "Missing or duplicate GPC manifest entry: $name" }

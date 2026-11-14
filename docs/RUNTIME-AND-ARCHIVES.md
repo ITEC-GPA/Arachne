@@ -31,4 +31,4 @@ Il controllo .NET 8 verifica inoltre che i metadati di Arachne e delle sei DLL G
 
 Le suite verificano archivi dei dati GPC, topologia, unità, vincoli, pressioni e reazioni; payload troncati e versioni rifiutate; sidecar mancanti/corrotti, Save As, copia/incolla, salvataggio immediato e ripristino senza solver; i sei esempi GH/GHX e le loro copie temporanee. I test non riscrivono gli esempi originali. `build-examples.ps1` li rigenera esplicitamente.
 
-Gli script accettano `-ArachneBin` per un output isolato. I risultati del rilascio sono in `RELEASE-0.4.0-rc.1.md`; i report completi vengono prodotti accanto ai binari.
+Gli script accettano `-ArachneBin` per un output isolato. Le note correnti sono in `RELEASE-0.4.0.md`; i risultati storici della rc.1 restano in `RELEASE-0.4.0-rc.1.md`; i report completi vengono prodotti accanto ai binari.

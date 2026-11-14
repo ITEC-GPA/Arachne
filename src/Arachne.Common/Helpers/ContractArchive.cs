@@ -95,7 +95,8 @@ namespace Arachne.Common.Helpers
                 throw new SerializationException("UnsupportedArachneArchive: the data are not an Arachne GPC archive.");
             }
             byte version = data[Header.Length];
-            if (version != Version) throw new SerializationException("UnsupportedArachneArchiveVersion: " + version + " (update Arachne).");
+            if (version < Version) throw new SerializationException("UnsupportedArachneArchiveVersion: " + version + " (an earlier experimental format is no longer supported; rebuild the datum from its input components and save a new copy).");
+            if (version > Version) throw new SerializationException("UnsupportedArachneArchiveVersion: " + version + " (update Arachne).");
             if (data[Header.Length + 1] != kind) throw new SerializationException("ArachneArchiveKindMismatch");
             using (var input = new MemoryStream(data, Header.Length + 2, data.Length - Header.Length - 2, false))
                 return read(input) ?? throw new SerializationException("NullArachneArchiveValue");

@@ -10,7 +10,8 @@ param(
     [switch]$RhinoTests,
     [string]$FemmSourcePath,
     [switch]$RequireFemm,
-    [string]$ReleaseSet
+    [string]$ReleaseSet,
+    [switch]$GpcAllowCandidate
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -30,7 +31,10 @@ try {
         $gpcDirectory = Split-Path -Parent $ReleaseSet
         $properties += "-p:GpcSetDirectory=$gpcDirectory"
     }
-    & (Join-Path $PSScriptRoot 'Verify-GpcSet.ps1') -SetDirectory $gpcDirectory -GeometryPath $GpcGeometryPath -UtilitiesPath $GpcUtilitiesPath
+    if (-not $GpcGeometryPath) { $GpcGeometryPath = Join-Path $projectRoot '../Geometry/GPCGeometry/bin/Release/netstandard2.0/GPCGeometry.dll' }
+    if (-not $GpcUtilitiesPath) { $GpcUtilitiesPath = Join-Path $projectRoot '../Utilities/GPCUtilities/bin/Release/netstandard2.0/GPCUtilities.dll' }
+    $properties += '-p:GpcAllowCandidate=' + $GpcAllowCandidate.IsPresent.ToString().ToLowerInvariant()
+    & (Join-Path $PSScriptRoot 'Verify-GpcSet.ps1') -SetDirectory $gpcDirectory -GeometryPath $GpcGeometryPath -UtilitiesPath $GpcUtilitiesPath -AllowCandidate:$GpcAllowCandidate
     foreach ($key in @('GpcGeometryPath','GpcUtilitiesPath','TensileLibPath','NativeIglPath','RhinoSystemDir','GrasshopperDir')) {
         $value = Get-Variable -Name $key -ValueOnly
         if ($value) { $properties += "-p:${key}=$value" }
@@ -87,7 +91,7 @@ try {
     $revision = & (Join-Path $PSScriptRoot 'Get-Revision.ps1')
     [pscustomobject]@{
         ArachneCommit=$revision
-        GpcReleaseSet=[pscustomobject]@{Created=$set.created;SHA256=(Get-FileHash -LiteralPath (Join-Path $gpcDirectory 'release-set.json')).Hash;Candidate=$false}
+        GpcReleaseSet=[pscustomobject]@{Created=$set.created;SHA256=(Get-FileHash -LiteralPath (Join-Path $gpcDirectory 'release-set.json')).Hash;Candidate=[bool]$set.candidate}
         RhinoChecksPerformed=[bool]$RhinoTests
         ManagedArapChecksPerformed=$true
         ManagedArapChecks=[pscustomobject]@{Status='Passed';Passed=[int]$arapSummary.Groups[1].Value;Failed=[int]$arapSummary.Groups[2].Value;Skipped=0}

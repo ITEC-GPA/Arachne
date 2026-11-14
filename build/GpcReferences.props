@@ -6,6 +6,7 @@
     <Reference Include="DelaunayMesh"><HintPath>$(GpcSetDirectory)\DelaunayMesh.dll</HintPath><Private>true</Private></Reference>
   </ItemGroup>
   <Target Name="VerifyGpcReleaseSet" BeforeTargets="ResolveAssemblyReferences">
-    <Exec Command="powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(ArachneRoot)scripts\Verify-GpcSet.ps1&quot; -SetDirectory &quot;$(GpcSetDirectory)&quot; -GeometryPath &quot;$(GpcGeometryPath)&quot; -UtilitiesPath &quot;$(GpcUtilitiesPath)&quot;" />
+    <PropertyGroup><GpcValidationArguments Condition="'$(GpcAllowCandidate)' == 'true'">-AllowCandidate</GpcValidationArguments></PropertyGroup>
+    <Exec Command="powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(ArachneRoot)scripts\Verify-GpcSet.ps1&quot; -SetDirectory &quot;$(GpcSetDirectory)&quot; -GeometryPath &quot;$(GpcGeometryPath)&quot; -UtilitiesPath &quot;$(GpcUtilitiesPath)&quot; $(GpcValidationArguments)" />
   </Target>
 </Project>
