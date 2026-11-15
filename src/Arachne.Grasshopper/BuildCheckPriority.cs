@@ -11,6 +11,7 @@ namespace Arachne.Grasshopper
         public override GH_LoadingInstruction PriorityLoad()
         {
             Gpc.PluginChecks.PluginBuildCheck.Start(typeof(BuildCheckPriority).Assembly, "Arachne");
+            Gpc.PluginChecks.MathNetRuntimeInfo.Start();
             return GH_LoadingInstruction.Proceed;
         }
     }
