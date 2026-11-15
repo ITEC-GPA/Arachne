@@ -94,7 +94,7 @@ Prerequisiti: Windows x64, SDK .NET 8 o successivo, .NET Framework 4.8 Developer
 .\scripts\build.ps1 -RhinoTests -ReleaseSet <cartella del set>\release-set.json   # per un rilascio
 ```
 
-La build usa le DLL stabili di `lib/GPC` e verifica versione e SHA-256 prima della compilazione; non ricompila i moduli condivisi. `-ReleaseSet` permette un set stabile alternativo, con le DLL accanto al manifest. `-FemmSourcePath` indica i sorgenti FeMM da confrontare in sola lettura.
+La build usa il manifest e le DLL del set stabile. Per impostazione predefinita Geometry e Utilities sono lette dai bin dei repository adiacenti indicati nella tabella; le altre DLL GPC arrivano da `lib/GPC`. Versioni e SHA-256 vengono verificati prima della compilazione; la build non ricompila i moduli condivisi. `-ReleaseSet` permette un set stabile alternativo, con le DLL accanto al manifest. `-FemmSourcePath` indica i sorgenti FeMM da confrontare in sola lettura.
 
 Gli output della compilazione stanno nella cartella `bin` alla radice, in `bin/<progetto>/<configurazione>/<framework>`; i file intermedi restano nella cartella `obj` di ogni progetto, perché contengono una copia del `.gha`. Lo script esegue i test del motore ARAP. Con `-RhinoTests` avvia Rhino senza finestra ed esegue le verifiche Grasshopper:
 
@@ -111,8 +111,8 @@ Percorsi predefiniti, modificabili con proprietà MSBuild o parametri dello scri
 
 | Proprietà | Percorso rispetto alla cartella Arachne |
 | --- | --- |
-| GpcGeometryPath | `lib/GPC/GPCGeometry.dll` |
-| GpcUtilitiesPath | `lib/GPC/GPCUtilities.dll` |
+| GpcGeometryPath | `../Geometry/GPCGeometry/bin/Release/netstandard2.0/GPCGeometry.dll` |
+| GpcUtilitiesPath | `../Utilities/GPCUtilities/bin/Release/netstandard2.0/GPCUtilities.dll` |
 | TensileLibPath | `../tensilelib/TensileLib/bin/Release/TensileLib.dll` |
 | RhinoSystemDir | `C:/Program Files/Rhino 8/System` |
 | GrasshopperDir | `C:/Program Files/Rhino 8/Plug-ins/Grasshopper` |
