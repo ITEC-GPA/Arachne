@@ -1,8 +1,8 @@
 {
     "schema":  1,
     "generator":  "Checker/build/Release-Set.ps1",
-    "created":  "2026-11-15T20:56:01",
-    "candidate":  true,
+    "created":  "2026-11-16T16:51:17",
+    "candidate":  false,
     "previous":  "C:\\Users\\g.pacini\\Documents\\Repository\\gpc-f6-claude\\F7\\sets\\gpc-release-20261114-aw\\release-set.json",
     "repositories":  {
                          "Utilities":  {
@@ -18,12 +18,12 @@
                          "Model":  {
                                        "commit":  "d126edb26df9c0493b37d8a72d256c71ffefad1d",
                                        "branch":  "claude/set-ax",
-                                       "onOriginMaster":  false
+                                       "onOriginMaster":  true
                                    },
                          "Checker":  {
                                          "commit":  "99c1966ebf0e2d2f18480164fee410c5fb6b3fc4",
                                          "branch":  "claude/set-ax",
-                                         "onOriginMaster":  false
+                                         "onOriginMaster":  true
                                      }
                      },
     "files":  [
@@ -196,9 +196,9 @@
                    {
                        "name":  "UnitTest",
                        "repository":  "Model",
-                       "passed":  1890,
+                       "passed":  1992,
                        "failed":  0,
-                       "other":  109
+                       "other":  7
                    },
                    {
                        "name":  "GPCChecker.Test.Concrete",
