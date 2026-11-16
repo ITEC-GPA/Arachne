@@ -1,5 +1,13 @@
 # Registro delle modifiche
 
+## 0.4.1 — set GPC ufficiale del 16 novembre 2026 (AX)
+
+- Versione prodotto 0.4.1, assembly/file 0.4.1.0.
+- Set comune con BridGHe 0.4.1 e ReBear 0.4.3: il set GPC ufficiale AX del 16 novembre 2026 (`candidate=false`). GPCModel 5.51.0.2, GPC.Model.Persistence 3.15.0.4 e GPC.Archive 1.2.0.5, ricompilate sugli stessi sorgenti di AW; GPCGeometry, GPCUtilities e DelaunayMesh identiche.
+- Riga informativa con percorso e SHA-256 della MathNet caricata, preparata fuori dall'evento di caricamento.
+- Nomi, porte, GUID, esempi e formato degli archivi invariati.
+- Note complete: [Arachne 0.4.1](RELEASE-0.4.1.md).
+
 ## 0.4.0 — F8, set GPC ufficiale del 14 novembre 2026
 
 - Versione prodotto finale 0.4.0, assembly/file 0.4.0.2, successiva alla rc.1.
