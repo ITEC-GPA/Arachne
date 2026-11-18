@@ -7,6 +7,7 @@
 - Stesse dipendenze della 0.4.1: set GPC AX in `lib/GPC` invariato, TensileLib 2.5.0.1 (libreria .NET Framework 4.7.2, caricata così com'è), alglibnet2 e MathNet.Numerics 5.0.0 nella build net48, lo stesso file di BridGHe e ReBear (SHA-256 controllato nella build).
 - Le verifiche in Rhino girano in .NET 8 con BinaryFormatter spento, come faceva l'host diagnostico: `tools/Arachne.RuntimeChecks` e `scripts/check-runtime.ps1` sono tolti e i loro controlli (switch BinaryFormatter, metadati senza BinaryFormatter/NRBF, `System.Management` di Rhino caricata prima di Rhino) sono in ExampleWriter. `build.ps1` si ferma se BinaryFormatter non risulta spento. Anche Compare carica la `System.Management` di Rhino prima di avviarlo.
 - Nomi, porte, GUID, formato degli archivi ed esempi invariati; gli esempi non sono rigenerati.
+- Verifiche (18/11, .NET 8.0.34, set AX, confronto FeMM obbligatorio): 54 controlli ARAP e 177 in Rhino senza finestra (inventario 66, contratti GPC 15, form finding 41, patterning 43, reti 6, esempi GH/GHX 6), come la 0.4.1 su .NET Framework 4.8; `tests/Build.Tests.ps1` superato. Con `tools/Arachne.Compare` i 32 scenari (16.965 numeri) e i 6 esempi aperti, risalvati e ripristinati (22.970 numeri ciascuno) sono identici bit per bit alla 0.4.1 net48, testi e messaggi compresi.
 
 ## 0.4.1 — set GPC ufficiale del 16 novembre 2026 (AX)
 
