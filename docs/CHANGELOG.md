@@ -1,5 +1,13 @@
 # Registro delle modifiche
 
+## 0.5.0 — plug-in su .NET 8
+
+- Versione prodotto 0.5.0, assembly/file 0.5.0.0: il cambio di runtime non è una correzione, quindi sale il secondo numero.
+- Plug-in, ExampleWriter, Compare e test ARAP passano da `net48` a `net8.0-windows` (x64); `Arachne.Arap` resta `netstandard2.0`. Il plug-in è ora `bin/Arachne.Grasshopper/Release/net8.0-windows`, sempre con una sola `.gha` sotto `bin`. Richiede Rhino 8 sul runtime .NET Core (.NET 8): con Rhino impostato su .NET Framework non si carica.
+- Stesse dipendenze della 0.4.1: set GPC AX in `lib/GPC` invariato, TensileLib 2.5.0.1 (libreria .NET Framework 4.7.2, caricata così com'è), alglibnet2 e MathNet.Numerics 5.0.0 nella build net48, lo stesso file di BridGHe e ReBear (SHA-256 controllato nella build).
+- Le verifiche in Rhino girano in .NET 8 con BinaryFormatter spento, come faceva l'host diagnostico: `tools/Arachne.RuntimeChecks` e `scripts/check-runtime.ps1` sono tolti e i loro controlli (switch BinaryFormatter, metadati senza BinaryFormatter/NRBF, `System.Management` di Rhino caricata prima di Rhino) sono in ExampleWriter. `build.ps1` si ferma se BinaryFormatter non risulta spento. Anche Compare carica la `System.Management` di Rhino prima di avviarlo.
+- Nomi, porte, GUID, formato degli archivi ed esempi invariati; gli esempi non sono rigenerati.
+
 ## 0.4.1 — set GPC ufficiale del 16 novembre 2026 (AX)
 
 - Versione prodotto 0.4.1, assembly/file 0.4.1.0.

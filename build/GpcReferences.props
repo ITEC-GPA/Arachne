@@ -4,9 +4,24 @@
     <Reference Include="GPC.Model.Persistence"><HintPath>$(GpcSetDirectory)\GPC.Model.Persistence.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="GPC.Archive"><HintPath>$(GpcSetDirectory)\GPC.Archive.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="DelaunayMesh"><HintPath>$(GpcSetDirectory)\DelaunayMesh.dll</HintPath><Private>true</Private></Reference>
+    <!-- MathNet.Numerics 5.0.0: the net48 build of the package (lib/net48), the one file every gPC plug-in ships (user decision
+         of 14/11/2026, as in BridGHe and ReBear): in one Rhino the first copy loaded serves every plug-in. NuGet would pick
+         lib/net6.0 for net8.0; the package is only restored (ExcludeAssets="all") and the reference names its net48 file,
+         checked by SHA-256 below. GPCModel, GPCGeometry and TensileLib use it; Arachne itself does not. -->
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" GeneratePathProperty="true" ExcludeAssets="all" />
+    <Reference Include="MathNet.Numerics"><HintPath>$(PkgMathNet_Numerics)\lib\net48\MathNet.Numerics.dll</HintPath><Private>true</Private></Reference>
   </ItemGroup>
   <Target Name="VerifyGpcReleaseSet" BeforeTargets="ResolveAssemblyReferences">
-    <PropertyGroup><GpcValidationArguments Condition="'$(GpcAllowCandidate)' == 'true'">-AllowCandidate</GpcValidationArguments></PropertyGroup>
+    <PropertyGroup>
+      <GpcValidationArguments Condition="'$(GpcAllowCandidate)' == 'true'">-AllowCandidate</GpcValidationArguments>
+      <GpcMathNetFile>$(PkgMathNet_Numerics)\lib\net48\MathNet.Numerics.dll</GpcMathNetFile>
+      <GpcMathNetSha256>4C9803A4B0673B93A99A2237E35543BE2F6741FBD54B0FF045CF92E877BE09D4</GpcMathNetSha256>
+    </PropertyGroup>
+    <Error Condition="'$(PkgMathNet_Numerics)' == '' or !Exists('$(GpcMathNetFile)')" Text="MathNet.Numerics 5.0.0 (lib/net48) mancante: $(GpcMathNetFile). Eseguire il restore NuGet." />
+    <GetFileHash Files="$(GpcMathNetFile)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_GpcMathNetActual" />
+    </GetFileHash>
+    <Error Condition="'$(_GpcMathNetActual)' != '$(GpcMathNetSha256)'" Text="MathNet.Numerics diverso dal file comune ai plug-in gPC (net48, SHA-256 $(GpcMathNetSha256)): $(GpcMathNetFile) ha SHA-256 $(_GpcMathNetActual)." />
     <Exec Command="powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(ArachneRoot)scripts\Verify-GpcSet.ps1&quot; -SetDirectory &quot;$(GpcSetDirectory)&quot; -GeometryPath &quot;$(GpcGeometryPath)&quot; -UtilitiesPath &quot;$(GpcUtilitiesPath)&quot; $(GpcValidationArguments)" />
   </Target>
 </Project>

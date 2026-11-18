@@ -2,7 +2,7 @@
 
 Plug-in Grasshopper per il form finding e il patterning di tele e tensostrutture. Contiene i componenti di FeMM dedicati a questi due temi, con gli stessi ingressi e uscite tranne lo snellimento (dati SAP tolti, opzioni del Form Find in Solver Options); i GUID sono nuovi, così i due plug-in si possono caricare insieme. Sono corretti i bug trovati durante il trasferimento ([dettagli](docs/PORTING.md)). Componenti nuovi: Membrane Material, Solver Options, Check Model, Beam Forces, Support Reactions e Panel Distortion.
 
-**Versione:** 0.4.1 (DLL 0.4.1.0). I dati del modello sono oggetti GPC (GPCModel): nodi, aste, piastre, proprietà, carichi e risultati ([registro modifiche](docs/CHANGELOG.md)). Si lavora in N e mm. Motore di form finding: TensileLib 2.5 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)). Librerie GPC: GPCGeometry, GPCUtilities, DelaunayMesh, GPCModel, GPC.Model.Persistence e GPC.Archive. Sono le stesse di ReBear e BridGHe, che si caricano nello stesso Rhino: i tre plug-in devono usare lo stesso set (`release-set.json`) e si aggiornano insieme.
+**Versione:** 0.5.0 (DLL 0.5.0.0), per Rhino 8 su .NET 8 (`net8.0-windows`, x64). I dati del modello sono oggetti GPC (GPCModel): nodi, aste, piastre, proprietà, carichi e risultati ([registro modifiche](docs/CHANGELOG.md)). Si lavora in N e mm. Motore di form finding: TensileLib 2.5 (`../tensilelib`). Sviluppo dei pannelli ARAP: motore C# `Arachne.Arap` ([resoconto](docs/ARAP-REWRITE.md)). Librerie GPC: GPCGeometry, GPCUtilities, DelaunayMesh, GPCModel, GPC.Model.Persistence e GPC.Archive. Sono le stesse di ReBear e BridGHe, che si caricano nello stesso Rhino: i tre plug-in devono usare lo stesso set (`release-set.json`) e si aggiornano insieme.
 
 ## Struttura
 
@@ -87,7 +87,7 @@ Le sezioni servono al peso proprio (area) e all'anteprima delle aste, disegnate 
 
 ## Compilazione e verifiche
 
-Prerequisiti: Windows x64, SDK .NET 8 o successivo, .NET Framework 4.8 Developer Pack, Rhino 8, TensileLib compilata in Release nel repository adiacente. Le sei librerie GPC stabili sono incluse in `lib/GPC` con il manifest originale del set.
+Prerequisiti: Windows x64, SDK .NET 8 o successivo, Rhino 8, TensileLib compilata in Release nel repository adiacente (resta una libreria .NET Framework 4.7.2, che .NET 8 carica così com'è). Le sei librerie GPC stabili sono incluse in `lib/GPC` con il manifest originale del set.
 
 ```powershell
 .\scripts\build.ps1 -RhinoTests
@@ -103,7 +103,7 @@ Gli output della compilazione stanno nella cartella `bin` alla radice, in `bin/<
 - form finding su casi analitici;
 - patterning e reti.
 
-Il plug-in è la cartella `bin/Arachne.Grasshopper/Release/net48`: `.gha` e DLL necessarie, con `DEPENDENCIES.json` (versioni e SHA-256) e `BUILD.json` (commit, verifiche eseguite e set GPC, scritto solo se tutte le verifiche passano). Le DLL sono `Arachne.Grasshopper.gha`, `Arachne.Common.dll`, `Arachne.Arap.dll`, `GPCGeometry.dll`, `GPCUtilities.dll`, `DelaunayMesh.dll`, `GPCModel.dll`, `GPC.Model.Persistence.dll`, `GPC.Archive.dll`, `TensileLib.dll` (con `TensileLib.dll.config`), `alglibnet2.dll` e `MathNet.Numerics.dll`; lo script si ferma se ce n'è un'altra o se manca una, e se trova Gmsh o i pacchetti NRBF. Per installarlo, copiare la cartella nelle Libraries di Grasshopper.
+Il plug-in è la cartella `bin/Arachne.Grasshopper/Release/net8.0-windows`: `.gha` e DLL necessarie, con `DEPENDENCIES.json` (versioni e SHA-256) e `BUILD.json` (commit, verifiche eseguite e set GPC, scritto solo se tutte le verifiche passano). Le DLL sono `Arachne.Grasshopper.gha`, `Arachne.Common.dll`, `Arachne.Arap.dll`, `GPCGeometry.dll`, `GPCUtilities.dll`, `DelaunayMesh.dll`, `GPCModel.dll`, `GPC.Model.Persistence.dll`, `GPC.Archive.dll`, `TensileLib.dll` (con `TensileLib.dll.config`), `alglibnet2.dll` e `MathNet.Numerics.dll`; lo script si ferma se ce n'è un'altra o se manca una, e se trova Gmsh o i pacchetti NRBF. MathNet è la build net48 del pacchetto 5.0.0, lo stesso file di BridGHe e ReBear (SHA-256 verificato nella build). Per installarlo, copiare la cartella nelle Libraries di Grasshopper. Il plug-in richiede Rhino 8 sul runtime .NET Core, cioè .NET 8 (il predefinito): con Rhino impostato su .NET Framework (comando `SetDotNetRuntime`) non si carica.
 
 Se Grasshopper carica il plug-in dalla cartella `bin`, chiudere Rhino prima di compilare e compilare solo in Release. Grasshopper cerca i `.gha` anche nelle sottocartelle, quindi sotto `bin` deve essercene uno solo: una build Debug ne aggiungerebbe un secondo. Per lo stesso motivo ExampleWriter non copia il `.gha` nella sua cartella e lo carica da `bin/Arachne.Grasshopper`. Per verificare una build con Rhino aperto si compila fuori dal repository, con la proprietà `ArachneBin` (`dotnet build Arachne.sln -c Release -p:ArachneBin=<cartella>\`), e si lanciano le verifiche da lì.
 
@@ -160,6 +160,8 @@ opzione aggiorna i file del repository.
 Vedere anche [architettura](docs/ARCHITECTURE.md) e [registro modifiche](docs/CHANGELOG.md).
 
 La compatibilità dei runtime e il formato degli archivi sono descritti in
-[Runtime e archivi](docs/RUNTIME-AND-ARCHIVES.md). `scripts/check-runtime.ps1`
-esegue la suite sugli stessi binari in un host diagnostico .NET 8 Windows Desktop;
-non cambia il runtime configurato in Rhino. BinaryFormatter è sempre disabilitato in questa prova; vengono controllati anche i riferimenti ai tipi nei binari Arachne e GPC. Non sono previsti lettori legacy o conversioni dalla 0.3.0.
+[Runtime e archivi](docs/RUNTIME-AND-ARCHIVES.md). Le verifiche in Rhino girano in
+.NET 8 Windows Desktop, come il plug-in; non cambiano il runtime configurato in Rhino.
+BinaryFormatter è sempre disabilitato in queste prove; vengono controllati anche i
+riferimenti ai tipi nei binari Arachne e GPC. Non sono previsti lettori legacy o
+conversioni dalla 0.3.0.

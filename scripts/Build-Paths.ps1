@@ -1,4 +1,6 @@
 # Shared by the build entry points; relative output paths are rooted at the checkout.
+# Target framework of the plug-in, its tools and tests: outputs are in bin\<project>\<configuration>\<framework>.
+$ArachneFramework = 'net8.0-windows'
 function Get-ArachneOutputRoot([string]$ProjectRoot, [string]$ArachneBin, [string]$Configuration, [switch]$Plugin) {
     $candidate = if ($ArachneBin) { $ArachneBin } else { 'bin' }
     if (![IO.Path]::IsPathRooted($candidate)) { $candidate = Join-Path $ProjectRoot $candidate }

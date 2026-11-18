@@ -2,10 +2,11 @@
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
-    <Version>0.4.1</Version>
-    <!-- Final GPC release; no legacy archive compatibility. -->
-    <AssemblyVersion>0.4.1.0</AssemblyVersion>
-    <FileVersion>0.4.1.0</FileVersion>
+    <Version>0.5.0</Version>
+    <!-- 0.5.0: the plug-in and its tools run on .NET 8 (net8.0-windows). A new runtime target is not a fix,
+         hence the second component. No legacy archive compatibility. -->
+    <AssemblyVersion>0.5.0.0</AssemblyVersion>
+    <FileVersion>0.5.0.0</FileVersion>
     <Authors>GPC</Authors>
     <ArachneRoot>$(MSBuildThisFileDirectory)</ArachneRoot>
     <!-- Outputs in the repository's root bin, bin\<project>\<configuration>. The intermediates stay

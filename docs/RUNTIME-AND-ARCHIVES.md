@@ -1,6 +1,6 @@
-# Runtime e archivi della serie 0.4.0
+# Runtime e archivi (0.4.0 e successive)
 
-Il plug-in resta `net48`; ARAP è una libreria `netstandard2.0`. Il modello e i dati internalizzati usano i contratti GPC del set stabile incluso in `lib/GPC`.
+Dalla 0.5.0 il plug-in è `net8.0-windows` (x64) e si carica in Rhino 8 sul runtime .NET Core (.NET 8); fino alla 0.4.1 era `net48`. ARAP resta una libreria `netstandard2.0`, TensileLib una libreria .NET Framework 4.7.2 e MathNet.Numerics la build net48 del pacchetto 5.0.0, comune a BridGHe e ReBear. Il modello e i dati internalizzati usano i contratti GPC del set stabile incluso in `lib/GPC`.
 
 ## Formato e assenza di retrocompatibilità
 
@@ -20,15 +20,14 @@ La preparazione degli archivi avviene in background; salvataggio e lettura ne at
 
 ```powershell
 .\scripts\build.ps1 -RhinoTests -RequireFemm -FemmSourcePath '..\_OLD\FeMM 30-5-2024\Test1\FeMM'
-.\scripts\check-runtime.ps1 -RequireFemm -FemmSourcePath '..\_OLD\FeMM 30-5-2024\Test1\FeMM'
 .\scripts\build-arap.ps1 -CompareNative
 .\tests\Build.Tests.ps1
 ```
 
-La prima chiamata esegue Rhino 8 in-process sotto .NET Framework 4.8. La seconda carica gli stessi binari in un host diagnostico .NET 8 Windows Desktop con BinaryFormatter **disabilitato**, senza cambiare il runtime configurato nell'applicazione Rhino dell'utente. Non deduce il supporto a runtime diversi da quelli provati.
+La prima chiamata esegue Rhino 8 in-process in un host .NET 8 Windows Desktop (ExampleWriter) con BinaryFormatter **disabilitato**, senza cambiare il runtime configurato nell'applicazione Rhino dell'utente. Prima di avviare Rhino l'host carica la `System.Management` Windows di Rhino (`System\netcore\runtimes\win\lib\net7.0`), per non invalidare la licenza Cloud Zoo del Rhino interattivo. Non deduce il supporto a runtime diversi da quelli provati. Fino alla 0.4.1 la stessa suite girava anche sotto .NET Framework 4.8, e `scripts/check-runtime.ps1` ripeteva i binari net48 in un host .NET 8 (`tools/Arachne.RuntimeChecks`): con il plug-in su .NET 8 i due coincidono e sono stati tolti.
 
-Il controllo .NET 8 verifica inoltre che i metadati di Arachne e delle sei DLL GPC non referenzino BinaryFormatter o lettori NRBF. Il report registra runtime e switch effettivi. Il parametro `-DisableBinaryFormatter` è rimosso: la disabilitazione è obbligatoria.
+L'host verifica inoltre che i metadati di Arachne e delle sei DLL GPC non referenzino BinaryFormatter o lettori NRBF. Il report registra runtime e switch effettivi e `build.ps1` si ferma se BinaryFormatter non risulta spento. La disabilitazione è obbligatoria.
 
 Le suite verificano archivi dei dati GPC, topologia, unità, vincoli, pressioni e reazioni; payload troncati e versioni rifiutate; sidecar mancanti/corrotti, Save As, copia/incolla, salvataggio immediato e ripristino senza solver; i sei esempi GH/GHX e le loro copie temporanee. I test non riscrivono gli esempi originali. `build-examples.ps1` li rigenera esplicitamente.
 
-Gli script accettano `-ArachneBin` per un output isolato. Le note correnti sono in `RELEASE-0.4.0.md`; i risultati storici della rc.1 restano in `RELEASE-0.4.0-rc.1.md`; i report completi vengono prodotti accanto ai binari.
+Gli script accettano `-ArachneBin` per un output isolato. Le note di rilascio sono in `RELEASE-0.4.1.md` e `RELEASE-0.4.0.md`; i risultati storici della rc.1 restano in `RELEASE-0.4.0-rc.1.md`; i report completi vengono prodotti accanto ai binari.

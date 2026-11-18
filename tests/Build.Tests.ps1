@@ -19,8 +19,8 @@ $expected = Join-Path $root 'artifacts\output with spaces\'
 if ((Get-ArachneOutputRoot $root 'artifacts/output with spaces' Debug -Plugin) -ne $expected) { throw 'Relative path resolution failed' }
 
 $output = Get-ArachneOutputRoot $root $ArachneBin $Configuration
-$exe = Join-Path $output "Arachne.ExampleWriter/$Configuration/net48/Arachne.ExampleWriter.exe"
-if (!(Test-Path -LiteralPath $exe)) { throw 'Build ExampleWriter before running these checks.' }
+$runner = Join-Path $output "Arachne.ExampleWriter/$Configuration/$ArachneFramework/Arachne.ExampleWriter.dll"
+if (!(Test-Path -LiteralPath $runner)) { throw 'Build ExampleWriter before running these checks.' }
 $work = Join-Path $root ('artifacts/build-checks/' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $work -Force | Out-Null
 # Windows PowerShell 5.1 turns the stderr of a redirected native command into a terminating error under Stop.
@@ -28,7 +28,7 @@ New-Item -ItemType Directory -Path $work -Force | Out-Null
 function Invoke-Checks([string]$Log, [object[]]$Arguments) {
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    try { & $exe @Arguments *> $Log } finally { $ErrorActionPreference = $previous }
+    try { & dotnet $runner @Arguments *> $Log } finally { $ErrorActionPreference = $previous }
 }
 $arguments = @($root, $RhinoSystemDir, $GrasshopperDir, '--tests-only', '--femm', (Join-Path $work 'missing'))
 $strict = Join-Path $work 'strict.json'
@@ -51,7 +51,7 @@ if ($report.Status -ne 'Failed' -or $report.FemmComparison -ne 'Failed' -or $rep
 
 # A failed preflight must not leave a success manifest from an earlier build.
 $staleRoot = Join-Path $work 'stale'
-$plugin = Join-Path $staleRoot 'Arachne.Grasshopper/Release/net48'
+$plugin = Join-Path $staleRoot "Arachne.Grasshopper/Release/$ArachneFramework"
 New-Item -ItemType Directory -Path $plugin -Force | Out-Null
 $manifest = Join-Path $plugin 'BUILD.json'
 '{"RhinoChecksPerformed":true}' | Set-Content -LiteralPath $manifest

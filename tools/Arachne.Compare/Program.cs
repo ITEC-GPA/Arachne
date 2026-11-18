@@ -25,6 +25,12 @@ internal static class Program
             return 2;
         }
         string plugin = Path.GetFullPath(args[1]);
+        // Rhino 8 uses this Windows implementation. The netcore root DLL is a throwing stub; loading it changes
+        // HostUtils.DeviceId and can invalidate the Cloud Zoo lease of the interactive Rhino session. Load it
+        // before Rhino starts, as BridGHe.Smoke and ExampleWriter do; without it the comparison does not start.
+        string management = Path.Combine(args[2], "netcore", "runtimes", "win", "lib", "net7.0", "System.Management.dll");
+        if (!File.Exists(management)) { Console.Error.WriteLine("Rhino's Windows System.Management not found: " + management); return 1; }
+        System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(management);
         if (args[0] == "loadcheck") AppDomain.CurrentDomain.AssemblyResolve += (sender, request) => LoadCheck.LoadedByName(new AssemblyName(request.Name).Name);
         AppDomain.CurrentDomain.AssemblyResolve += (sender, request) =>
         {

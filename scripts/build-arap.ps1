@@ -26,9 +26,9 @@ try {
     if($LASTEXITCODE -ne 0){throw 'ARAP build failed.'}
     $testArgs=@()
     if($CompareNative){$testArgs+='--native'}
-    $testDirectory=Join-Path $outputRoot "Arachne.Arap.Tests\$Configuration\net48"
+    $testDirectory=Join-Path $outputRoot "Arachne.Arap.Tests\$Configuration\$ArachneFramework"
     if($CompareNative -and !(Test-Path -LiteralPath (Join-Path $testDirectory 'Arachne.IGL.dll'))){throw 'Native comparison requested but Arachne.IGL.dll is missing.'}
-    & (Join-Path $testDirectory 'Arachne.Arap.Tests.exe') @testArgs
+    & dotnet (Join-Path $testDirectory 'Arachne.Arap.Tests.dll') @testArgs
     if($LASTEXITCODE -ne 0){throw 'ARAP checks failed.'}
     # The library is its output folder; the build record goes next to it
     $files=@('Arachne.Arap.dll','Arachne.Arap.xml','GPCGeometry.dll','GPCUtilities.dll') | Where-Object { Test-Path -LiteralPath (Join-Path $destination $_) }

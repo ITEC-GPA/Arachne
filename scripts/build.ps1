@@ -20,7 +20,7 @@ $outputRoot = Get-ArachneOutputRoot $projectRoot $ArachneBin $Configuration -Plu
 Push-Location $projectRoot
 try {
     # Invalidate success before any preflight, including dependency checks.
-    $pluginDir = Join-Path $outputRoot "Arachne.Grasshopper\$Configuration\net48"
+    $pluginDir = Join-Path $outputRoot "Arachne.Grasshopper\$Configuration\$ArachneFramework"
     $buildRecord = Join-Path $pluginDir 'BUILD.json'
     if (Test-Path -LiteralPath $buildRecord) { Remove-Item -LiteralPath $buildRecord }
     $properties = @("-p:ArachneBin=$($outputRoot.TrimEnd([char[]]'\/'))")
@@ -50,7 +50,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
     & dotnet build Arachne.sln -c $Configuration --no-restore @properties
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-    & (Join-Path $outputRoot "Arachne.Arap.Tests\$Configuration\net48\Arachne.Arap.Tests.exe") | Tee-Object -FilePath (Join-Path $pluginDir 'ARAP-CHECKS.log')
+    # Test hosts run through dotnet: the antivirus can refuse a freshly built apphost .exe ("Accesso negato").
+    & dotnet (Join-Path $outputRoot "Arachne.Arap.Tests\$Configuration\$ArachneFramework\Arachne.Arap.Tests.dll") | Tee-Object -FilePath (Join-Path $pluginDir 'ARAP-CHECKS.log')
     if ($LASTEXITCODE -ne 0) { throw 'Managed ARAP checks failed.' }
     $arapSummary = [regex]::Match((Get-Content -Raw (Join-Path $pluginDir 'ARAP-CHECKS.log')), 'ARAP checks: (\d+) passed, (\d+) failed\.')
     if (!$arapSummary.Success) { throw 'ARAP summary missing.' }
@@ -63,10 +64,12 @@ try {
         # Components, FeMM inputs/outputs, form finding and patterning, in a headless Rhino
         $checkArgs = @($projectRoot, $rhinoDir, $ghDir, '--tests-only', '--femm', $femmPath, '--report', $reportPath)
         if ($RequireFemm) { $checkArgs += '--require-femm' }
-        & (Join-Path $outputRoot "Arachne.ExampleWriter\$Configuration\net48\Arachne.ExampleWriter.exe") @checkArgs | Tee-Object -FilePath (Join-Path $pluginDir 'RHINO-CHECKS.log')
+        & dotnet (Join-Path $outputRoot "Arachne.ExampleWriter\$Configuration\$ArachneFramework\Arachne.ExampleWriter.dll") @checkArgs | Tee-Object -FilePath (Join-Path $pluginDir 'RHINO-CHECKS.log')
         if($LASTEXITCODE -ne 0){throw 'Rhino/Grasshopper checks failed.'}
         $rhinoReport = Get-Content -Raw -LiteralPath $reportPath | ConvertFrom-Json
         if ($rhinoReport.Status -notin @('Passed','PassedWithSkips')) { throw 'Rhino check report did not pass.' }
+        # The checks run in a .NET 8 host with BinaryFormatter off (see RuntimeGuards in ExampleWriter).
+        if ($rhinoReport.BinaryFormatterSwitch -ne $false) { throw 'Runtime did not keep BinaryFormatter disabled.' }
         if ($RequireFemm -and $rhinoReport.FemmComparison -ne 'Passed') { throw 'FeMM comparison incomplete.' }
     }
     $files = @('Arachne.Grasshopper.gha','Arachne.Common.dll','Arachne.Arap.dll','GPCGeometry.dll','GPCUtilities.dll','DelaunayMesh.dll','GPCModel.dll','GPC.Model.Persistence.dll','GPC.Archive.dll','MathNet.Numerics.dll','TensileLib.dll','alglibnet2.dll')
@@ -97,7 +100,7 @@ try {
         ManagedArapChecks=[pscustomobject]@{Status='Passed';Passed=[int]$arapSummary.Groups[1].Value;Failed=[int]$arapSummary.Groups[2].Value;Skipped=0}
         RhinoChecks=if($rhinoReport){$rhinoReport}else{[pscustomobject]@{Status='NotRun';FemmComparison='NotRun'}}
         BuiltUtc=[DateTime]::UtcNow.ToString('o')
-        Framework='net48';Platform='Windows x64';ArapEngine='Managed C# netstandard2.0'
+        Framework=$ArachneFramework;Platform='Windows x64';ArapEngine='Managed C# netstandard2.0'
     } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $buildRecord -Encoding utf8
     Write-Host "Plugin: $pluginDir"
 }

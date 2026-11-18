@@ -60,8 +60,8 @@ sono facoltativi e non implicano equivalenza generale o bit per bit. Le verifich
 dei componenti sono in [ExampleWriter](../tools/Arachne.ExampleWriter/Program.cs).
 
 Gli output correnti sono in `bin/<progetto>/<configurazione>/<framework>`:
-`Arachne.Arap/Release/netstandard2.0`, `Arachne.Arap.Tests/Release/net48` e
-`Arachne.Grasshopper/Release/net48`. `BUILD.json` e `DEPENDENCIES.json` sono scritti
+`Arachne.Arap/Release/netstandard2.0`, `Arachne.Arap.Tests/Release/net8.0-windows` e
+`Arachne.Grasshopper/Release/net8.0-windows`. `BUILD.json` e `DEPENDENCIES.json` sono scritti
 dagli script. I vecchi percorsi `artifacts/Release` e i conteggi della 0.2.0 non
 descrivono il pacchetto corrente: consultare log e metadati della specifica build.
 

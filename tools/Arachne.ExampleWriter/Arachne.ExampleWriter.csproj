@@ -1,14 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net48</TargetFramework><OutputType>Exe</OutputType><PlatformTarget>x64</PlatformTarget></PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <OutputType>Exe</OutputType>
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- The checks run with BinaryFormatter off (runtimeconfig.json); Program also sets the switch and the report records it. -->
+    <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
+    <!-- No .deps.json: it would list Arachne.Grasshopper.gha, which is kept out of this folder (below), and the host puts
+         every listed file in the trusted assemblies without checking it; a .gha there stops CoreCLR at start-up
+         (0x80070057). Without it the trusted assemblies are the DLLs of this folder; the plug-in comes from its own folder. -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="GPCUtilities"><HintPath>$(GpcUtilitiesPath)</HintPath><Private>true</Private></Reference>
     <ProjectReference Include="..\..\src\Arachne.Grasshopper\Arachne.Grasshopper.csproj" />
     <Reference Include="Grasshopper"><HintPath>$(GrasshopperDir)\Grasshopper.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="GH_IO"><HintPath>$(GrasshopperDir)\GH_IO.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="RhinoCommon"><HintPath>$(RhinoSystemDir)\RhinoCommon.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.Windows.Forms" />
     <Reference Include="GPCGeometry"><HintPath>$(GpcGeometryPath)</HintPath><Private>true</Private></Reference>
     <Reference Include="TensileLib"><HintPath>$(TensileLibPath)</HintPath><Private>true</Private></Reference>
     <Reference Include="Eto"><HintPath>$(RhinoSystemDir)\Eto.dll</HintPath><Private>false</Private></Reference>

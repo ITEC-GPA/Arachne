@@ -31,11 +31,13 @@ internal static class Program
         Report.RequireFemm = args.Contains("--require-femm");
         int reportIndex = Array.IndexOf(args, "--report");
         string reportPath = reportIndex < 0 ? null : args[reportIndex + 1];
-        // The tool checks the plug-in built next to it, with the same configuration:
-        // <bin>\Arachne.ExampleWriter\<configuration>\net48 -> <bin>\Arachne.Grasshopper\<configuration>\net48
+        // The tool checks the plug-in built next to it, with the same configuration and framework:
+        // <bin>\Arachne.ExampleWriter\<configuration>\net8.0-windows -> <bin>\Arachne.Grasshopper\<configuration>\net8.0-windows
         var toolDir = new DirectoryInfo(Path.GetDirectoryName(typeof(Program).Assembly.Location));
         string configuration = toolDir.Parent.Name;
-        var pluginDir = Path.Combine(toolDir.Parent.Parent.Parent.FullName, "Arachne.Grasshopper", configuration, "net48");
+        var pluginDir = Path.Combine(toolDir.Parent.Parent.Parent.FullName, "Arachne.Grasshopper", configuration, toolDir.Name);
+        try { RuntimeGuards.PrepareHost(args[1]); }
+        catch (Exception error) { Report.Error = error.ToString(); Console.Error.WriteLine(error); if (reportPath != null) Report.Save(reportPath); return 1; }
         AppDomain.CurrentDomain.AssemblyResolve += (sender, request) =>
         {
             string name = new AssemblyName(request.Name).Name;
@@ -52,6 +54,7 @@ internal static class Program
             if (Report.RequireFemm && !Directory.Exists(Path.Combine(femm, "FeMM.Grasshopper")))
             { Report.FemmComparison = "Failed"; throw new DirectoryNotFoundException("Required FeMM reference sources missing: " + femm); }
             if (mode == "--icons") return Icons.Write(root, Path.Combine(pluginDir, "Arachne.Grasshopper.gha"), "NodeComponent");
+            RuntimeGuards.VerifySerializationReferences(pluginDir);
             int result = StartRhino(root, pluginDir, mode, femm);
             Report.Status = result == 0 ? (Report.Suites.Any(s => s.Skipped > 0) ? "PassedWithSkips" : "Passed") : "Failed";
             return result;
@@ -103,7 +106,7 @@ internal static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int Run(string root, string pluginDir, string mode, string femm)
     {
-        Report.BinaryFormatterSwitch = AppContext.TryGetSwitch("System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization", out bool enabled) ? (bool?)enabled : null;
+        Report.BinaryFormatterSwitch = AppContext.TryGetSwitch(RuntimeGuards.BinaryFormatterSwitch, out bool enabled) ? (bool?)enabled : null;
         Console.WriteLine("ExampleWriter mode: " + (mode ?? "tests and examples") + "; plug-in: " + pluginDir);
         // Keep this headless validation process independent of installed third-party plugins.
         // This changes only this process, never the user's Grasshopper settings.
