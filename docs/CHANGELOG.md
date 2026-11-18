@@ -1,5 +1,12 @@
 # Registro delle modifiche
 
+## 0.5.1 — set GPC ufficiale del 18 novembre 2026 (BA)
+
+- Versione prodotto 0.5.1, assembly/file 0.5.1.0: cambia solo il set GPC, quindi sale l'ultimo numero.
+- Set comune con BridGHe 0.4.2 e ReBear 0.4.4: il set GPC ufficiale BA del 18 novembre 2026 (`candidate=false`, Model `55c15ed5`). GPCModel 5.54.0.0, GPC.Model.Persistence 3.17.0.1 e GPC.Archive 1.2.0.10; GPCGeometry, GPCUtilities e DelaunayMesh identiche. GPCModel 5.54 calcola J e centro di taglio di T, C e L con il metodo numerico; Arachne non usa quelle sezioni (le sue T, C e Angle sono sezioni generiche con J assegnata).
+- TensileLib 2.5.0.1, alglibnet2 e MathNet.Numerics invariati. Nomi, porte, GUID, esempi e formato degli archivi invariati.
+- Note complete, con il passaggio a .NET 8 della 0.5.0: [Arachne 0.5.1](RELEASE-0.5.1.md).
+
 ## 0.5.0 — plug-in su .NET 8
 
 - Versione prodotto 0.5.0, assembly/file 0.5.0.0: il cambio di runtime non è una correzione, quindi sale il secondo numero.
